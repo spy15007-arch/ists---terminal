@@ -1,0 +1,32 @@
+from config.settings import APP_NAME, VERSION
+
+
+def banner():
+    print("=" * 60)
+    print(f"           {APP_NAME}")
+    print("=" * 60)
+    print(f"Version : {VERSION}")
+    print("Developer : S P Yadav")
+    print("=" * 60)
+
+
+def main():
+    banner()
+
+    print("\nWelcome to ISTS Pro.")
+    print("Institutional Swing Trading System")
+    print("\nModules")
+
+    print("1. Market Engine")
+    print("2. Sector Engine")
+    print("3. Scanner Engine")
+    print("4. Ranking Engine")
+    print("5. Dashboard")
+    print("6. Trade Journal")
+    print("7. Analytics")
+
+    print("\nSystem Initialised Successfully.")
+
+
+if __name__ == "__main__":
+    main()
