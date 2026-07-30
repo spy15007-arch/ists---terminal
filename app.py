@@ -176,3 +176,31 @@ if page == "Scan Market":
         ])
         fig.update_layout(template="plotly_dark", xaxis_rangeslider_visible=False, height=450, title=f"{selected_stock} Daily Chart")
         st.plotly_chart(fig, use_container_width=True)
+def generate_breakout_markdown(df_results):
+    """Generates breakoutsummary.md content ranked from best to weakest."""
+    md_content = "# 📊 ISTS Pro - Pre-Breakout & BTST Readiness Report\n\n"
+    md_content += "## 🏆 Stock Leaderboard (Ranked Best to Weakest)\n\n"
+    md_content += "| Rank | Stock | Price (₹) | Readiness Score | Composite /100 | Close Pos % | Vol vs 50d | Base Range % | RS Edge % | Resistance Clearance % |\n"
+    md_content += "| :---: | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |\n"
+    
+    for _, row in df_results.iterrows():
+        score_badge = f"🔥 {row['Score /10']}/10" if row['Score /10'] >= 8 else f"{row['Score /10']}/10"
+        md_content += (
+            f"| {row['Rank']} | **{row['Stock']}** | ₹{row['Price']} | {score_badge} | "
+            f"{row['Composite /100']} | {row['Close Position %']}% | {row['Vol vs 50d Avg']}x | "
+            f"{row['Base Range %']}% | {row['RS Edge %']}% | {row['Resistance Clearance %']}% |\n"
+        )
+    
+    md_content += "\n---\n\n### 🎯 Top High-Conviction Setups\n\n"
+    top_setups = df_results[df_results['Score /10'] >= 7]
+    if top_setups.empty:
+        top_setups = df_results.head(3)
+        
+    for _, row in top_setups.iterrows():
+        md_content += f"#### #{row['Rank']} {row['Stock']} — Score: {row['Score /10']}/10 (Composite: {row['Composite /100']})\n"
+        md_content += f"- **Last Price:** ₹{row['Price']}\n"
+        md_content += f"- **Close Position:** {row['Close Position %']}% (buyers in control into close)\n"
+        md_content += f"- **Volume Surge:** {row['Vol vs 50d Avg']}x 50-day average volume\n"
+        md_content += f"- **Relative Strength Edge:** {row['RS Edge %']}% vs NIFTY 50\n\n"
+        
+    return md_content
