@@ -13,7 +13,6 @@ def get_nifty500_tickers():
         tickers = [f"{symbol}.NS" for symbol in df['Symbol'].tolist()]
         return tickers
     except Exception:
-        # Fallback to key liquid Nifty 500 momentum tickers if NSE URL is restricted
         fallback_symbols = [
             'TVSMOTOR', 'COFORGE', 'HAL', 'BEL', 'DIXON', 'TRENT', 'MCX', 'PERSISTENT',
             'BHARTIARTL', 'RELIANCE', 'SBIN', 'ICICIBANK', 'HDFCBANK', 'TATAMOTORS',
@@ -23,11 +22,34 @@ def get_nifty500_tickers():
         ]
         return [f"{s}.NS" for s in fallback_symbols]
 
+# 2. OPTIONS CONTRACT RECOMMENDATION ENGINE
+def generate_option_idea(symbol, price, score):
+    """Calculates ATM Call option strike and target for top breakout candidates."""
+    if score < 7:
+        return "N/A", "-", "-"
+    
+    # Calculate NSE Strike Step size
+    if price > 5000:
+        step = 100
+    elif price > 2000:
+        step = 50
+    elif price > 1000:
+        step = 20
+    elif price > 500:
+        step = 10
+    else:
+        step = 5
+
+    atm_strike = int(round(price / step) * step)
+    option_contract = f"BUY {symbol} {atm_strike} CE"
+    target_spot = f"₹{round(price * 1.03, 1)}"
+    sl_spot = f"₹{round(price * 0.985, 1)}"
+    return option_contract, target_spot, sl_spot
+
 def run():
     tickers = get_nifty500_tickers()
     results = []
 
-    # 2. BENCHMARK RETURN (NIFTY 50)
     try:
         nifty = yf.download('^NSEI', period="6m", interval="1d", progress=False)['Close']
         if isinstance(nifty, pd.DataFrame): nifty = nifty.iloc[:, 0]
@@ -35,9 +57,6 @@ def run():
     except Exception:
         nifty_3m = 0.0
 
-    print(f"Scanning {len(tickers)} stocks from Nifty 500 universe...")
-
-    # 3. BULK DATA DOWNLOAD FOR SPEED
     data = yf.download(tickers, period="1y", interval="1d", group_by='ticker', progress=False)
 
     for ticker in tickers:
@@ -51,23 +70,19 @@ def run():
             low_p = df['Low'].iloc[-1]
             vol_today = df['Volume'].iloc[-1]
 
-            # EMA Calculation for Momentum Filter
             ema_50 = df['Close'].ewm(span=50, adjust=False).mean().iloc[-1]
             ema_200 = df['Close'].ewm(span=200, adjust=False).mean().iloc[-1]
 
-            # --- UPTREND / MOMENTUM FILTER ---
-            # Condition 1: Must be in Stage-2 Uptrend (Close > EMA 50 > EMA 200)
+            # Stage-2 Uptrend filter
             if not (close_p > ema_50 and ema_50 > ema_200):
                 continue
 
             stock_3m_return = ((close_p / df['Close'].iloc[-63]) - 1) * 100
             rs_edge_pct = round(stock_3m_return - nifty_3m, 1)
 
-            # Condition 2: Must have positive Relative Strength vs Benchmark
             if rs_edge_pct < 0:
                 continue
 
-            # Technical Metrics
             close_pos = round(((close_p - low_p) / (high_p - low_p)) * 100, 1) if high_p != low_p else 50.0
             vol_50d_avg = df['Volume'].rolling(50).mean().iloc[-1]
             vol_vs_50d = round(vol_today / vol_50d_avg, 2) if vol_50d_avg > 0 else 1.0
@@ -77,7 +92,6 @@ def run():
             base_range_pct = round(((high_50d - low_50d) / low_50d) * 100, 1)
             resistance_clearance = round(((high_50d - close_p) / close_p) * 100, 1) if high_50d > close_p else 0.0
 
-            # 0-10 Readiness Scoring System
             score = 0
             if close_pos >= 80: score += 2
             elif close_pos >= 65: score += 1
@@ -102,6 +116,8 @@ def run():
                 1
             )
 
+            opt_contract, opt_target, opt_sl = generate_option_idea(symbol, close_p, score)
+
             results.append({
                 'Stock': symbol, 
                 'Price': round(close_p, 2), 
@@ -111,16 +127,18 @@ def run():
                 'Vol50d': vol_vs_50d,
                 'BaseRange': base_range_pct, 
                 'RSEdge': rs_edge_pct, 
-                'ResClear': resistance_clearance
+                'ResClear': resistance_clearance,
+                'OptionContract': opt_contract,
+                'OptTarget': opt_target,
+                'OptSL': opt_sl
             })
         except Exception:
             continue
 
-    # Sort & pick top 20 momentum setups
     df_res = pd.DataFrame(results).sort_values(by=['Score', 'Composite'], ascending=[False, False]).head(20)
     df_res['Rank'] = range(1, len(df_res) + 1)
 
-    # 4. GENERATE MARKDOWN REPORT
+    # Build breakoutsummary.md Content
     md = "# 📊 ISTS Pro — Pre-Breakout & BTST Readiness Report\n\n"
     md += f"> **Universe:** Top 500 NSE Stocks | **Filter:** Stage-2 Uptrend (Close > EMA50 > EMA200) + Positive Relative Strength\n\n"
     md += "## 🏆 Top 20 Momentum Leaderboard (Ranked Best to Weakest)\n\n"
@@ -135,14 +153,23 @@ def run():
             f"{r['BaseRange']}% | {r['RSEdge']}% | {r['ResClear']}% |\n"
         )
 
-    md += "\n---\n\n## ⚡ Top 3 Conviction Setups\n\n"
-    top_3 = df_res.head(3)
-    for _, r in top_3.iterrows():
+    # Append Options Recommendations Table
+    options_df = df_res[df_res['Score'] >= 7]
+    if not options_df.empty:
+        md += "\n---\n\n## 🎯 High-Conviction Call Options Recommendations (Score ≥ 7/10)\n\n"
+        md += "| Stock | Spot Price (₹) | Score | Option Contract | Target Price (Spot) | Stop Loss (Spot) |\n"
+        md += "| :--- | :---: | :---: | :--- | :---: | :---: |\n"
+        for _, r in options_df.iterrows():
+            md += f"| **{r['Stock']}** | ₹{r['Price']} | 🔥 {r['Score']}/10 | **{r['OptionContract']}** | {r['OptTarget']} | {r['OptSL']} |\n"
+
+    md += "\n---\n\n## ⚡ Top Conviction Setups Summary\n\n"
+    top_setups = df_res.head(3)
+    for _, r in top_setups.iterrows():
         md += f"### #{r['Rank']} {r['Stock']} — Score: {r['Score']}/10 (Composite: {r['Composite']})\n"
         md += f"- **Last Price:** ₹{r['Price']}\n"
-        md += f"- **Close Position:** {r['ClosePos']}% (strong institutional accumulation into close)\n"
+        md += f"- **Close Position:** {r['ClosePos']}% (institutional buying into close)\n"
         md += f"- **Volume Surge:** {r['Vol50d']}x vs 50-day average volume\n"
-        md += f"- **Relative Strength Edge:** +{r['RSEdge']}% over NIFTY 50\n\n"
+        md += f"- **Options Recommendation:** {r['OptionContract']}\n\n"
 
     with open("breakoutsummary.md", "w", encoding="utf-8") as f:
         f.write(md)
