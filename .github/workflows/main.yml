@@ -1,21 +1,22 @@
 name: Automated Market Scanner
 
 on:
-  workflow_dispatch: # Allows manual trigger anytime
+  workflow_dispatch:
   schedule:
-    # 1. Morning Intraday / F&O Scan at 9:15 AM IST (03:45 UTC), Monday-Friday
+    # Morning Scan at 9:15 AM IST (03:45 UTC), Mon-Fri
     - cron: '45 3 * * 1-5'
-    
-    # 2. BTST / Swing Pre-Close Scan at 3:10 PM IST (09:40 UTC), Monday-Friday
+    # Pre-Close Scan at 3:10 PM IST (09:40 UTC), Mon-Fri
     - cron: '40 9 * * 1-5'
 
 jobs:
   scan:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write   # <--- FIXES EXIT CODE 128 (ALLOWS GIT PUSH)
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: "3.10"
       - name: Install dependencies
