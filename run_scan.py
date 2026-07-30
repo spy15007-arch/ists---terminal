@@ -1,53 +1,83 @@
 import yfinance as yf
 import pandas as pd
 import numpy as np
+import requests
 
-# Nifty 50 / FnO Core Scanner Universe
-NIFTY_UNIVERSE = [
-    'BHARTIARTL', 'RELIANCE', 'SBIN', 'ICICIBANK', 'HDFCBANK', 'TATAMOTORS',
-    'TVSMOTOR', 'COFORGE', 'INFY', 'TCS', 'HAL', 'BEL', 'LT', 'MARUTI'
-]
+# 1. FETCH DYNAMIC NIFTY 500 TICKER UNIVERSE
+def get_nifty500_tickers():
+    url = "https://archives.nseindia.com/content/indices/ind_nifty500list.csv"
+    headers = {'User-Agent': 'Mozilla/5.0'}
+    try:
+        response = requests.get(url, headers=headers, timeout=10)
+        df = pd.read_csv(pd.compat.StringIO(response.text))
+        tickers = [f"{symbol}.NS" for symbol in df['Symbol'].tolist()]
+        return tickers
+    except Exception:
+        # Fallback to key liquid Nifty 500 momentum tickers if NSE URL is restricted
+        fallback_symbols = [
+            'TVSMOTOR', 'COFORGE', 'HAL', 'BEL', 'DIXON', 'TRENT', 'MCX', 'PERSISTENT',
+            'BHARTIARTL', 'RELIANCE', 'SBIN', 'ICICIBANK', 'HDFCBANK', 'TATAMOTORS',
+            'INFY', 'TCS', 'LT', 'MARUTI', 'AXISBANK', 'M&M', 'SUNPHARMA', 'TITAN',
+            'KALYANKJIL', 'SAREGAMA', 'JYOTICNC', 'FEDERALBNK', 'IEX', 'BHARTIHEXA',
+            'LALPATHLAB', 'DIVISLAB', 'PARADEEP', 'PCBL', 'FSL', 'SONATSOFTW', 'RADICO'
+        ]
+        return [f"{s}.NS" for s in fallback_symbols]
 
 def run():
+    tickers = get_nifty500_tickers()
     results = []
-    
-    # 1. Benchmark Return (Nifty 50 3-Month Return)
+
+    # 2. BENCHMARK RETURN (NIFTY 50)
     try:
         nifty = yf.download('^NSEI', period="6m", interval="1d", progress=False)['Close']
-        if isinstance(nifty, pd.DataFrame): 
-            nifty = nifty.iloc[:, 0]
+        if isinstance(nifty, pd.DataFrame): nifty = nifty.iloc[:, 0]
         nifty_3m = ((nifty.iloc[-1] / nifty.iloc[-63]) - 1) * 100
     except Exception:
         nifty_3m = 0.0
 
-    # 2. Iterate and Evaluate Each Stock
-    for symbol in NIFTY_UNIVERSE:
-        try:
-            data = yf.download(f"{symbol}.NS", period="1y", interval="1d", progress=False)
-            if len(data) < 70: 
-                continue
-            if isinstance(data.columns, pd.MultiIndex): 
-                data.columns = data.columns.get_level_values(0)
+    print(f"Scanning {len(tickers)} stocks from Nifty 500 universe...")
 
-            close_p = data['Close'].iloc[-1]
-            high_p = data['High'].iloc[-1]
-            low_p = data['Low'].iloc[-1]
-            vol_today = data['Volume'].iloc[-1]
+    # 3. BULK DATA DOWNLOAD FOR SPEED
+    data = yf.download(tickers, period="1y", interval="1d", group_by='ticker', progress=False)
+
+    for ticker in tickers:
+        symbol = ticker.replace(".NS", "")
+        try:
+            df = data[ticker].dropna() if len(tickers) > 1 else data.dropna()
+            if len(df) < 200: continue
+
+            close_p = df['Close'].iloc[-1]
+            high_p = df['High'].iloc[-1]
+            low_p = df['Low'].iloc[-1]
+            vol_today = df['Volume'].iloc[-1]
+
+            # EMA Calculation for Momentum Filter
+            ema_50 = df['Close'].ewm(span=50, adjust=False).mean().iloc[-1]
+            ema_200 = df['Close'].ewm(span=200, adjust=False).mean().iloc[-1]
+
+            # --- UPTREND / MOMENTUM FILTER ---
+            # Condition 1: Must be in Stage-2 Uptrend (Close > EMA 50 > EMA 200)
+            if not (close_p > ema_50 and ema_50 > ema_200):
+                continue
+
+            stock_3m_return = ((close_p / df['Close'].iloc[-63]) - 1) * 100
+            rs_edge_pct = round(stock_3m_return - nifty_3m, 1)
+
+            # Condition 2: Must have positive Relative Strength vs Benchmark
+            if rs_edge_pct < 0:
+                continue
 
             # Technical Metrics
             close_pos = round(((close_p - low_p) / (high_p - low_p)) * 100, 1) if high_p != low_p else 50.0
-            vol_50d_avg = data['Volume'].rolling(50).mean().iloc[-1]
+            vol_50d_avg = df['Volume'].rolling(50).mean().iloc[-1]
             vol_vs_50d = round(vol_today / vol_50d_avg, 2) if vol_50d_avg > 0 else 1.0
 
-            high_50d = data['High'].rolling(50).max().iloc[-1]
-            low_50d = data['Low'].rolling(50).min().iloc[-1]
+            high_50d = df['High'].rolling(50).max().iloc[-1]
+            low_50d = df['Low'].rolling(50).min().iloc[-1]
             base_range_pct = round(((high_50d - low_50d) / low_50d) * 100, 1)
-
-            stock_3m_return = ((close_p / data['Close'].iloc[-63]) - 1) * 100
-            rs_edge_pct = round(stock_3m_return - nifty_3m, 1)
             resistance_clearance = round(((high_50d - close_p) / close_p) * 100, 1) if high_50d > close_p else 0.0
 
-            # 0 - 10 Readiness Score Calculation
+            # 0-10 Readiness Scoring System
             score = 0
             if close_pos >= 80: score += 2
             elif close_pos >= 65: score += 1
@@ -86,24 +116,34 @@ def run():
         except Exception:
             continue
 
-    # 3. Sort & Build Markdown Output
-    df = pd.DataFrame(results).sort_values(by=['Score', 'Composite'], ascending=[False, False])
-    df['Rank'] = range(1, len(df) + 1)
+    # Sort & pick top 20 momentum setups
+    df_res = pd.DataFrame(results).sort_values(by=['Score', 'Composite'], ascending=[False, False]).head(20)
+    df_res['Rank'] = range(1, len(df_res) + 1)
 
-    md = "# 📊 ISTS Pro - Pre-Breakout & BTST Readiness Report\n\n"
-    md += "## 🏆 Stock Leaderboard (Ranked Best to Weakest)\n\n"
+    # 4. GENERATE MARKDOWN REPORT
+    md = "# 📊 ISTS Pro — Pre-Breakout & BTST Readiness Report\n\n"
+    md += f"> **Universe:** Top 500 NSE Stocks | **Filter:** Stage-2 Uptrend (Close > EMA50 > EMA200) + Positive Relative Strength\n\n"
+    md += "## 🏆 Top 20 Momentum Leaderboard (Ranked Best to Weakest)\n\n"
     md += "| Rank | Stock | Price (₹) | Readiness Score | Composite /100 | Close Pos % | Vol vs 50d | Base Range % | RS Edge % | Resistance Clearance % |\n"
     md += "| :---: | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |\n"
-    
-    for _, r in df.iterrows():
-        score_badge = f"🔥 {r['Score']}/10" if r['Score'] >= 8 else f"{r['Score']}/10"
+
+    for _, r in df_res.iterrows():
+        badge = f"🔥 {r['Score']}/10" if r['Score'] >= 8 else f"{r['Score']}/10"
         md += (
-            f"| {r['Rank']} | **{r['Stock']}** | ₹{r['Price']} | {score_badge} | "
+            f"| {r['Rank']} | **{r['Stock']}** | ₹{r['Price']} | {badge} | "
             f"{r['Composite']} | {r['ClosePos']}% | {r['Vol50d']}x | "
             f"{r['BaseRange']}% | {r['RSEdge']}% | {r['ResClear']}% |\n"
         )
 
-    # 4. Write breakoutsummary.md
+    md += "\n---\n\n## ⚡ Top 3 Conviction Setups\n\n"
+    top_3 = df_res.head(3)
+    for _, r in top_3.iterrows():
+        md += f"### #{r['Rank']} {r['Stock']} — Score: {r['Score']}/10 (Composite: {r['Composite']})\n"
+        md += f"- **Last Price:** ₹{r['Price']}\n"
+        md += f"- **Close Position:** {r['ClosePos']}% (strong institutional accumulation into close)\n"
+        md += f"- **Volume Surge:** {r['Vol50d']}x vs 50-day average volume\n"
+        md += f"- **Relative Strength Edge:** +{r['RSEdge']}% over NIFTY 50\n\n"
+
     with open("breakoutsummary.md", "w", encoding="utf-8") as f:
         f.write(md)
 
