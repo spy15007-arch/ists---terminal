@@ -10,8 +10,7 @@ def get_nifty500_tickers():
     try:
         response = requests.get(url, headers=headers, timeout=10)
         df = pd.read_csv(pd.compat.StringIO(response.text))
-        tickers = [f"{symbol}.NS" for symbol in df['Symbol'].tolist()]
-        return tickers
+        return [f"{symbol}.NS" for symbol in df['Symbol'].tolist()]
     except Exception:
         fallback_symbols = [
             'TVSMOTOR', 'COFORGE', 'HAL', 'BEL', 'DIXON', 'TRENT', 'MCX', 'PERSISTENT',
@@ -24,27 +23,17 @@ def get_nifty500_tickers():
 
 # 2. OPTIONS CONTRACT RECOMMENDATION ENGINE
 def generate_option_idea(symbol, price, score):
-    """Calculates ATM Call option strike and target for top breakout candidates."""
     if score < 7:
         return "N/A", "-", "-"
     
-    # Calculate NSE Strike Step size
-    if price > 5000:
-        step = 100
-    elif price > 2000:
-        step = 50
-    elif price > 1000:
-        step = 20
-    elif price > 500:
-        step = 10
-    else:
-        step = 5
+    if price > 5000: step = 100
+    elif price > 2000: step = 50
+    elif price > 1000: step = 20
+    elif price > 500: step = 10
+    else: step = 5
 
     atm_strike = int(round(price / step) * step)
-    option_contract = f"BUY {symbol} {atm_strike} CE"
-    target_spot = f"₹{round(price * 1.03, 1)}"
-    sl_spot = f"₹{round(price * 0.985, 1)}"
-    return option_contract, target_spot, sl_spot
+    return f"BUY {symbol} {atm_strike} CE", f"₹{round(price * 1.03, 1)}", f"₹{round(price * 0.985, 1)}"
 
 def run():
     tickers = get_nifty500_tickers()
@@ -116,6 +105,13 @@ def run():
                 1
             )
 
+            # ATR calculation for Equity Stop Loss & Target
+            high_low = df['High'] - df['Low']
+            high_close = np.abs(df['High'] - df['Close'].shift())
+            low_close = np.abs(df['Low'] - df['Close'].shift())
+            tr = pd.concat([high_low, high_close, low_close], axis=1).max(axis=1)
+            atr = tr.ewm(alpha=1/14, adjust=False).mean().iloc[-1]
+
             opt_contract, opt_target, opt_sl = generate_option_idea(symbol, close_p, score)
 
             results.append({
@@ -130,20 +126,36 @@ def run():
                 'ResClear': resistance_clearance,
                 'OptionContract': opt_contract,
                 'OptTarget': opt_target,
-                'OptSL': opt_sl
+                'OptSL': opt_sl,
+                'ATR': round(atr, 2)
             })
         except Exception:
             continue
 
     df_res = pd.DataFrame(results).sort_values(by=['Score', 'Composite'], ascending=[False, False]).head(20)
-    df_res['Rank'] = range(1, len(df_res) + 1)
+    df_res['Rank'] = range(1, len(df_res) + 1) if not df_res.empty else []
 
-    # Build breakoutsummary.md Content
     md = "# 📊 ISTS Pro — Pre-Breakout & BTST Readiness Report\n\n"
-    md += f"> **Universe:** Top 500 NSE Stocks | **Filter:** Stage-2 Uptrend (Close > EMA50 > EMA200) + Positive Relative Strength\n\n"
-    md += "## 🏆 Top 20 Momentum Leaderboard (Ranked Best to Weakest)\n\n"
+    md += f"> **Universe:** Top 500 NSE Stocks | **Filter:** Stage-2 Uptrend + RS Edge\n\n"
+
+    # 1. TOP 10 HIGH CONVICTION EQUITY STOCKS
+    top_10 = df_res.head(10)
+    md += "## ⚡ Top 10 High-Conviction Stock Setups (Equity / BTST / Swing)\n\n"
+    md += "| Rank | Stock | Price (₹) | Readiness Score | Composite /100 | Equity Stop Loss (₹) | Equity Target (₹) | Action |\n"
+    md += "| :---: | :--- | :---: | :---: | :---: | :---: | :---: | :---: |\n"
+
+    for _, r in top_10.iterrows():
+        badge = f"🔥 {r['Score']}/10" if r['Score'] >= 8 else f"{r['Score']}/10"
+        sl = round(r['Price'] - (1.5 * r['ATR']), 1)
+        target = round(r['Price'] + (3.0 * r['ATR']), 1)
+        action = "**BUY NOW (BTST)**" if r['Score'] >= 8 else "BUY (Breakout)"
+        
+        md += f"| {r['Rank']} | **{r['Stock']}** | ₹{r['Price']} | {badge} | {r['Composite']} | ₹{sl} | ₹{target} | {action} |\n"
+
+    # 2. FULL TOP 20 LEADERBOARD
+    md += "\n---\n\n## 🏆 Full Top 20 Momentum Leaderboard\n\n"
     md += "| Rank | Stock | Price (₹) | Readiness Score | Composite /100 | Close Pos % | Vol vs 50d | Base Range % | RS Edge % | Resistance Clearance % |\n"
-    md += "| :---: | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |\n"
+    md += "| :---: | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |\n"
 
     for _, r in df_res.iterrows():
         badge = f"🔥 {r['Score']}/10" if r['Score'] >= 8 else f"{r['Score']}/10"
@@ -153,23 +165,14 @@ def run():
             f"{r['BaseRange']}% | {r['RSEdge']}% | {r['ResClear']}% |\n"
         )
 
-    # Append Options Recommendations Table
+    # 3. CALL OPTIONS SECTION
     options_df = df_res[df_res['Score'] >= 7]
     if not options_df.empty:
-        md += "\n---\n\n## 🎯 High-Conviction Call Options Recommendations (Score ≥ 7/10)\n\n"
+        md += "\n---\n\n## 🎯 Call Options Setups (For F&O Traders)\n\n"
         md += "| Stock | Spot Price (₹) | Score | Option Contract | Target Price (Spot) | Stop Loss (Spot) |\n"
         md += "| :--- | :---: | :---: | :--- | :---: | :---: |\n"
         for _, r in options_df.iterrows():
             md += f"| **{r['Stock']}** | ₹{r['Price']} | 🔥 {r['Score']}/10 | **{r['OptionContract']}** | {r['OptTarget']} | {r['OptSL']} |\n"
-
-    md += "\n---\n\n## ⚡ Top Conviction Setups Summary\n\n"
-    top_setups = df_res.head(3)
-    for _, r in top_setups.iterrows():
-        md += f"### #{r['Rank']} {r['Stock']} — Score: {r['Score']}/10 (Composite: {r['Composite']})\n"
-        md += f"- **Last Price:** ₹{r['Price']}\n"
-        md += f"- **Close Position:** {r['ClosePos']}% (institutional buying into close)\n"
-        md += f"- **Volume Surge:** {r['Vol50d']}x vs 50-day average volume\n"
-        md += f"- **Options Recommendation:** {r['OptionContract']}\n\n"
 
     with open("breakoutsummary.md", "w", encoding="utf-8") as f:
         f.write(md)
