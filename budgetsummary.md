@@ -6,8 +6,8 @@
 
 | Index | Spot Price (₹) | Trend Bias | Recommended Option | Spot Target | Spot Stop Loss |
 | :--- | :---: | :---: | :--- | :---: | :---: |
-| **NIFTY 50** | ₹24341.35 | 🟢 BULLISH (Above EMA20) | **BUY NIFTY50 24350 CE** | ₹24584.8 | ₹24219.6 |
-| **BANK NIFTY** | ₹57193.55 | 🔴 BEARISH (Below EMA20) | **BUY BANKNIFTY 57200 PE** | ₹56621.6 | ₹57479.5 |
+| **NIFTY 50** | ₹24351.55 | 🟢 BULLISH (Above EMA20) | **BUY NIFTY50 24350 CE** | ₹24595.1 | ₹24229.8 |
+| **BANK NIFTY** | ₹57214.05 | 🔴 BEARISH (Below EMA20) | **BUY BANKNIFTY 57200 PE** | ₹56641.9 | ₹57500.1 |
 
 ---
 
@@ -15,9 +15,9 @@
 
 | Rank | Stock | Price (₹) | Readiness Score | Composite /100 | Equity Stop Loss (₹) | Equity Target (₹) | Call Option Strategy | Action |
 | :---: | :--- | :---: | :---: | :---: | :---: | :---: | :--- | :---: |
-| 1 | **FEDERALBNK** | ₹357.55 | 🔥 5/10 | 54.9 | ₹348.0 | ₹376.6 | **BUY FEDERALBNK 360 CE** | **BUY NOW (BTST)** |
-| 2 | **RBLBANK** | ₹377.5 | 3/10 | 38.2 | ₹362.7 | ₹407.1 | **BUY RBLBANK 380 CE** | BUY (Breakout) |
-| 3 | **NYKAA** | ₹334.85 | 3/10 | 35.4 | ₹324.2 | ₹356.1 | **BUY NYKAA 335 CE** | BUY (Breakout) |
-| 4 | **ACMESOLAR** | ₹363.2 | 2/10 | 43.1 | ₹341.0 | ₹407.5 | **BUY ACMESOLAR 365 CE** | BUY (Breakout) |
-| 5 | **EXIDEIND** | ₹450.15 | 2/10 | 42.8 | ₹428.5 | ₹493.5 | **BUY EXIDEIND 450 CE** | BUY (Breakout) |
-| 6 | **PCBL** | ₹317.35 | 1/10 | 40.8 | ₹292.9 | ₹366.3 | **BUY PCBL 315 CE** | BUY (Breakout) |
+| 1 | **FEDERALBNK** | ₹357.2 | 4/10 | 52.0 | ₹347.7 | ₹376.2 | **BUY FEDERALBNK 355 CE** | BUY (Breakout) |
+| 2 | **NYKAA** | ₹334.55 | 3/10 | 41.4 | ₹323.9 | ₹355.9 | **BUY NYKAA 335 CE** | BUY (Breakout) |
+| 3 | **RBLBANK** | ₹375.95 | 3/10 | 33.7 | ₹361.1 | ₹405.6 | **BUY RBLBANK 375 CE** | BUY (Breakout) |
+| 4 | **EXIDEIND** | ₹450.85 | 2/10 | 44.8 | ₹429.2 | ₹494.2 | **BUY EXIDEIND 450 CE** | BUY (Breakout) |
+| 5 | **ACMESOLAR** | ₹362.1 | 2/10 | 39.0 | ₹339.9 | ₹406.4 | **BUY ACMESOLAR 360 CE** | BUY (Breakout) |
+| 6 | **PCBL** | ₹316.9 | 1/10 | 43.7 | ₹292.4 | ₹365.9 | **BUY PCBL 315 CE** | BUY (Breakout) |

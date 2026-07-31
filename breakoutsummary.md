@@ -6,8 +6,8 @@
 
 | Index | Spot Price (₹) | Trend Bias | Recommended Option | Spot Target | Spot Stop Loss |
 | :--- | :---: | :---: | :--- | :---: | :---: |
-| **NIFTY 50** | ₹24342.45 | 🟢 BULLISH (Above EMA20) | **BUY NIFTY50 24350 CE** | ₹24585.9 | ₹24220.7 |
-| **BANK NIFTY** | ₹57191.6 | 🔴 BEARISH (Below EMA20) | **BUY BANKNIFTY 57200 PE** | ₹56619.7 | ₹57477.6 |
+| **NIFTY 50** | ₹24350.75 | 🟢 BULLISH (Above EMA20) | **BUY NIFTY50 24350 CE** | ₹24594.3 | ₹24229.0 |
+| **BANK NIFTY** | ₹57212.4 | 🔴 BEARISH (Below EMA20) | **BUY BANKNIFTY 57200 PE** | ₹56640.3 | ₹57498.5 |
 
 ---
 
@@ -15,16 +15,16 @@
 
 | Rank | Stock | Price (₹) | Readiness Score | Composite /100 | Equity Stop Loss (₹) | Equity Target (₹) | Call Option Strategy | Action |
 | :---: | :--- | :---: | :---: | :---: | :---: | :---: | :--- | :---: |
-| 1 | **TVSMOTOR** | ₹4256.5 | 🔥 5/10 | 56.4 | ₹4106.0 | ₹4557.5 | **BUY TVSMOTOR 4250 CE** | **BUY NOW (BTST)** |
-| 2 | **FEDERALBNK** | ₹357.55 | 🔥 5/10 | 54.9 | ₹348.0 | ₹376.6 | **BUY FEDERALBNK 360 CE** | **BUY NOW (BTST)** |
-| 3 | **HAL** | ₹4661.6 | 🔥 5/10 | 48.2 | ₹4528.1 | ₹4928.5 | **BUY HAL 4650 CE** | **BUY NOW (BTST)** |
-| 4 | **TITAN** | ₹4847.7 | 4/10 | 43.7 | ₹4734.7 | ₹5073.8 | **BUY TITAN 4850 CE** | BUY (Breakout) |
-| 5 | **DIVISLAB** | ₹7979.5 | 3/10 | 55.1 | ₹7717.2 | ₹8504.1 | **BUY DIVISLAB 8000 CE** | BUY (Breakout) |
-| 6 | **DIXON** | ₹14370.0 | 3/10 | 47.4 | ₹13769.1 | ₹15571.7 | **BUY DIXON 14400 CE** | BUY (Breakout) |
-| 7 | **SAREGAMA** | ₹523.0 | 3/10 | 45.7 | ₹493.2 | ₹582.5 | **BUY SAREGAMA 520 CE** | BUY (Breakout) |
-| 8 | **SUNPHARMA** | ₹2010.0 | 3/10 | 39.3 | ₹1964.0 | ₹2102.0 | **BUY SUNPHARMA 2000 CE** | BUY (Breakout) |
-| 9 | **RADICO** | ₹4339.5 | 2/10 | 39.7 | ₹4177.2 | ₹4664.2 | **BUY RADICO 4350 CE** | BUY (Breakout) |
-| 10 | **LALPATHLAB** | ₹1866.9 | 2/10 | 37.0 | ₹1776.0 | ₹2048.6 | **BUY LALPATHLAB 1860 CE** | BUY (Breakout) |
-| 11 | **ICICIBANK** | ₹1433.2 | 2/10 | 32.0 | ₹1397.7 | ₹1504.2 | **BUY ICICIBANK 1440 CE** | BUY (Breakout) |
-| 12 | **KALYANKJIL** | ₹619.45 | 2/10 | 26.2 | ₹582.2 | ₹693.9 | **BUY KALYANKJIL 620 CE** | BUY (Breakout) |
-| 13 | **PCBL** | ₹318.05 | 1/10 | 41.6 | ₹293.6 | ₹367.0 | **BUY PCBL 320 CE** | BUY (Breakout) |
+| 1 | **TVSMOTOR** | ₹4276.5 | 🔥 5/10 | 61.0 | ₹4124.0 | ₹4581.4 | **BUY TVSMOTOR 4300 CE** | **BUY NOW (BTST)** |
+| 2 | **FEDERALBNK** | ₹357.3 | 🔥 5/10 | 52.9 | ₹347.8 | ₹376.3 | **BUY FEDERALBNK 355 CE** | **BUY NOW (BTST)** |
+| 3 | **TITAN** | ₹4849.3 | 4/10 | 44.9 | ₹4736.3 | ₹5075.4 | **BUY TITAN 4850 CE** | BUY (Breakout) |
+| 4 | **DIVISLAB** | ₹7992.0 | 3/10 | 57.4 | ₹7729.7 | ₹8516.6 | **BUY DIVISLAB 8000 CE** | BUY (Breakout) |
+| 5 | **RADICO** | ₹4361.6 | 3/10 | 49.2 | ₹4198.7 | ₹4687.3 | **BUY RADICO 4350 CE** | BUY (Breakout) |
+| 6 | **DIXON** | ₹14370.0 | 3/10 | 47.6 | ₹13769.1 | ₹15571.7 | **BUY DIXON 14400 CE** | BUY (Breakout) |
+| 7 | **HAL** | ₹4639.7 | 3/10 | 41.1 | ₹4506.2 | ₹4906.6 | **BUY HAL 4650 CE** | BUY (Breakout) |
+| 8 | **SUNPHARMA** | ₹2009.0 | 3/10 | 38.2 | ₹1963.0 | ₹2101.0 | **BUY SUNPHARMA 2000 CE** | BUY (Breakout) |
+| 9 | **SAREGAMA** | ₹522.8 | 2/10 | 44.0 | ₹493.0 | ₹582.3 | **BUY SAREGAMA 520 CE** | BUY (Breakout) |
+| 10 | **LALPATHLAB** | ₹1865.3 | 2/10 | 36.3 | ₹1774.4 | ₹2047.0 | **BUY LALPATHLAB 1860 CE** | BUY (Breakout) |
+| 11 | **KALYANKJIL** | ₹625.0 | 2/10 | 34.5 | ₹587.7 | ₹699.6 | **BUY KALYANKJIL 620 CE** | BUY (Breakout) |
+| 12 | **ICICIBANK** | ₹1432.7 | 2/10 | 33.4 | ₹1397.1 | ₹1503.9 | **BUY ICICIBANK 1440 CE** | BUY (Breakout) |
+| 13 | **PCBL** | ₹316.75 | 1/10 | 43.5 | ₹292.3 | ₹365.7 | **BUY PCBL 315 CE** | BUY (Breakout) |
