@@ -22,10 +22,7 @@ def get_nifty500_tickers():
         return [f"{s}.NS" for s in fallback_symbols]
 
 # 2. OPTIONS CONTRACT RECOMMENDATION ENGINE
-def generate_option_idea(symbol, price, score):
-    if score < 7:
-        return "N/A", "-", "-"
-    
+def generate_option_idea(symbol, price):
     if price > 5000: step = 100
     elif price > 2000: step = 50
     elif price > 1000: step = 20
@@ -105,14 +102,13 @@ def run():
                 1
             )
 
-            # ATR calculation for Equity Stop Loss & Target
             high_low = df['High'] - df['Low']
             high_close = np.abs(df['High'] - df['Close'].shift())
             low_close = np.abs(df['Low'] - df['Close'].shift())
             tr = pd.concat([high_low, high_close, low_close], axis=1).max(axis=1)
             atr = tr.ewm(alpha=1/14, adjust=False).mean().iloc[-1]
 
-            opt_contract, opt_target, opt_sl = generate_option_idea(symbol, close_p, score)
+            opt_contract, opt_target, opt_sl = generate_option_idea(symbol, close_p)
 
             results.append({
                 'Stock': symbol, 
@@ -138,19 +134,19 @@ def run():
     md = "# 📊 ISTS Pro — Pre-Breakout & BTST Readiness Report\n\n"
     md += f"> **Universe:** Top 500 NSE Stocks | **Filter:** Stage-2 Uptrend + RS Edge\n\n"
 
-    # 1. TOP 10 HIGH CONVICTION EQUITY STOCKS
+    # 1. TOP 10 HIGH CONVICTION SETUPS (COMBINED EQUITY + OPTIONS)
     top_10 = df_res.head(10)
-    md += "## ⚡ Top 10 High-Conviction Stock Setups (Equity / BTST / Swing)\n\n"
-    md += "| Rank | Stock | Price (₹) | Readiness Score | Composite /100 | Equity Stop Loss (₹) | Equity Target (₹) | Action |\n"
-    md += "| :---: | :--- | :---: | :---: | :---: | :---: | :---: | :---: |\n"
+    md += "## ⚡ Top 10 High-Conviction Setups (Equity & Call Options)\n\n"
+    md += "| Rank | Stock | Price (₹) | Readiness Score | Composite /100 | Equity Stop Loss (₹) | Equity Target (₹) | Call Option Strategy | Action |\n"
+    md += "| :---: | :--- | :---: | :---: | :---: | :---: | :---: | :--- | :---: |\n"
 
     for _, r in top_10.iterrows():
-        badge = f"🔥 {r['Score']}/10" if r['Score'] >= 8 else f"{r['Score']}/10"
+        badge = f"🔥 {r['Score']}/10" if r['Score'] >= 7 else f"{r['Score']}/10"
         sl = round(r['Price'] - (1.5 * r['ATR']), 1)
         target = round(r['Price'] + (3.0 * r['ATR']), 1)
-        action = "**BUY NOW (BTST)**" if r['Score'] >= 8 else "BUY (Breakout)"
+        action = "**BUY NOW (BTST)**" if r['Score'] >= 5 else "BUY (Breakout)"
         
-        md += f"| {r['Rank']} | **{r['Stock']}** | ₹{r['Price']} | {badge} | {r['Composite']} | ₹{sl} | ₹{target} | {action} |\n"
+        md += f"| {r['Rank']} | **{r['Stock']}** | ₹{r['Price']} | {badge} | {r['Composite']} | ₹{sl} | ₹{target} | **{r['OptionContract']}** | {action} |\n"
 
     # 2. FULL TOP 20 LEADERBOARD
     md += "\n---\n\n## 🏆 Full Top 20 Momentum Leaderboard\n\n"
@@ -158,21 +154,12 @@ def run():
     md += "| :---: | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |\n"
 
     for _, r in df_res.iterrows():
-        badge = f"🔥 {r['Score']}/10" if r['Score'] >= 8 else f"{r['Score']}/10"
+        badge = f"🔥 {r['Score']}/10" if r['Score'] >= 7 else f"{r['Score']}/10"
         md += (
             f"| {r['Rank']} | **{r['Stock']}** | ₹{r['Price']} | {badge} | "
             f"{r['Composite']} | {r['ClosePos']}% | {r['Vol50d']}x | "
             f"{r['BaseRange']}% | {r['RSEdge']}% | {r['ResClear']}% |\n"
         )
-
-    # 3. CALL OPTIONS SECTION
-    options_df = df_res[df_res['Score'] >= 7]
-    if not options_df.empty:
-        md += "\n---\n\n## 🎯 Call Options Setups (For F&O Traders)\n\n"
-        md += "| Stock | Spot Price (₹) | Score | Option Contract | Target Price (Spot) | Stop Loss (Spot) |\n"
-        md += "| :--- | :---: | :---: | :--- | :---: | :---: |\n"
-        for _, r in options_df.iterrows():
-            md += f"| **{r['Stock']}** | ₹{r['Price']} | 🔥 {r['Score']}/10 | **{r['OptionContract']}** | {r['OptTarget']} | {r['OptSL']} |\n"
 
     with open("breakoutsummary.md", "w", encoding="utf-8") as f:
         f.write(md)
