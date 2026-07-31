@@ -13,16 +13,53 @@ def get_nifty500_tickers():
         return [f"{symbol}.NS" for symbol in df['Symbol'].tolist()]
     except Exception:
         fallback_symbols = [
-            'EXIDEIND', 'RBLBANK', 'ACMESOLAR', 'NYKAA', 'FEDERALBNK', 'IEX',
-            'PARADEEP', 'PCBL', 'FSL', 'RADICO', 'SAREGAMA', 'BHARTIHEXA'
+            'FEDERALBNK', 'RBLBANK', 'NYKAA', 'ACMESOLAR', 'EXIDEIND', 'PCBL',
+            'IEX', 'BHARTIHEXA', 'PARADEEP', 'FSL', 'SONATSOFTW', 'RADICO'
         ]
         return [f"{s}.NS" for s in fallback_symbols]
 
-# 2. OPTIONS CONTRACT RECOMMENDATION ENGINE
-def generate_option_idea(symbol, price, score):
-    if score < 7:
-        return "N/A", "-", "-"
-    
+# 2. INDEX OPTIONS STRATEGY ENGINE
+def get_index_options_ideas():
+    ideas = []
+    indices = [
+        ('NIFTY 50', '^NSEI', 50),
+        ('BANK NIFTY', '^NSEBANK', 100)
+    ]
+    for name, symbol, step in indices:
+        try:
+            df = yf.download(symbol, period="1mo", interval="1d", progress=False)
+            if isinstance(df.columns, pd.MultiIndex):
+                df.columns = df.columns.get_level_values(0)
+            if not df.empty:
+                close_p = df['Close'].iloc[-1]
+                ema_20 = df['Close'].ewm(span=20, adjust=False).mean().iloc[-1]
+                atm_strike = int(round(close_p / step) * step)
+                
+                if close_p >= ema_20:
+                    bias = "🟢 BULLISH (Above EMA20)"
+                    contract = f"BUY {name.replace(' ', '')} {atm_strike} CE"
+                    target = f"₹{round(close_p * 1.01, 1)}"
+                    sl = f"₹{round(close_p * 0.995, 1)}"
+                else:
+                    bias = "🔴 BEARISH (Below EMA20)"
+                    contract = f"BUY {name.replace(' ', '')} {atm_strike} PE"
+                    target = f"₹{round(close_p * 0.99, 1)}"
+                    sl = f"₹{round(close_p * 1.005, 1)}"
+                
+                ideas.append({
+                    'Index': name,
+                    'Spot Price': round(close_p, 2),
+                    'Trend Bias': bias,
+                    'Recommended Option': contract,
+                    'Spot Target': target,
+                    'Spot Stop Loss': sl
+                })
+        except Exception:
+            continue
+    return pd.DataFrame(ideas)
+
+# 3. STOCK OPTIONS RECOMMENDATION ENGINE
+def generate_option_idea(symbol, price):
     if price > 5000: step = 100
     elif price > 2000: step = 50
     elif price > 1000: step = 20
@@ -33,6 +70,10 @@ def generate_option_idea(symbol, price, score):
     return f"BUY {symbol} {atm_strike} CE", f"₹{round(price * 1.03, 1)}", f"₹{round(price * 0.985, 1)}"
 
 def run():
+    # 1. SCAN INDEX OPTIONS
+    df_index = get_index_options_ideas()
+
+    # 2. SCAN BUDGET STOCKS UNIVERSE (<= ₹500)
     tickers = get_nifty500_tickers()
     results = []
 
@@ -53,7 +94,7 @@ def run():
 
             close_p = df['Close'].iloc[-1]
 
-            # --- STRICT BUDGET FILTER: PRICE MUST BE <= ₹500 ---
+            # STRICT BUDGET FILTER: Stock price must be <= ₹500
             if close_p > 500:
                 continue
 
@@ -107,7 +148,13 @@ def run():
                 1
             )
 
-            opt_contract, opt_target, opt_sl = generate_option_idea(symbol, close_p, score)
+            high_low = df['High'] - df['Low']
+            high_close = np.abs(df['High'] - df['Close'].shift())
+            low_close = np.abs(df['Low'] - df['Close'].shift())
+            tr = pd.concat([high_low, high_close, low_close], axis=1).max(axis=1)
+            atr = tr.ewm(alpha=1/14, adjust=False).mean().iloc[-1]
+
+            opt_contract, opt_target, opt_sl = generate_option_idea(symbol, close_p)
 
             results.append({
                 'Stock': symbol, 
@@ -121,36 +168,39 @@ def run():
                 'ResClear': resistance_clearance,
                 'OptionContract': opt_contract,
                 'OptTarget': opt_target,
-                'OptSL': opt_sl
+                'OptSL': opt_sl,
+                'ATR': round(atr, 2)
             })
         except Exception:
             continue
 
-    df_res = pd.DataFrame(results).sort_values(by=['Score', 'Composite'], ascending=[False, False]).head(20)
+    df_res = pd.DataFrame(results).sort_values(by=['Score', 'Composite'], ascending=[False, False]).head(25)
     df_res['Rank'] = range(1, len(df_res) + 1) if not df_res.empty else []
 
-    # Build budgetsummary.md
     md = "# 💡 ISTS Pro — Budget Momentum Report (Under ₹500)\n\n"
     md += f"> **Universe:** Top 500 NSE Stocks | **Filter:** Price ≤ ₹500 + Stage-2 Uptrend + RS Edge\n\n"
-    md += "## 🏆 Top Budget Setups Leaderboard (Ranked Best to Weakest)\n\n"
-    md += "| Rank | Stock | Price (₹) | Readiness Score | Composite /100 | Close Pos % | Vol vs 50d | Base Range % | RS Edge % | Resistance Clearance % |\n"
-    md += "| :---: | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |\n"
+
+    # SECTION 1: INDEX OPTIONS
+    if not df_index.empty:
+        md += "## 🏛️ Live Index Options Trade Recommendations\n\n"
+        md += "| Index | Spot Price (₹) | Trend Bias | Recommended Option | Spot Target | Spot Stop Loss |\n"
+        md += "| :--- | :---: | :---: | :--- | :---: | :---: |\n"
+        for _, r in df_index.iterrows():
+            md += f"| **{r['Index']}** | ₹{r['Spot Price']} | {r['Trend Bias']} | **{r['Recommended Option']}** | {r['Spot Target']} | {r['Spot Stop Loss']} |\n"
+        md += "\n---\n\n"
+
+    # SECTION 2: TOP BUDGET STOCKS LEADERBOARD (WITH EQUITY + CALL OPTIONS)
+    md += "## 🏆 Top Budget Setups & Call Options (Under ₹500)\n\n"
+    md += "| Rank | Stock | Price (₹) | Readiness Score | Composite /100 | Equity Stop Loss (₹) | Equity Target (₹) | Call Option Strategy | Action |\n"
+    md += "| :---: | :--- | :---: | :---: | :---: | :---: | :---: | :--- | :---: |\n"
 
     for _, r in df_res.iterrows():
-        badge = f"🔥 {r['Score']}/10" if r['Score'] >= 8 else f"{r['Score']}/10"
-        md += (
-            f"| {r['Rank']} | **{r['Stock']}** | ₹{r['Price']} | {badge} | "
-            f"{r['Composite']} | {r['ClosePos']}% | {r['Vol50d']}x | "
-            f"{r['BaseRange']}% | {r['RSEdge']}% | {r['ResClear']}% |\n"
-        )
-
-    options_df = df_res[df_res['Score'] >= 7]
-    if not options_df.empty:
-        md += "\n---\n\n## 🎯 Budget Call Options Setups (Under ₹500)\n\n"
-        md += "| Stock | Spot Price (₹) | Score | Option Strategy | Spot Target | Spot Stop Loss |\n"
-        md += "| :--- | :---: | :---: | :--- | :---: | :---: |\n"
-        for _, r in options_df.iterrows():
-            md += f"| **{r['Stock']}** | ₹{r['Price']} | 🔥 {r['Score']}/10 | **{r['OptionContract']}** | {r['OptTarget']} | {r['OptSL']} |\n"
+        badge = f"🔥 {r['Score']}/10" if r['Score'] >= 5 else f"{r['Score']}/10"
+        sl = round(r['Price'] - (1.5 * r['ATR']), 1)
+        target = round(r['Price'] + (3.0 * r['ATR']), 1)
+        action = "**BUY NOW (BTST)**" if r['Score'] >= 5 else "BUY (Breakout)"
+        
+        md += f"| {r['Rank']} | **{r['Stock']}** | ₹{r['Price']} | {badge} | {r['Composite']} | ₹{sl} | ₹{target} | **{r['OptionContract']}** | {action} |\n"
 
     with open("budgetsummary.md", "w", encoding="utf-8") as f:
         f.write(md)
