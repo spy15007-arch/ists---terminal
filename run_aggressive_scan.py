@@ -14,20 +14,8 @@ def get_nifty500_tickers():
             return [f"{symbol}.NS" for symbol in df['Symbol'].tolist()]
     except Exception:
         pass
-
-    fallback = [
-        'TVSMOTOR', 'COFORGE', 'HAL', 'BEL', 'DIXON', 'TRENT', 'MCX', 'PERSISTENT',
-        'BHARTIARTL', 'RELIANCE', 'SBIN', 'ICICIBANK', 'HDFCBANK', 'TATAMOTORS',
-        'INFY', 'TCS', 'LT', 'MARUTI', 'AXISBANK', 'M&M', 'SUNPHARMA', 'TITAN',
-        'KALYANKJIL', 'SAREGAMA', 'JYOTICNC', 'FEDERALBNK', 'IEX', 'BHARTIHEXA',
-        'LALPATHLAB', 'DIVISLAB', 'PARADEEP', 'PCBL', 'FSL', 'SONATSOFTW', 'RADICO'
-    ]
+    fallback = ['TVSMOTOR', 'COFORGE', 'HAL', 'BEL', 'DIXON', 'TRENT', 'MCX', 'PERSISTENT', 'RELIANCE', 'SBIN', 'DIVISLAB', 'FEDERALBNK']
     return [f"{s}.NS" for s in fallback]
-
-def generate_option_idea(symbol, price):
-    step = 100 if price > 5000 else (50 if price > 2000 else (20 if price > 1000 else (10 if price > 500 else 5)))
-    atm_strike = int(round(price / step) * step)
-    return f"BUY {symbol} {atm_strike} CE"
 
 def run():
     tickers = get_nifty500_tickers()
@@ -50,8 +38,7 @@ def run():
         for ticker in tickers:
             symbol = ticker.replace(".NS", "")
             try:
-                if ticker not in data.columns.levels[0] if isinstance(data.columns, pd.MultiIndex) else ticker not in data:
-                    continue
+                if ticker not in data.columns.levels[0] if isinstance(data.columns, pd.MultiIndex) else ticker not in data: continue
                 df = data[ticker].dropna() if isinstance(data.columns, pd.MultiIndex) else data.dropna()
                 if len(df) < 200: continue
 
@@ -94,31 +81,40 @@ def run():
                 tr = pd.concat([high_low, high_close, low_close], axis=1).max(axis=1)
                 atr = float(tr.ewm(alpha=1/14, adjust=False).mean().iloc[-1])
 
-                opt_contract = generate_option_idea(symbol, close_p)
+                step = 100 if close_p > 5000 else (50 if close_p > 2000 else (20 if close_p > 1000 else (10 if close_p > 500 else 5)))
+                atm_strike = int(round(close_p / step) * step)
 
                 results.append({
-                    'Stock': symbol, 'Price': round(close_p, 2), 'Score': score,
-                    'Composite': composite, 'ClosePos': close_pos, 'Vol50d': vol_vs_50d,
-                    'OptionContract': opt_contract, 'ATR': round(atr, 2)
+                    'Stock': symbol, 'Entry': round(close_p, 2), 'Score': score, 'Composite': composite,
+                    'EqSL': round(close_p - (1.5 * atr), 1),
+                    'EqT1': round(close_p + (1.5 * atr), 1),
+                    'EqT2': round(close_p + (3.0 * atr), 1),
+                    'EqT3': round(close_p + (4.5 * atr), 1),
+                    'Option': f"BUY {symbol} {atm_strike} CE",
+                    'OptSL': round(close_p * 0.985, 1),
+                    'OptT1': round(close_p * 1.02, 1),
+                    'OptT2': round(close_p * 1.04, 1),
+                    'OptT3': round(close_p * 1.06, 1)
                 })
             except Exception:
                 continue
 
-    md = "# ⚡ ISTS Pro — Aggressive Momentum Report\n\n"
-    md += f"> **Mode:** Aggressive Sensitivity | **Goal:** Always highlight 7/10 to 10/10 setups\n\n"
-
+    md = "# ⚡ ISTS Pro — Aggressive Multi-Target Report\n\n"
     if results:
         df_res = pd.DataFrame(results).sort_values(by=['Score', 'Composite'], ascending=[False, False]).head(25)
         df_res['Rank'] = range(1, len(df_res) + 1)
 
-        md += "| Rank | Stock | Price (₹) | Score | Composite /100 | Equity SL (₹) | Equity Target (₹) | Call Option Strategy |\n"
-        md += "| :---: | :--- | :---: | :---: | :---: | :---: | :---: | :--- |\n"
-
+        md += "## 📈 Equity Multi-Target Plan\n\n"
+        md += "| Rank | Stock | Entry (₹) | Score | Equity SL (₹) | Target 1 (₹) | Target 2 (₹) | Target 3 (₹) |\n"
+        md += "| :---: | :--- | :---: | :---: | :---: | :---: | :---: | :---: |\n"
         for _, r in df_res.iterrows():
-            badge = f"🔥 {r['Score']}/10"
-            sl = round(r['Price'] - (1.5 * r['ATR']), 1)
-            target = round(r['Price'] + (3.0 * r['ATR']), 1)
-            md += f"| {r['Rank']} | **{r['Stock']}** | ₹{r['Price']} | {badge} | {r['Composite']} | ₹{sl} | ₹{target} | **{r['OptionContract']}** |\n"
+            md += f"| {r['Rank']} | **{r['Stock']}** | ₹{r['Entry']} | 🔥 {r['Score']}/10 | ₹{r['EqSL']} | ₹{r['EqT1']} | ₹{r['EqT2']} | ₹{r['EqT3']} |\n"
+
+        md += "\n---\n\n## 🎯 Call Options Spot Multi-Target Plan\n\n"
+        md += "| Stock | Entry (₹) | Option Strategy | Spot SL (₹) | Spot Target 1 | Spot Target 2 | Spot Target 3 |\n"
+        md += "| :--- | :---: | :--- | :---: | :---: | :---: | :---: |\n"
+        for _, r in df_res.iterrows():
+            md += f"| **{r['Stock']}** | ₹{r['Entry']} | **{r['Option']}** | ₹{r['OptSL']} | ₹{r['OptT1']} | ₹{r['OptT2']} | ₹{r['OptT3']} |\n"
     else:
         md += "_No aggressive momentum setups found in this session._\n"
 
