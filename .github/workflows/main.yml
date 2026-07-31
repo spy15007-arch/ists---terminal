@@ -1,34 +1,12 @@
-name: Automated Market Scanner
-
-on:
-  workflow_dispatch:
-  schedule:
-    # Morning Scan at 9:15 AM IST (03:45 UTC), Mon-Fri
-    - cron: '45 3 * * 1-5'
-    # Pre-Close Scan at 3:10 PM IST (09:40 UTC), Mon-Fri
-    - cron: '40 9 * * 1-5'
-
-jobs:
-  scan:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v4
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.10"
-      - name: Install dependencies
-        run: pip install yfinance pandas numpy requests
-      - name: Run Market Scanners
+- name: Run Market Scanners
         run: |
           python run_scan.py
           python run_budget_scan.py
+          python run_aggressive_scan.py
       - name: Commit & Push Updated Reports
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          git add breakoutsummary.md budgetsummary.md
-          git commit -m "Auto-update market summary reports" || exit 0
+          git add breakoutsummary.md budgetsummary.md aggressivesummary.md
+          git commit -m "Auto-update all market summary reports" || exit 0
           git push
