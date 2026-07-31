@@ -14,14 +14,8 @@ def get_nifty500_tickers():
             return [f"{symbol}.NS" for symbol in df['Symbol'].tolist()]
     except Exception:
         pass
-
     fallback = ['FEDERALBNK', 'RBLBANK', 'NYKAA', 'ACMESOLAR', 'EXIDEIND', 'PCBL', 'IEX', 'BHARTIHEXA', 'PARADEEP', 'FSL', 'RADICO']
     return [f"{s}.NS" for s in fallback]
-
-def generate_option_idea(symbol, price):
-    step = 100 if price > 5000 else (50 if price > 2000 else (20 if price > 1000 else (10 if price > 500 else 5)))
-    atm_strike = int(round(price / step) * step)
-    return f"BUY {symbol} {atm_strike} CE"
 
 def run():
     tickers = get_nifty500_tickers()
@@ -44,8 +38,7 @@ def run():
         for ticker in tickers:
             symbol = ticker.replace(".NS", "")
             try:
-                if ticker not in data.columns.levels[0] if isinstance(data.columns, pd.MultiIndex) else ticker not in data:
-                    continue
+                if ticker not in data.columns.levels[0] if isinstance(data.columns, pd.MultiIndex) else ticker not in data: continue
                 df = data[ticker].dropna() if isinstance(data.columns, pd.MultiIndex) else data.dropna()
                 if len(df) < 200: continue
 
@@ -94,32 +87,35 @@ def run():
                 tr = pd.concat([high_low, high_close, low_close], axis=1).max(axis=1)
                 atr = float(tr.ewm(alpha=1/14, adjust=False).mean().iloc[-1])
 
-                opt_contract = generate_option_idea(symbol, close_p)
+                step = 100 if close_p > 5000 else (50 if close_p > 2000 else (20 if close_p > 1000 else (10 if close_p > 500 else 5)))
+                atm_strike = int(round(close_p / step) * step)
 
                 results.append({
-                    'Stock': symbol, 'Price': round(close_p, 2), 'Score': score,
-                    'Composite': composite, 'ClosePos': close_pos, 'Vol50d': vol_vs_50d,
-                    'OptionContract': opt_contract, 'ATR': round(atr, 2)
+                    'Stock': symbol, 'Entry': round(close_p, 2), 'Score': score, 'Composite': composite,
+                    'EqSL': round(close_p - (1.5 * atr), 1),
+                    'EqT1': round(close_p + (1.5 * atr), 1),
+                    'EqT2': round(close_p + (3.0 * atr), 1),
+                    'EqT3': round(close_p + (4.5 * atr), 1),
+                    'Option': f"BUY {symbol} {atm_strike} CE",
+                    'OptSL': round(close_p * 0.985, 1),
+                    'OptT1': round(close_p * 1.02, 1),
+                    'OptT2': round(close_p * 1.04, 1),
+                    'OptT3': round(close_p * 1.06, 1)
                 })
             except Exception:
                 continue
 
-    md = "# 💡 ISTS Pro — Budget Momentum Report (Under ₹500)\n\n"
-    md += f"> **Universe:** Top 500 NSE Stocks | **Filter:** Price ≤ ₹500 + Stage-2 Uptrend\n\n"
-
+    md = "# 💡 ISTS Pro — Budget Multi-Target Report (Under ₹500)\n\n"
     if results:
         df_res = pd.DataFrame(results).sort_values(by=['Score', 'Composite'], ascending=[False, False]).head(25)
         df_res['Rank'] = range(1, len(df_res) + 1)
 
-        md += "## 🏆 Top Budget Momentum Setups (Under ₹500)\n\n"
-        md += "| Rank | Stock | Price (₹) | Score | Composite /100 | Equity SL (₹) | Equity Target (₹) | Call Option Strategy |\n"
-        md += "| :---: | :--- | :---: | :---: | :---: | :---: | :---: | :--- |\n"
-
+        md += "## 📈 Budget Equity Multi-Target Plan\n\n"
+        md += "| Rank | Stock | Entry (₹) | Score | Equity SL (₹) | Target 1 (₹) | Target 2 (₹) | Target 3 (₹) |\n"
+        md += "| :---: | :--- | :---: | :---: | :---: | :---: | :---: | :---: |\n"
         for _, r in df_res.iterrows():
             badge = f"🔥 {r['Score']}/10" if r['Score'] >= 5 else f"{r['Score']}/10"
-            sl = round(r['Price'] - (1.5 * r['ATR']), 1)
-            target = round(r['Price'] + (3.0 * r['ATR']), 1)
-            md += f"| {r['Rank']} | **{r['Stock']}** | ₹{r['Price']} | {badge} | {r['Composite']} | ₹{sl} | ₹{target} | **{r['OptionContract']}** |\n"
+            md += f"| {r['Rank']} | **{r['Stock']}** | ₹{r['Entry']} | {badge} | ₹{r['EqSL']} | ₹{r['EqT1']} | ₹{r['EqT2']} | ₹{r['EqT3']} |\n"
     else:
         md += "_No budget setups under ₹500 found in this session._\n"
 
