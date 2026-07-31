@@ -2,16 +2,18 @@ import yfinance as yf
 import pandas as pd
 import numpy as np
 import requests
+import io
 
 def get_nifty500_tickers():
     url = "https://archives.nseindia.com/content/indices/ind_nifty500list.csv"
     headers = {'User-Agent': 'Mozilla/5.0'}
     try:
         response = requests.get(url, headers=headers, timeout=10)
-        df = pd.read_csv(pd.compat.StringIO(response.text))
+        df = pd.read_csv(io.StringIO(response.text))
         return [f"{symbol}.NS" for symbol in df['Symbol'].tolist()]
     except Exception:
-        return ['TVSMOTOR.NS', 'COFORGE.NS', 'HAL.NS', 'BEL.NS', 'DIXON.NS', 'DIVISLAB.NS', 'FEDERALBNK.NS']
+        fallback = ['TVSMOTOR', 'COFORGE', 'HAL', 'BEL', 'DIXON', 'TRENT', 'MCX', 'PERSISTENT', 'RELIANCE', 'SBIN', 'DIVISLAB', 'FEDERALBNK']
+        return [f"{s}.NS" for s in fallback]
 
 def generate_option_idea(symbol, price):
     step = 100 if price > 5000 else (50 if price > 2000 else (20 if price > 1000 else (10 if price > 500 else 5)))
@@ -57,10 +59,8 @@ def run():
             vol_vs_50d = round(vol_today / vol_50d_avg, 2) if vol_50d_avg > 0 else 1.0
 
             high_50d = df['High'].rolling(50).max().iloc[-1]
-            low_50d = df['Low'].rolling(50).min().iloc[-1]
             resistance_clearance = round(((high_50d - close_p) / close_p) * 100, 1) if high_50d > close_p else 0.0
 
-            # AGGRESSIVE HIGH-SENSITIVITY SCORING RULES
             score = 2
             if close_p > ema_20: score += 2
             if vol_vs_50d >= 1.3: score += 2
@@ -70,7 +70,6 @@ def run():
             if resistance_clearance <= 3.0: score += 2
 
             score = min(10, score)
-
             composite = round((close_pos * 0.25) + (min(vol_vs_50d * 15, 30)) + (min(max(0, rs_edge_pct), 20)), 1)
 
             high_low = df['High'] - df['Low']
