@@ -110,12 +110,20 @@ def run():
         df_res = pd.DataFrame(results).sort_values(by=['Score', 'Composite'], ascending=[False, False]).head(25)
         df_res['Rank'] = range(1, len(df_res) + 1)
 
+        # 1. EQUITY TABLE
         md += "## 📈 Budget Equity Multi-Target Plan\n\n"
         md += "| Rank | Stock | Entry (₹) | Score | Equity SL (₹) | Target 1 (₹) | Target 2 (₹) | Target 3 (₹) |\n"
         md += "| :---: | :--- | :---: | :---: | :---: | :---: | :---: | :---: |\n"
         for _, r in df_res.iterrows():
             badge = f"🔥 {r['Score']}/10" if r['Score'] >= 5 else f"{r['Score']}/10"
             md += f"| {r['Rank']} | **{r['Stock']}** | ₹{r['Entry']} | {badge} | ₹{r['EqSL']} | ₹{r['EqT1']} | ₹{r['EqT2']} | ₹{r['EqT3']} |\n"
+
+        # 2. CALL OPTIONS TABLE
+        md += "\n---\n\n## 🎯 Budget Call Options Spot Multi-Target Plan\n\n"
+        md += "| Stock | Entry (₹) | Option Strategy | Spot SL (₹) | Spot Target 1 | Spot Target 2 | Spot Target 3 |\n"
+        md += "| :--- | :---: | :--- | :---: | :---: | :---: | :---: |\n"
+        for _, r in df_res.iterrows():
+            md += f"| **{r['Stock']}** | ₹{r['Entry']} | **{r['Option']}** | ₹{r['OptSL']} | ₹{r['OptT1']} | ₹{r['OptT2']} | ₹{r['OptT3']} |\n"
     else:
         md += "_No budget setups under ₹500 found in this session._\n"
 
