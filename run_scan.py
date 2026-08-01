@@ -10,9 +10,46 @@ def get_session_info():
     ist_now = utc_now + datetime.timedelta(hours=5, minutes=30)
     hour = ist_now.hour
     if hour < 12:
-        return "🌅 MORNING SCAN (09:15-09:45 IST)", "Intraday & Swing"
+        return "🌅 MORNING STRICT SCAN (09:15-09:45 IST)", "Intraday & Swing"
     else:
-        return "🌙 PRE-CLOSE SCAN (15:15 IST)", "BTST & Swing"
+        return "🌙 PRE-CLOSE STRICT SCAN (15:15 IST)", "BTST & Swing"
+
+def get_index_options_ideas():
+    ideas = []
+    indices = [('NIFTY 50', '^NSEI', 50), ('BANK NIFTY', '^NSEBANK', 100)]
+    for name, symbol, step in indices:
+        try:
+            df = yf.download(symbol, period="1mo", interval="1d", progress=False)
+            if isinstance(df.columns, pd.MultiIndex):
+                df.columns = df.columns.get_level_values(0)
+            if not df.empty:
+                close_p = float(df['Close'].iloc[-1])
+                ema_20 = float(df['Close'].ewm(span=20, adjust=False).mean().iloc[-1])
+                atm_strike = int(round(close_p / step) * step)
+
+                if close_p >= ema_20:
+                    bias = "🟢 BULLISH (Above EMA20)"
+                    contract = f"BUY {name.replace(' ', '')} {atm_strike} CE"
+                    sl = round(close_p * 0.995, 1)
+                    t1 = round(close_p * 1.005, 1)
+                    t2 = round(close_p * 1.010, 1)
+                    t3 = round(close_p * 1.015, 1)
+                else:
+                    bias = "🔴 BEARISH (Below EMA20)"
+                    contract = f"BUY {name.replace(' ', '')} {atm_strike} PE"
+                    sl = round(close_p * 1.005, 1)
+                    t1 = round(close_p * 0.995, 1)
+                    t2 = round(close_p * 0.990, 1)
+                    t3 = round(close_p * 0.985, 1)
+
+                ideas.append({
+                    'Index': name, 'Spot Price': round(close_p, 2), 'Trend Bias': bias,
+                    'Recommended Option': contract, 'Spot SL': sl,
+                    'Spot Target 1': t1, 'Spot Target 2': t2, 'Spot Target 3': t3
+                })
+        except Exception:
+            continue
+    return pd.DataFrame(ideas)
 
 def get_nifty500_tickers():
     url = "https://archives.nseindia.com/content/indices/ind_nifty500list.csv"
@@ -29,6 +66,7 @@ def get_nifty500_tickers():
 
 def run():
     session_title, session_mode = get_session_info()
+    df_index = get_index_options_ideas()
     tickers = get_nifty500_tickers()
     results = []
 
@@ -124,6 +162,14 @@ def run():
     md = f"# 📊 ISTS Pro — {session_title}\n\n"
     md += f"> **Session Goal:** Tailored {session_mode} Setups | **Universe:** Nifty 500\n\n"
 
+    if not df_index.empty:
+        md += "## 🏛️ Live Index Options (Nifty 50 & Bank Nifty) — Call & Put Strategies\n\n"
+        md += "| Index | Spot Price (₹) | Trend Bias | Recommended Option | Spot SL (₹) | Spot Target 1 | Spot Target 2 | Spot Target 3 |\n"
+        md += "| :--- | :---: | :---: | :--- | :---: | :---: | :---: | :---: |\n"
+        for _, r in df_index.iterrows():
+            md += f"| **{r['Index']}** | ₹{r['Spot Price']} | {r['Trend Bias']} | **{r['Recommended Option']}** | ₹{r['Spot SL']} | ₹{r['Spot Target 1']} | ₹{r['Spot Target 2']} | ₹{r['Spot Target 3']} |\n"
+        md += "\n---\n\n"
+
     if results:
         df_res = pd.DataFrame(results).sort_values(by=['Score', 'Composite'], ascending=[False, False]).head(25)
         df_res['Rank'] = range(1, len(df_res) + 1)
@@ -131,34 +177,34 @@ def run():
         # 1. INTRADAY SECTION
         df_intra = df_res[df_res['Horizon'].str.contains("Intraday")]
         if not df_intra.empty:
-            md += "## ⚡ Intraday Equity & Call Option Setups (09:15-09:45 IST)\n\n"
-            md += "| Rank | Stock | Entry (₹) | Score | Equity SL (₹) | Target 1 (₹) | Target 2 (₹) | Call Option Strategy | Spot Target 1 |\n"
-            md += "| :---: | :--- | :---: | :---: | :---: | :---: | :---: | :--- | :---: |\n"
+            md += "## ⚡ Intraday Equity & Option Setups (09:15-09:45 IST)\n\n"
+            md += "| Rank | Stock | Entry (₹) | Score | Equity SL (₹) | Target 1 | Target 2 | Call Option Strategy | Spot SL | Spot Target 1 | Spot Target 2 | Spot Target 3 |\n"
+            md += "| :---: | :--- | :---: | :---: | :---: | :---: | :---: | :--- | :---: | :---: | :---: | :---: |\n"
             for _, r in df_intra.iterrows():
                 badge = f"🔥 {r['Score']}/10" if r['Score'] >= 5 else f"{r['Score']}/10"
-                md += f"| {r['Rank']} | **{r['Stock']}** | ₹{r['Entry']} | {badge} | ₹{r['EqSL']} | ₹{r['EqT1']} | ₹{r['EqT2']} | **{r['Option']}** | ₹{r['OptT1']} |\n"
+                md += f"| {r['Rank']} | **{r['Stock']}** | ₹{r['Entry']} | {badge} | ₹{r['EqSL']} | ₹{r['EqT1']} | ₹{r['EqT2']} | **{r['Option']}** | ₹{r['OptSL']} | ₹{r['OptT1']} | ₹{r['OptT2']} | ₹{r['OptT3']} |\n"
             md += "\n---\n\n"
 
         # 2. BTST SECTION
         df_btst = df_res[df_res['Horizon'].str.contains("BTST")]
         if not df_btst.empty:
-            md += "## 🌙 BTST Equity & Call Option Setups (15:15 IST Entry)\n\n"
-            md += "| Rank | Stock | Entry (₹) | Score | Equity SL (₹) | Target 1 (₹) | Target 2 (₹) | Call Option Strategy | Spot Target 1 |\n"
-            md += "| :---: | :--- | :---: | :---: | :---: | :---: | :---: | :--- | :---: |\n"
+            md += "## 🌙 BTST Pre-Close Setups (15:15 IST Entry)\n\n"
+            md += "| Rank | Stock | Entry (₹) | Score | Equity SL (₹) | Target 1 | Target 2 | Call Option Strategy | Spot SL | Spot Target 1 | Spot Target 2 | Spot Target 3 |\n"
+            md += "| :---: | :--- | :---: | :---: | :---: | :---: | :---: | :--- | :---: | :---: | :---: | :---: |\n"
             for _, r in df_btst.iterrows():
                 badge = f"🔥 {r['Score']}/10" if r['Score'] >= 5 else f"{r['Score']}/10"
-                md += f"| {r['Rank']} | **{r['Stock']}** | ₹{r['Entry']} | {badge} | ₹{r['EqSL']} | ₹{r['EqT1']} | ₹{r['EqT2']} | **{r['Option']}** | ₹{r['OptT1']} |\n"
+                md += f"| {r['Rank']} | **{r['Stock']}** | ₹{r['Entry']} | {badge} | ₹{r['EqSL']} | ₹{r['EqT1']} | ₹{r['EqT2']} | **{r['Option']}** | ₹{r['OptSL']} | ₹{r['OptT1']} | ₹{r['OptT2']} | ₹{r['OptT3']} |\n"
             md += "\n---\n\n"
 
         # 3. SWING SECTION
         df_swing = df_res[df_res['Horizon'].str.contains("Swing")]
         if not df_swing.empty:
             md += "## 📈 Positional Swing Trading Setups (1-2 Weeks)\n\n"
-            md += "| Rank | Stock | Entry (₹) | Score | Equity SL (₹) | Target 1 (₹) | Target 2 (₹) | Target 3 (₹) | Call Option Strategy |\n"
-            md += "| :---: | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :--- |\n"
+            md += "| Rank | Stock | Entry (₹) | Score | Equity SL (₹) | Target 1 | Target 2 | Target 3 | Call Option Strategy | Spot SL | Spot Target 1 | Spot Target 2 |\n"
+            md += "| :---: | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :--- | :---: | :---: | :---: |\n"
             for _, r in df_swing.iterrows():
                 badge = f"🔥 {r['Score']}/10" if r['Score'] >= 5 else f"{r['Score']}/10"
-                md += f"| {r['Rank']} | **{r['Stock']}** | ₹{r['Entry']} | {badge} | ₹{r['EqSL']} | ₹{r['EqT1']} | ₹{r['EqT2']} | ₹{r['EqT3']} | **{r['Option']}** |\n"
+                md += f"| {r['Rank']} | **{r['Stock']}** | ₹{r['Entry']} | {badge} | ₹{r['EqSL']} | ₹{r['EqT1']} | ₹{r['EqT2']} | ₹{r['EqT3']} | **{r['Option']}** | ₹{r['OptSL']} | ₹{r['OptT1']} | ₹{r['OptT2']} |\n"
     else:
         md += "_No setups met all criteria in this session._\n"
 
