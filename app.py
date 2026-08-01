@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
 import requests
-import threading
+import datetime
 import io
 
 st.set_page_config(page_title="ISTS Pro Dashboard", page_icon="📈", layout="wide")
@@ -41,7 +41,6 @@ def get_nifty500_tickers():
         fallback = ['TVSMOTOR', 'COFORGE', 'HAL', 'BEL', 'DIXON', 'TRENT', 'MCX', 'PERSISTENT', 'RELIANCE', 'SBIN', 'DIVISLAB', 'FEDERALBNK']
         return [f"{s}.NS" for s in fallback]
 
-# --- INDEX OPTIONS MULTI-TARGET ENGINE ---
 def get_index_options_ideas():
     ideas = []
     indices = [('NIFTY 50', '^NSEI', 50), ('BANK NIFTY', '^NSEBANK', 100)]
@@ -79,16 +78,10 @@ def get_index_options_ideas():
             continue
     return pd.DataFrame(ideas)
 
-# --- STOCK OPTIONS MULTI-TARGET ENGINE ---
 def generate_option_idea(symbol, price):
     step = 100 if price > 5000 else (50 if price > 2000 else (20 if price > 1000 else (10 if price > 500 else 5)))
     atm_strike = int(round(price / step) * step)
-    contract = f"BUY {symbol} {atm_strike} CE"
-    opt_sl = round(price * 0.985, 1)
-    opt_t1 = round(price * 1.02, 1)
-    opt_t2 = round(price * 1.04, 1)
-    opt_t3 = round(price * 1.06, 1)
-    return contract, opt_sl, opt_t1, opt_t2, opt_t3
+    return f"BUY {symbol} {atm_strike} CE", round(price * 0.985, 1), round(price * 1.02, 1), round(price * 1.04, 1), round(price * 1.06, 1)
 
 @st.cache_data(ttl=1800)
 def get_nifty_benchmark_return():
@@ -165,9 +158,9 @@ def run_scan(mode="strict"):
             score = min(10, score)
             composite = round((close_pos * 0.25) + (min(vol_vs_50d * 15, 30)) + (max(0, 25 - base_range_pct * 0.5)) + (min(max(0, rs_edge_pct), 20)), 1)
 
-            if close_pos >= 80 and vol_vs_50d >= 1.3:
+            if close_pos >= 75 and vol_vs_50d >= 1.2:
                 horizon = "🌙 BTST (15:15 IST)"
-            elif vol_vs_50d >= 1.5 or (high_p - low_p) / close_p >= 0.03:
+            elif vol_vs_50d >= 1.3 or close_pos >= 70:
                 horizon = "⚡ Intraday Momentum"
             else:
                 horizon = "📈 Swing (1-2 Weeks)"
@@ -207,9 +200,9 @@ if page == "Dashboard":
     st.markdown("Live Market Top-Down Momentum & Multi-Target Trading Terminal")
     col1, col2, col3, col4 = st.columns(4)
     col1.metric("Market Status", "OPEN", "NSE Live Feed")
-    col2.metric("Morning Scan", "09:15-09:45 IST", "Intraday & Swing")
-    col3.metric("Pre-Close Scan", "15:15 IST", "BTST & Swing")
-    col4.metric("Index & Options Engine", "3 Targets + SL", "CE & PE")
+    col2.metric("Morning Scan", "09:15-09:45 IST", "Intraday & Swing Focus")
+    col3.metric("Pre-Close Scan", "15:15 IST", "BTST Entry Focus")
+    col4.metric("Multi-Target Engine", "3 Targets + SL", "Equity & Options")
 
 elif page in ["Strict ISTS Scan", "Aggressive Momentum Scan"]:
     mode_key = "strict" if page == "Strict ISTS Scan" else "aggressive"
@@ -235,15 +228,15 @@ elif page in ["Strict ISTS Scan", "Aggressive Momentum Scan"]:
         col_list = ['Rank', 'Stock', 'Entry Price', 'Score /10', 'Equity SL', 'Target 1', 'Target 2', 'Target 3', 'Option Contract', 'Opt Spot SL', 'Opt Spot T1', 'Opt Spot T2', 'Opt Spot T3']
 
         with tab1:
-            st.subheader("⚡ Intraday High-Momentum Equity & Options Setups")
+            st.subheader("⚡ Morning Intraday Setups (3 Targets + SL)")
             st.dataframe(df[df['Horizon'].str.contains("Intraday")][col_list], use_container_width=True, hide_index=True)
 
         with tab2:
-            st.subheader("🌙 BTST Pre-Close Equity & Options Setups (15:15 IST Entry)")
+            st.subheader("🌙 Pre-Close BTST Setups (3 Targets + SL)")
             st.dataframe(df[df['Horizon'].str.contains("BTST")][col_list], use_container_width=True, hide_index=True)
 
         with tab3:
-            st.subheader("📈 Swing Trading Setups (1-2 Weeks)")
+            st.subheader("📈 Swing Trading Setups (3 Targets + SL)")
             st.dataframe(df[df['Horizon'].str.contains("Swing")][col_list], use_container_width=True, hide_index=True)
 
         with tab4:
@@ -263,7 +256,7 @@ elif page == "Budget Scanner (< ₹500)":
                 st.session_state['b_res'] = full_res[full_res['Entry Price'] <= budget_limit].copy()
 
     if 'index_res' in st.session_state and not st.session_state['index_res'].empty:
-        st.subheader("🏛️ Live Index Options (Nifty 50 & Bank Nifty) — Call & Put Strategies")
+        st.subheader("🏛️ Live Index Options (Nifty 50 & Bank Nifty)")
         st.dataframe(st.session_state['index_res'], use_container_width=True, hide_index=True)
         st.markdown("---")
 
