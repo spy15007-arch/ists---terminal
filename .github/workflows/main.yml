@@ -2,10 +2,12 @@ name: Automated Market Scanner
 
 on:
   workflow_dispatch:
+  push:
+    branches: [ main ]
   schedule:
-    # 1st Scan: 09:15 AM IST (03:45 AM UTC), Mon-Fri
+    # 1st Scan: Morning Intraday & Swing (09:15 AM IST / 03:45 AM UTC)
     - cron: '45 3 * * 1-5'
-    # 2nd Scan: 03:15 PM IST (09:45 AM UTC), Mon-Fri
+    # 2nd Scan: Pre-Close BTST & Swing (03:15 PM IST / 09:45 AM UTC)
     - cron: '45 9 * * 1-5'
 
 jobs:
@@ -21,7 +23,7 @@ jobs:
           python-version: "3.10"
       - name: Install dependencies
         run: pip install yfinance pandas numpy requests
-      - name: Run Market Scanners
+      - name: Run Time-Aware Market Scanners
         run: |
           python run_scan.py
           python run_budget_scan.py
@@ -31,5 +33,5 @@ jobs:
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git add *.md
-          git commit -m "Auto-update all market summary reports" || exit 0
+          git commit -m "Auto-update market summary reports for Morning/Pre-Close session" || exit 0
           git push
