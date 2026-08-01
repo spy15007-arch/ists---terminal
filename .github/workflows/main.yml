@@ -2,13 +2,11 @@ name: Automated Market Scanner
 
 on:
   workflow_dispatch:
-  push:
-    branches: [ main ]
   schedule:
-    # Morning Scan at 9:15 AM IST (03:45 UTC), Mon-Fri
+    # 1st Scan: 09:15 AM IST (03:45 AM UTC), Mon-Fri
     - cron: '45 3 * * 1-5'
-    # Pre-Close Scan at 3:10 PM IST (09:40 UTC), Mon-Fri
-    - cron: '40 9 * * 1-5'
+    # 2nd Scan: 03:15 PM IST (09:45 AM UTC), Mon-Fri
+    - cron: '45 9 * * 1-5'
 
 jobs:
   scan:
