@@ -10,9 +10,9 @@ def get_session_info():
     ist_now = utc_now + datetime.timedelta(hours=5, minutes=30)
     hour = ist_now.hour
     if hour < 12:
-        return "🌅 MORNING BUDGET SCAN (Under ₹500)"
+        return "🌅 MORNING BUDGET SCAN (Under ₹500)", "Intraday"
     else:
-        return "🌙 PRE-CLOSE BUDGET SCAN (Under ₹500)"
+        return "🌙 PRE-CLOSE BUDGET SCAN (Under ₹500)", "BTST"
 
 def get_index_options_ideas():
     ideas = []
@@ -65,7 +65,7 @@ def get_nifty500_tickers():
     return [f"{s}.NS" for s in fallback]
 
 def run():
-    session_title = get_session_info()
+    session_title, session_type = get_session_info()
     df_index = get_index_options_ideas()
     tickers = get_nifty500_tickers()
     results = []
@@ -130,12 +130,16 @@ def run():
 
                 composite = round((close_pos * 0.25) + (min(vol_vs_50d * 15, 30)) + (max(0, 25 - base_range_pct * 0.5)) + (min(max(0, rs_edge_pct), 20)), 1)
 
-                if close_pos >= 80 and vol_vs_50d >= 1.3:
-                    horizon = "🌙 BTST (15:15 IST)"
-                elif vol_vs_50d >= 1.5 or (high_p - low_p) / close_p >= 0.03:
-                    horizon = "⚡ Intraday Momentum"
-                else:
-                    horizon = "📈 Swing (1-2 Weeks)"
+                if session_type == "Intraday":
+                    if vol_vs_50d >= 1.3 or close_pos >= 70:
+                        horizon = "⚡ Intraday Momentum"
+                    else:
+                        horizon = "📈 Swing (1-2 Weeks)"
+                else: # Pre-Close
+                    if close_pos >= 75 and vol_vs_50d >= 1.2:
+                        horizon = "🌙 BTST Entry (15:15 IST)"
+                    else:
+                        horizon = "📈 Swing (1-2 Weeks)"
 
                 high_low = df['High'] - df['Low']
                 high_close = np.abs(df['High'] - df['Close'].shift())
@@ -176,7 +180,7 @@ def run():
         df_res['Rank'] = range(1, len(df_res) + 1)
 
         md += "## 🏆 Budget Multi-Horizon Leaderboard (Under ₹500)\n\n"
-        md += "| Rank | Stock | Horizon | Entry (₹) | Score | Equity SL (₹) | Target 1 | Target 2 | Target 3 | Call Option Strategy | Spot SL | Spot Target 1 | Spot Target 2 | Spot Target 3 |\n"
+        md += "| Rank | Stock | Horizon | Entry (₹) | Score | Equity SL | Target 1 | Target 2 | Target 3 | Call Option Strategy | Spot SL | Spot Target 1 | Spot Target 2 | Spot Target 3 |\n"
         md += "| :---: | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :--- | :---: | :---: | :---: | :---: |\n"
         for _, r in df_res.iterrows():
             badge = f"🔥 {r['Score']}/10" if r['Score'] >= 5 else f"{r['Score']}/10"
