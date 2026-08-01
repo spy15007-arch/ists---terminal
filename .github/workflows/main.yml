@@ -21,9 +21,9 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.10"
-      - name: Install dependencies
-        run: pip install yfinance pandas numpy requests
-      - name: Run Time-Aware Market Scanners
+      - name: Install dependencies (Including SciPy for Options Math)
+        run: pip install yfinance pandas numpy requests scipy
+      - name: Run Quant Market Scanners
         run: |
           python run_scan.py
           python run_budget_scan.py
@@ -33,5 +33,5 @@ jobs:
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git add *.md
-          git commit -m "Auto-update market summary reports for Morning/Pre-Close session" || exit 0
+          git commit -m "Auto-update quant reports with Parkinson Volatility" || exit 0
           git push
