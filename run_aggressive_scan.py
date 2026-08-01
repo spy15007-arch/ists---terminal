@@ -3,6 +3,16 @@ import pandas as pd
 import numpy as np
 import requests
 import io
+import datetime
+
+def get_session_info():
+    utc_now = datetime.datetime.now(datetime.timezone.utc)
+    ist_now = utc_now + datetime.timedelta(hours=5, minutes=30)
+    hour = ist_now.hour
+    if hour < 12:
+        return "🌅 MORNING AGGRESSIVE SCAN (09:15-09:45 IST)"
+    else:
+        return "🌙 PRE-CLOSE AGGRESSIVE SCAN (15:15 IST)"
 
 def get_nifty500_tickers():
     url = "https://archives.nseindia.com/content/indices/ind_nifty500list.csv"
@@ -18,6 +28,7 @@ def get_nifty500_tickers():
     return [f"{s}.NS" for s in fallback]
 
 def run():
+    session_title = get_session_info()
     tickers = get_nifty500_tickers()
     results = []
 
@@ -75,6 +86,13 @@ def run():
                 score = min(10, score)
                 composite = round((close_pos * 0.25) + (min(vol_vs_50d * 15, 30)) + (min(max(0, rs_edge_pct), 20)), 1)
 
+                if close_pos >= 80 and vol_vs_50d >= 1.3:
+                    horizon = "🌙 BTST (15:15 IST)"
+                elif vol_vs_50d >= 1.5 or (high_p - low_p) / close_p >= 0.03:
+                    horizon = "⚡ Intraday"
+                else:
+                    horizon = "📈 Swing (1-2 Wks)"
+
                 high_low = df['High'] - df['Low']
                 high_close = np.abs(df['High'] - df['Close'].shift())
                 low_close = np.abs(df['Low'] - df['Close'].shift())
@@ -85,7 +103,7 @@ def run():
                 atm_strike = int(round(close_p / step) * step)
 
                 results.append({
-                    'Stock': symbol, 'Entry': round(close_p, 2), 'Score': score, 'Composite': composite,
+                    'Stock': symbol, 'Horizon': horizon, 'Entry': round(close_p, 2), 'Score': score, 'Composite': composite,
                     'EqSL': round(close_p - (1.5 * atr), 1),
                     'EqT1': round(close_p + (1.5 * atr), 1),
                     'EqT2': round(close_p + (3.0 * atr), 1),
@@ -99,22 +117,16 @@ def run():
             except Exception:
                 continue
 
-    md = "# ⚡ ISTS Pro — Aggressive Multi-Target Report\n\n"
+    md = f"# ⚡ ISTS Pro — {session_title}\n\n"
     if results:
         df_res = pd.DataFrame(results).sort_values(by=['Score', 'Composite'], ascending=[False, False]).head(25)
         df_res['Rank'] = range(1, len(df_res) + 1)
 
-        md += "## 📈 Equity Multi-Target Plan\n\n"
-        md += "| Rank | Stock | Entry (₹) | Score | Equity SL (₹) | Target 1 (₹) | Target 2 (₹) | Target 3 (₹) |\n"
-        md += "| :---: | :--- | :---: | :---: | :---: | :---: | :---: | :---: |\n"
+        md += "## 🏆 High-Sensitivity Multi-Horizon Leaderboard\n\n"
+        md += "| Rank | Stock | Horizon | Entry (₹) | Score | Equity SL (₹) | Target 1 (₹) | Target 2 (₹) | Call Option Strategy |\n"
+        md += "| :---: | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :--- |\n"
         for _, r in df_res.iterrows():
-            md += f"| {r['Rank']} | **{r['Stock']}** | ₹{r['Entry']} | 🔥 {r['Score']}/10 | ₹{r['EqSL']} | ₹{r['EqT1']} | ₹{r['EqT2']} | ₹{r['EqT3']} |\n"
-
-        md += "\n---\n\n## 🎯 Call Options Spot Multi-Target Plan\n\n"
-        md += "| Stock | Entry (₹) | Option Strategy | Spot SL (₹) | Spot Target 1 | Spot Target 2 | Spot Target 3 |\n"
-        md += "| :--- | :---: | :--- | :---: | :---: | :---: | :---: |\n"
-        for _, r in df_res.iterrows():
-            md += f"| **{r['Stock']}** | ₹{r['Entry']} | **{r['Option']}** | ₹{r['OptSL']} | ₹{r['OptT1']} | ₹{r['OptT2']} | ₹{r['OptT3']} |\n"
+            md += f"| {r['Rank']} | **{r['Stock']}** | {r['Horizon']} | ₹{r['Entry']} | 🔥 {r['Score']}/10 | ₹{r['EqSL']} | ₹{r['EqT1']} | ₹{r['EqT2']} | **{r['Option']}** |\n"
     else:
         md += "_No aggressive momentum setups found in this session._\n"
 
