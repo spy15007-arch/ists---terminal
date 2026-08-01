@@ -195,6 +195,7 @@ def run_scan(mode="strict"):
         df_results['Rank'] = range(1, len(df_results) + 1)
     return df_results
 
+# --- VIEW 1: DASHBOARD ---
 if page == "Dashboard":
     st.title("Institutional Swing Trading System (ISTS Pro)")
     st.markdown("Live Market Top-Down Momentum & Multi-Target Trading Terminal")
@@ -204,6 +205,7 @@ if page == "Dashboard":
     col3.metric("Pre-Close Scan", "15:15 IST", "BTST Entry Focus")
     col4.metric("Multi-Target Engine", "3 Targets + SL", "Equity & Options")
 
+# --- VIEW 2 & 3: STRICT & AGGRESSIVE SCANNERS ---
 elif page in ["Strict ISTS Scan", "Aggressive Momentum Scan"]:
     mode_key = "strict" if page == "Strict ISTS Scan" else "aggressive"
     st.title(f"🚀 {page}")
@@ -243,6 +245,7 @@ elif page in ["Strict ISTS Scan", "Aggressive Momentum Scan"]:
             st.subheader("🏆 Complete Categorized Leaderboard")
             st.dataframe(df[['Rank', 'Stock', 'Horizon', 'Entry Price', 'Score /10', 'Equity SL', 'Target 1', 'Target 2', 'Target 3', 'Option Contract', 'Opt Spot SL', 'Opt Spot T1', 'Opt Spot T2', 'Opt Spot T3']], use_container_width=True, hide_index=True)
 
+# --- VIEW 4: BUDGET SCANNER (< ₹500) ---
 elif page == "Budget Scanner (< ₹500)":
     st.title("💡 Sub-₹500 Momentum & Budget Scanner")
     budget_limit = st.number_input("Max Stock Price (₹)", min_value=50, max_value=1000, value=500, step=50)
@@ -253,19 +256,40 @@ elif page == "Budget Scanner (< ₹500)":
             full_res = run_scan(mode="strict")
             st.session_state['index_res'] = df_idx
             if not full_res.empty:
-                st.session_state['b_res'] = full_res[full_res['Entry Price'] <= budget_limit].copy()
+                b_res = full_res[full_res['Entry Price'] <= budget_limit].copy()
+                if not b_res.empty:
+                    b_res['Rank'] = range(1, len(b_res) + 1)
+                st.session_state['b_res'] = b_res
+            st.success("Budget scan complete!")
 
     if 'index_res' in st.session_state and not st.session_state['index_res'].empty:
-        st.subheader("🏛️ Live Index Options (Nifty 50 & Bank Nifty)")
+        st.subheader("🏛️ Live Index Options (Nifty 50 & Bank Nifty) — Call & Put Strategies")
         st.dataframe(st.session_state['index_res'], use_container_width=True, hide_index=True)
         st.markdown("---")
 
     if 'b_res' in st.session_state and not st.session_state['b_res'].empty:
         df_b = st.session_state['b_res']
-        col_list = ['Rank', 'Stock', 'Horizon', 'Entry Price', 'Score /10', 'Equity SL', 'Target 1', 'Target 2', 'Target 3', 'Option Contract', 'Opt Spot SL', 'Opt Spot T1', 'Opt Spot T2', 'Opt Spot T3']
-        st.subheader("💡 Budget Equity & Call Option Multi-Target Plan")
-        st.dataframe(df_b[col_list], use_container_width=True, hide_index=True)
+        
+        tab1, tab2, tab3, tab4 = st.tabs(["⚡ Intraday Budget Setups", "🌙 BTST Budget Setups", "📈 Swing Budget Setups", "🏆 All Budget Setups"])
+        col_list = ['Rank', 'Stock', 'Entry Price', 'Score /10', 'Equity SL', 'Target 1', 'Target 2', 'Target 3', 'Option Contract', 'Opt Spot SL', 'Opt Spot T1', 'Opt Spot T2', 'Opt Spot T3']
 
+        with tab1:
+            st.subheader("⚡ Morning Intraday Budget Setups (3 Targets + SL)")
+            st.dataframe(df_b[df_b['Horizon'].str.contains("Intraday")][col_list], use_container_width=True, hide_index=True)
+
+        with tab2:
+            st.subheader("🌙 Pre-Close BTST Budget Setups (3 Targets + SL)")
+            st.dataframe(df_b[df_b['Horizon'].str.contains("BTST")][col_list], use_container_width=True, hide_index=True)
+
+        with tab3:
+            st.subheader("📈 Swing Trading Budget Setups (3 Targets + SL)")
+            st.dataframe(df_b[df_b['Horizon'].str.contains("Swing")][col_list], use_container_width=True, hide_index=True)
+
+        with tab4:
+            st.subheader("🏆 Complete Categorized Budget Leaderboard")
+            st.dataframe(df_b[['Rank', 'Stock', 'Horizon', 'Entry Price', 'Score /10', 'Equity SL', 'Target 1', 'Target 2', 'Target 3', 'Option Contract', 'Opt Spot SL', 'Opt Spot T1', 'Opt Spot T2', 'Opt Spot T3']], use_container_width=True, hide_index=True)
+
+# --- VIEW 5: WATCHLIST ---
 elif page == "Watchlist":
     st.title("📌 Custom Watchlist Tracker")
     new_stock = st.text_input("Enter NSE Symbol:").strip().upper()
@@ -275,6 +299,7 @@ elif page == "Watchlist":
             st.rerun()
     st.write(st.session_state['watchlist'])
 
+# --- VIEW 6: SETTINGS ---
 elif page == "Settings":
     st.title("⚙️ Parameters")
     st.session_state['atr_sl_mult'] = st.number_input("SL Multiplier", value=float(st.session_state['atr_sl_mult']))
