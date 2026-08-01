@@ -14,6 +14,43 @@ def get_session_info():
     else:
         return "🌙 PRE-CLOSE AGGRESSIVE SCAN (15:15 IST)"
 
+def get_index_options_ideas():
+    ideas = []
+    indices = [('NIFTY 50', '^NSEI', 50), ('BANK NIFTY', '^NSEBANK', 100)]
+    for name, symbol, step in indices:
+        try:
+            df = yf.download(symbol, period="1mo", interval="1d", progress=False)
+            if isinstance(df.columns, pd.MultiIndex):
+                df.columns = df.columns.get_level_values(0)
+            if not df.empty:
+                close_p = float(df['Close'].iloc[-1])
+                ema_20 = float(df['Close'].ewm(span=20, adjust=False).mean().iloc[-1])
+                atm_strike = int(round(close_p / step) * step)
+
+                if close_p >= ema_20:
+                    bias = "🟢 BULLISH (Above EMA20)"
+                    contract = f"BUY {name.replace(' ', '')} {atm_strike} CE"
+                    sl = round(close_p * 0.995, 1)
+                    t1 = round(close_p * 1.005, 1)
+                    t2 = round(close_p * 1.010, 1)
+                    t3 = round(close_p * 1.015, 1)
+                else:
+                    bias = "🔴 BEARISH (Below EMA20)"
+                    contract = f"BUY {name.replace(' ', '')} {atm_strike} PE"
+                    sl = round(close_p * 1.005, 1)
+                    t1 = round(close_p * 0.995, 1)
+                    t2 = round(close_p * 0.990, 1)
+                    t3 = round(close_p * 0.985, 1)
+
+                ideas.append({
+                    'Index': name, 'Spot Price': round(close_p, 2), 'Trend Bias': bias,
+                    'Recommended Option': contract, 'Spot SL': sl,
+                    'Spot Target 1': t1, 'Spot Target 2': t2, 'Spot Target 3': t3
+                })
+        except Exception:
+            continue
+    return pd.DataFrame(ideas)
+
 def get_nifty500_tickers():
     url = "https://archives.nseindia.com/content/indices/ind_nifty500list.csv"
     headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
@@ -29,6 +66,7 @@ def get_nifty500_tickers():
 
 def run():
     session_title = get_session_info()
+    df_index = get_index_options_ideas()
     tickers = get_nifty500_tickers()
     results = []
 
@@ -118,15 +156,24 @@ def run():
                 continue
 
     md = f"# ⚡ ISTS Pro — {session_title}\n\n"
+
+    if not df_index.empty:
+        md += "## 🏛️ Live Index Options (Nifty 50 & Bank Nifty) — Call & Put Strategies\n\n"
+        md += "| Index | Spot Price (₹) | Trend Bias | Recommended Option | Spot SL (₹) | Spot Target 1 | Spot Target 2 | Spot Target 3 |\n"
+        md += "| :--- | :---: | :---: | :--- | :---: | :---: | :---: | :---: |\n"
+        for _, r in df_index.iterrows():
+            md += f"| **{r['Index']}** | ₹{r['Spot Price']} | {r['Trend Bias']} | **{r['Recommended Option']}** | ₹{r['Spot SL']} | ₹{r['Spot Target 1']} | ₹{r['Spot Target 2']} | ₹{r['Spot Target 3']} |\n"
+        md += "\n---\n\n"
+
     if results:
         df_res = pd.DataFrame(results).sort_values(by=['Score', 'Composite'], ascending=[False, False]).head(25)
         df_res['Rank'] = range(1, len(df_res) + 1)
 
-        md += "## 🏆 High-Sensitivity Multi-Horizon Leaderboard\n\n"
-        md += "| Rank | Stock | Horizon | Entry (₹) | Score | Equity SL (₹) | Target 1 (₹) | Target 2 (₹) | Call Option Strategy |\n"
-        md += "| :---: | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :--- |\n"
+        md += "## 🏆 Aggressive Multi-Horizon Equity & Option Leaderboard\n\n"
+        md += "| Rank | Stock | Horizon | Entry (₹) | Score | Equity SL (₹) | Target 1 | Target 2 | Target 3 | Call Option Strategy | Spot SL | Spot Target 1 | Spot Target 2 | Spot Target 3 |\n"
+        md += "| :---: | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :--- | :---: | :---: | :---: | :---: |\n"
         for _, r in df_res.iterrows():
-            md += f"| {r['Rank']} | **{r['Stock']}** | {r['Horizon']} | ₹{r['Entry']} | 🔥 {r['Score']}/10 | ₹{r['EqSL']} | ₹{r['EqT1']} | ₹{r['EqT2']} | **{r['Option']}** |\n"
+            md += f"| {r['Rank']} | **{r['Stock']}** | {r['Horizon']} | ₹{r['Entry']} | 🔥 {r['Score']}/10 | ₹{r['EqSL']} | ₹{r['EqT1']} | ₹{r['EqT2']} | ₹{r['EqT3']} | **{r['Option']}** | ₹{r['OptSL']} | ₹{r['OptT1']} | ₹{r['OptT2']} | ₹{r['OptT3']} |\n"
     else:
         md += "_No aggressive momentum setups found in this session._\n"
 
