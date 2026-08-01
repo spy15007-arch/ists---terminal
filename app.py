@@ -143,7 +143,7 @@ def run_scan(mode="strict"):
                 'Target 1': round(close_p + (t1_m * atr), 1),
                 'Target 2': round(close_p + (t2_m * atr), 1),
                 'Target 3': round(close_p + (t3_m * atr), 1),
-                'Option Contract': opt_contract, 'Opt Spot SL': opt_sl, 'Opt Spot T1': opt_t1, 'Opt Spot T2': opt_t2, 'Data': df
+                'Option Contract': opt_contract, 'Opt Spot SL': opt_sl, 'Opt Spot T1': opt_t1, 'Opt Spot T2': opt_t2, 'Opt Spot T3': opt_t3, 'Data': df
             })
         except Exception: continue
 
@@ -178,11 +178,11 @@ elif page in ["Strict ISTS Scan", "Aggressive Momentum Scan"]:
 
         with tab1:
             st.subheader("⚡ Intraday High-Momentum Setups")
-            st.dataframe(df[df['Horizon'].str.contains("Intraday")][['Rank', 'Stock', 'Entry Price', 'Score /10', 'Equity SL', 'Target 1', 'Target 2', 'Option Contract', 'Opt Spot T1']], use_container_width=True, hide_index=True)
+            st.dataframe(df[df['Horizon'].str.contains("Intraday")][['Rank', 'Stock', 'Entry Price', 'Score /10', 'Equity SL', 'Target 1', 'Target 2', 'Target 3', 'Option Contract', 'Opt Spot T1', 'Opt Spot T2', 'Opt Spot T3']], use_container_width=True, hide_index=True)
 
         with tab2:
             st.subheader("🌙 BTST Pre-Close Setups (Entry at 15:15 IST)")
-            st.dataframe(df[df['Horizon'].str.contains("BTST")][['Rank', 'Stock', 'Entry Price', 'Score /10', 'Equity SL', 'Target 1', 'Target 2', 'Option Contract', 'Opt Spot T1']], use_container_width=True, hide_index=True)
+            st.dataframe(df[df['Horizon'].str.contains("BTST")][['Rank', 'Stock', 'Entry Price', 'Score /10', 'Equity SL', 'Target 1', 'Target 2', 'Target 3', 'Option Contract', 'Opt Spot T1', 'Opt Spot T2', 'Opt Spot T3']], use_container_width=True, hide_index=True)
 
         with tab3:
             st.subheader("📈 Swing Trading Setups (1-2 Weeks)")
@@ -190,20 +190,51 @@ elif page in ["Strict ISTS Scan", "Aggressive Momentum Scan"]:
 
         with tab4:
             st.subheader("🏆 Complete Categorized Leaderboard")
-            st.dataframe(df[['Rank', 'Stock', 'Horizon', 'Entry Price', 'Score /10', 'Equity SL', 'Target 1', 'Target 2', 'Option Contract']], use_container_width=True, hide_index=True)
+            st.dataframe(df[['Rank', 'Stock', 'Horizon', 'Entry Price', 'Score /10', 'Equity SL', 'Target 1', 'Target 2', 'Target 3', 'Option Contract']], use_container_width=True, hide_index=True)
 
+# --- FULL MULTI-TARGET & HORIZON BUDGET SCANNER ---
 elif page == "Budget Scanner (< ₹500)":
     st.title("💡 Sub-₹500 Momentum & Budget Scanner")
     budget_limit = st.number_input("Max Stock Price (₹)", min_value=50, max_value=1000, value=500, step=50)
 
     if st.button("Run Budget Market Scan", type="primary"):
-        with st.spinner("Scanning..."):
+        with st.spinner("Scanning budget universe..."):
             full_res = run_scan(mode="strict")
             if not full_res.empty:
                 st.session_state['b_res'] = full_res[full_res['Entry Price'] <= budget_limit].copy()
 
     if 'b_res' in st.session_state and not st.session_state['b_res'].empty:
-        st.dataframe(st.session_state['b_res'][['Rank', 'Stock', 'Horizon', 'Entry Price', 'Score /10', 'Equity SL', 'Target 1', 'Option Contract']], use_container_width=True, hide_index=True)
+        df_b = st.session_state['b_res']
+        
+        tab1, tab2, tab3, tab4 = st.tabs(["⚡ Intraday Budget Setups", "🌙 BTST Budget Setups", "📈 Swing Budget Setups", "🏆 All Budget Setups"])
+
+        with tab1:
+            st.subheader("⚡ Intraday Budget Setups (Under ₹500)")
+            df_intra = df_b[df_b['Horizon'].str.contains("Intraday")]
+            if not df_intra.empty:
+                st.dataframe(df_intra[['Rank', 'Stock', 'Entry Price', 'Score /10', 'Equity SL', 'Target 1', 'Target 2', 'Target 3', 'Option Contract', 'Opt Spot T1', 'Opt Spot T2', 'Opt Spot T3']], use_container_width=True, hide_index=True)
+            else:
+                st.info("No Intraday budget setups found in this scan.")
+
+        with tab2:
+            st.subheader("🌙 BTST Pre-Close Budget Setups (Entry at 15:15 IST)")
+            df_btst = df_b[df_b['Horizon'].str.contains("BTST")]
+            if not df_btst.empty:
+                st.dataframe(df_btst[['Rank', 'Stock', 'Entry Price', 'Score /10', 'Equity SL', 'Target 1', 'Target 2', 'Target 3', 'Option Contract', 'Opt Spot T1', 'Opt Spot T2', 'Opt Spot T3']], use_container_width=True, hide_index=True)
+            else:
+                st.info("No BTST budget setups found in this scan.")
+
+        with tab3:
+            st.subheader("📈 Swing Trading Budget Setups (1-2 Weeks)")
+            df_swing = df_b[df_b['Horizon'].str.contains("Swing")]
+            if not df_swing.empty:
+                st.dataframe(df_swing[['Rank', 'Stock', 'Entry Price', 'Score /10', 'Equity SL', 'Target 1', 'Target 2', 'Target 3', 'Option Contract']], use_container_width=True, hide_index=True)
+            else:
+                st.info("No Swing budget setups found in this scan.")
+
+        with tab4:
+            st.subheader("🏆 All Budget Equity & Call Option Setups")
+            st.dataframe(df_b[['Rank', 'Stock', 'Horizon', 'Entry Price', 'Score /10', 'Equity SL', 'Target 1', 'Target 2', 'Target 3', 'Option Contract', 'Opt Spot T1', 'Opt Spot T2', 'Opt Spot T3']], use_container_width=True, hide_index=True)
 
 elif page == "Watchlist":
     st.title("📌 Custom Watchlist Tracker")
