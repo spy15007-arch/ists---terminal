@@ -6,347 +6,210 @@ import plotly.graph_objects as go
 import requests
 import datetime
 import io
+import math
+from scipy.stats import norm
 
-# --- PAGE CONFIGURATION ---
-st.set_page_config(page_title="ISTS Pro Dashboard", page_icon="📈", layout="wide")
+st.set_page_config(page_title="ISTS Pro Quant Terminal", page_icon="📈", layout="wide")
 
-# --- SESSION STATE DEFAULTS ---
-if 'watchlist' not in st.session_state:
-    st.session_state['watchlist'] = ['RELIANCE', 'SBIN', 'HAL', 'BEL', 'FEDERALBNK']
-
+# --- SESSION DEFAULTS ---
+if 'watchlist' not in st.session_state: st.session_state['watchlist'] = ['RELIANCE', 'SBIN', 'HAL', 'BEL', 'FEDERALBNK']
 if 'atr_sl_mult' not in st.session_state: st.session_state['atr_sl_mult'] = 1.5
 if 'atr_t1_mult' not in st.session_state: st.session_state['atr_t1_mult'] = 1.5
 if 'atr_t2_mult' not in st.session_state: st.session_state['atr_t2_mult'] = 3.0
 if 'atr_t3_mult' not in st.session_state: st.session_state['atr_t3_mult'] = 4.5
+if 'capital' not in st.session_state: st.session_state['capital'] = 100000.0
+if 'risk_pct' not in st.session_state: st.session_state['risk_pct'] = 2.0
 
-# --- SIDEBAR NAVIGATION ---
-st.sidebar.title("ISTS Pro Terminal")
-st.sidebar.caption("Multi-Horizon Institutional Trading Engine")
+st.sidebar.title("ISTS Pro Quant")
+st.sidebar.caption("Institutional Trading Engine")
 
-page = st.sidebar.radio(
-    "Navigation", 
-    ["Dashboard", "Strict ISTS Scan", "Aggressive Momentum Scan", "Budget Scanner (< ₹500)", "Watchlist", "Settings"]
-)
-
+page = st.sidebar.radio("Navigation", ["Dashboard", "Strict ISTS Scan", "Aggressive Momentum Scan", "Budget Scanner (< ₹500)", "MCX Commodities (Crude/NG)", "Watchlist", "Settings"])
 st.sidebar.markdown("---")
-bot_token = st.sidebar.text_input("Bot Token", type="password")
-chat_id = st.sidebar.text_input("Chat ID", value="1338671581")
+bot_token = st.sidebar.text_input("Telegram Bot Token", type="password")
+chat_id = st.sidebar.text_input("Telegram Chat ID", value="1338671581")
 
-# --- HELPER: DYNAMIC RANK RE-SEQUENCING FOR TABBED VIEWS ---
-def get_tab_display_df(df_input, horizon_filter=None):
-    if df_input is None or df_input.empty:
-        return pd.DataFrame()
+# --- QUANT MATH ENGINES ---
+def calculate_rsi(series, period=14):
+    delta = series.diff()
+    gain = (delta.where(delta > 0, 0)).rolling(window=period).mean()
+    loss = (-delta.where(delta < 0, 0)).rolling(window=period).mean()
+    rs = gain / loss
+    return 100 - (100 / (1 + rs))
+
+def black_scholes_call(S, K, T, r, sigma):
+    if T <= 0 or sigma == 0: return max(0, S - K), 1.0 if S > K else 0.0
+    d1 = (math.log(S / K) + (r + 0.5 * sigma ** 2) * T) / (sigma * math.sqrt(T))
+    d2 = d1 - sigma * math.sqrt(T)
+    price = S * norm.cdf(d1) - K * math.exp(-r * T) * norm.cdf(d2)
+    return round(price, 2), round(norm.cdf(d1), 2)
+
+def generate_quant_option(symbol, price, df, dte=15):
+    step = 100 if price > 5000 else (50 if price > 2000 else (20 if price > 1000 else (10 if price > 500 else 5)))
+    atm_strike = int(round(price / step) * step)
     
-    if horizon_filter:
-        df_filtered = df_input[df_input['Horizon'].str.contains(horizon_filter, case=False, na=False)].copy()
-    else:
-        df_filtered = df_input.copy()
+    # 10-Day Parkinson Volatility
+    hl_log_sq = (np.log(df['High'] / df['Low']) ** 2).tail(10)
+    vol = math.sqrt((1.0 / (4.0 * math.log(2.0))) * hl_log_sq.mean()) * math.sqrt(252)
+    if math.isnan(vol) or vol == 0:
+        df['Log_Ret'] = np.log(df['Close'] / df['Close'].shift(1))
+        vol = df['Log_Ret'].tail(10).std() * math.sqrt(252)
         
-    if df_filtered.empty:
-        return pd.DataFrame()
-    
-    # Reset rank sequentially: 1, 2, 3...
-    df_filtered['Rank'] = range(1, len(df_filtered) + 1)
-    
-    cols = ['Rank', 'Stock', 'Horizon', 'Entry Price', 'Score /10', 'Equity SL', 
-            'Target 1', 'Target 2', 'Target 3', 'Option Contract', 
-            'Opt Spot SL', 'Opt Spot T1', 'Opt Spot T2', 'Opt Spot T3']
-    
-    # Return available columns from requested list
-    cols_to_use = [c for c in cols if c in df_filtered.columns]
-    return df_filtered[cols_to_use]
+    prem, delta = black_scholes_call(price, atm_strike, dte/365.0, 0.07, vol)
+    return f"{atm_strike} CE", prem, delta, round(price*0.985, 1), round(price*1.02, 1), round(price*1.04, 1), round(price*1.06, 1)
+
+def get_index_options_ideas():
+    ideas = []
+    for name, symbol, step in [('NIFTY 50', '^NSEI', 50), ('BANK NIFTY', '^NSEBANK', 100)]:
+        try:
+            df = yf.download(symbol, period="1mo", interval="1d", progress=False)
+            if isinstance(df.columns, pd.MultiIndex): df.columns = df.columns.get_level_values(0)
+            if df.empty: continue
+            
+            close_p = float(df['Close'].iloc[-1])
+            ema_20 = float(df['Close'].ewm(span=20).mean().iloc[-1])
+            atm_strike = int(round(close_p / step) * step)
+            
+            hl_log_sq = (np.log(df['High'] / df['Low']) ** 2).tail(10)
+            vol = math.sqrt((1.0 / (4.0 * math.log(2.0))) * hl_log_sq.mean()) * math.sqrt(252)
+            if math.isnan(vol) or vol == 0:
+                df['Log_Ret'] = np.log(df['Close'] / df['Close'].shift(1))
+                vol = df['Log_Ret'].tail(10).std() * math.sqrt(252)
+
+            if close_p >= ema_20:
+                bias, contract = "🟢 BULLISH", f"BUY {atm_strike} CE"
+                prem, delta = black_scholes_call(close_p, atm_strike, 7/365.0, 0.07, vol)
+                sl, t1, t2, t3 = round(close_p*0.995, 1), round(close_p*1.005, 1), round(close_p*1.010, 1), round(close_p*1.015, 1)
+            else:
+                bias, contract = "🔴 BEARISH", f"BUY {atm_strike} PE"
+                prem, delta = black_scholes_call(atm_strike, close_p, 7/365.0, 0.07, vol)
+                sl, t1, t2, t3 = round(close_p*1.005, 1), round(close_p*0.995, 1), round(close_p*0.990, 1), round(close_p*0.985, 1)
+
+            ideas.append({'Index': name, 'Spot': round(close_p, 2), 'Bias': bias, 'Option': contract, 'EstPrem': prem, 'Delta': delta, 'SpotSL': sl, 'SpotT1': t1, 'SpotT2': t2, 'SpotT3': t3})
+        except: continue
+    return pd.DataFrame(ideas)
 
 @st.cache_data(ttl=14400)
 def get_nifty500_tickers():
     url = "https://archives.nseindia.com/content/indices/ind_nifty500list.csv"
-    headers = {'User-Agent': 'Mozilla/5.0'}
     try:
-        response = requests.get(url, headers=headers, timeout=10)
+        response = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=10)
         df = pd.read_csv(io.StringIO(response.text))
-        return [f"{symbol}.NS" for symbol in df['Symbol'].tolist()]
-    except Exception:
-        fallback = ['TVSMOTOR', 'COFORGE', 'HAL', 'BEL', 'DIXON', 'TRENT', 'MCX', 'PERSISTENT', 'RELIANCE', 'SBIN', 'DIVISLAB', 'FEDERALBNK']
-        return [f"{s}.NS" for s in fallback]
-
-def get_index_options_ideas():
-    ideas = []
-    indices = [('NIFTY 50', '^NSEI', 50), ('BANK NIFTY', '^NSEBANK', 100)]
-    for name, symbol, step in indices:
-        try:
-            df = yf.download(symbol, period="1mo", interval="1d", progress=False)
-            if isinstance(df.columns, pd.MultiIndex):
-                df.columns = df.columns.get_level_values(0)
-            if not df.empty:
-                close_p = float(df['Close'].iloc[-1])
-                ema_20 = float(df['Close'].ewm(span=20, adjust=False).mean().iloc[-1])
-                atm_strike = int(round(close_p / step) * step)
-
-                if close_p >= ema_20:
-                    bias = "🟢 BULLISH (Above EMA20)"
-                    contract = f"BUY {name.replace(' ', '')} {atm_strike} CE"
-                    sl = round(close_p * 0.995, 1)
-                    t1 = round(close_p * 1.005, 1)
-                    t2 = round(close_p * 1.010, 1)
-                    t3 = round(close_p * 1.015, 1)
-                else:
-                    bias = "🔴 BEARISH (Below EMA20)"
-                    contract = f"BUY {name.replace(' ', '')} {atm_strike} PE"
-                    sl = round(close_p * 1.005, 1)
-                    t1 = round(close_p * 0.995, 1)
-                    t2 = round(close_p * 0.990, 1)
-                    t3 = round(close_p * 0.985, 1)
-
-                ideas.append({
-                    'Index': name, 'Spot Price (₹)': round(close_p, 2), 'Trend Bias': bias,
-                    'Recommended Option': contract, 'Spot SL (₹)': sl,
-                    'Spot Target 1 (₹)': t1, 'Spot Target 2 (₹)': t2, 'Spot Target 3 (₹)': t3
-                })
-        except Exception:
-            continue
-    return pd.DataFrame(ideas)
-
-def generate_option_idea(symbol, price):
-    step = 100 if price > 5000 else (50 if price > 2000 else (20 if price > 1000 else (10 if price > 500 else 5)))
-    atm_strike = int(round(price / step) * step)
-    return f"BUY {symbol} {atm_strike} CE", round(price * 0.985, 1), round(price * 1.02, 1), round(price * 1.04, 1), round(price * 1.06, 1)
-
-@st.cache_data(ttl=1800)
-def get_nifty_benchmark_return():
-    try:
-        nifty = yf.download('^NSEI', period="6m", interval="1d", progress=False)['Close']
-        if isinstance(nifty, pd.DataFrame): nifty = nifty.iloc[:, 0]
-        return ((nifty.iloc[-1] / nifty.iloc[-63]) - 1) * 100
-    except Exception:
-        return 0.0
+        return [f"{s}.NS" for s in df['Symbol'].tolist()]
+    except: return ['RELIANCE.NS', 'SBIN.NS', 'HAL.NS', 'BEL.NS', 'DIXON.NS']
 
 def run_scan(mode="strict"):
     tickers = get_nifty500_tickers()
     results = []
-    nifty_3m = get_nifty_benchmark_return()
+    data = yf.download(tickers, period="6mo", interval="1d", group_by='ticker', progress=False)
 
-    data = yf.download(tickers, period="1y", interval="1d", group_by='ticker', progress=False)
-
-    sl_m = st.session_state['atr_sl_mult']
-    t1_m = st.session_state['atr_t1_mult']
-    t2_m = st.session_state['atr_t2_mult']
-    t3_m = st.session_state['atr_t3_mult']
+    sl_m, t1_m, t2_m, t3_m = st.session_state['atr_sl_mult'], st.session_state['atr_t1_mult'], st.session_state['atr_t2_mult'], st.session_state['atr_t3_mult']
+    risk_amt = st.session_state['capital'] * (st.session_state['risk_pct'] / 100.0)
 
     for ticker in tickers:
         symbol = ticker.replace(".NS", "")
         try:
             df = data[ticker].dropna() if len(tickers) > 1 else data.dropna()
-            if len(df) < 200: continue
+            if len(df) < 60: continue
 
             close_p = float(df['Close'].iloc[-1])
-            high_p = float(df['High'].iloc[-1])
-            low_p = float(df['Low'].iloc[-1])
-            vol_today = float(df['Volume'].iloc[-1])
+            high_p, low_p, vol_today = float(df['High'].iloc[-1]), float(df['Low'].iloc[-1]), float(df['Volume'].iloc[-1])
+            ema_20, ema_50 = float(df['Close'].ewm(span=20).mean().iloc[-1]), float(df['Close'].ewm(span=50).mean().iloc[-1])
+            
+            if mode == "strict" and close_p < ema_50: continue
 
-            ema_20 = float(df['Close'].ewm(span=20, adjust=False).mean().iloc[-1])
-            ema_50 = float(df['Close'].ewm(span=50, adjust=False).mean().iloc[-1])
-            ema_200 = float(df['Close'].ewm(span=200, adjust=False).mean().iloc[-1])
-
-            if not (close_p > ema_50 and ema_50 > ema_200): continue
-
-            stock_3m_return = ((close_p / float(df['Close'].iloc[-63])) - 1) * 100
-            rs_edge_pct = round(stock_3m_return - nifty_3m, 1)
-            if rs_edge_pct < 0: continue
-
+            df['RSI'] = calculate_rsi(df['Close'])
+            rsi_val = float(df['RSI'].iloc[-1])
             close_pos = round(((close_p - low_p) / (high_p - low_p)) * 100, 1) if high_p != low_p else 50.0
             vol_50d_avg = float(df['Volume'].rolling(50).mean().iloc[-1])
             vol_vs_50d = round(vol_today / vol_50d_avg, 2) if vol_50d_avg > 0 else 1.0
 
-            high_50d = float(df['High'].rolling(50).max().iloc[-1])
-            low_50d = float(df['Low'].rolling(50).min().iloc[-1])
-            base_range_pct = round(((high_50d - low_50d) / low_50d) * 100, 1) if low_50d > 0 else 20.0
-            resistance_clearance = round(((high_50d - close_p) / close_p) * 100, 1) if high_50d > close_p else 0.0
+            signal = "🚀 STRONG BULL" if (rsi_val > 60 and vol_vs_50d > 1.5) else ("📈 BULLISH" if rsi_val > 50 else "NEUTRAL")
+            score = min(10, (2 if close_pos >= 80 else (1 if close_pos >= 65 else 0)) + (2 if vol_vs_50d >= 2.0 else (1 if vol_vs_50d >= 1.3 else 0)) + (2 if rsi_val >= 60 else (1 if rsi_val >= 50 else 0)) + (2 if mode == "aggressive" else 0))
+            
+            horizon = "🌙 BTST" if (close_pos >= 75 and vol_vs_50d >= 1.2) else ("⚡ Intraday" if vol_vs_50d >= 1.3 else "📈 Swing")
 
-            if mode == "strict":
-                score = 0
-                if close_pos >= 80: score += 2
-                elif close_pos >= 65: score += 1
-                if vol_vs_50d >= 2.0: score += 2
-                elif vol_vs_50d >= 1.3: score += 1
-                if base_range_pct <= 15: score += 2
-                elif base_range_pct <= 25: score += 1
-                if rs_edge_pct >= 15: score += 2
-                elif rs_edge_pct >= 5: score += 1
-                if resistance_clearance == 0: score += 2
-                elif resistance_clearance <= 2.0: score += 1
-            else:
-                score = 2
-                if close_p > ema_20: score += 2
-                if vol_vs_50d >= 1.3: score += 2
-                elif vol_vs_50d >= 1.1: score += 1
-                if close_pos >= 70: score += 2
-                elif close_pos >= 50: score += 1
-                if resistance_clearance <= 3.0: score += 2
+            high_low, high_close, low_close = df['High'] - df['Low'], np.abs(df['High'] - df['Close'].shift()), np.abs(df['Low'] - df['Close'].shift())
+            atr = float(pd.concat([high_low, high_close, low_close], axis=1).max(axis=1).ewm(alpha=1/14).mean().iloc[-1])
+            
+            sl_price = round(close_p - (sl_m * atr), 1)
+            qty = int(risk_amt / (close_p - sl_price)) if close_p > sl_price else 0
 
-            score = min(10, score)
-            composite = round((close_pos * 0.25) + (min(vol_vs_50d * 15, 30)) + (max(0, 25 - base_range_pct * 0.5)) + (min(max(0, rs_edge_pct), 20)), 1)
-
-            if close_pos >= 75 and vol_vs_50d >= 1.2:
-                horizon = "🌙 BTST (15:15 IST)"
-            elif vol_vs_50d >= 1.3 or close_pos >= 70:
-                horizon = "⚡ Intraday Momentum"
-            else:
-                horizon = "📈 Swing (1-2 Weeks)"
-
-            high_low = df['High'] - df['Low']
-            high_close = np.abs(df['High'] - df['Close'].shift())
-            low_close = np.abs(df['Low'] - df['Close'].shift())
-            tr = pd.concat([high_low, high_close, low_close], axis=1).max(axis=1)
-            atr = float(tr.ewm(alpha=1/14, adjust=False).mean().iloc[-1])
-
-            opt_contract, opt_sl, opt_t1, opt_t2, opt_t3 = generate_option_idea(symbol, close_p)
+            opt_str, est_prem, delta, opt_sl, opt_t1, opt_t2, opt_t3 = generate_quant_option(symbol, close_p, df)
 
             results.append({
-                'Stock': symbol, 'Entry Price': round(close_p, 2), 'Horizon': horizon,
-                'Score /10': score, 'Composite /100': composite,
-                'Equity SL': round(close_p - (sl_m * atr), 1),
-                'Target 1': round(close_p + (t1_m * atr), 1),
-                'Target 2': round(close_p + (t2_m * atr), 1),
-                'Target 3': round(close_p + (t3_m * atr), 1),
-                'Option Contract': opt_contract, 
-                'Opt Spot SL': opt_sl, 
-                'Opt Spot T1': opt_t1, 
-                'Opt Spot T2': opt_t2, 
-                'Opt Spot T3': opt_t3, 
-                'Data': df
+                'Stock': symbol, 'Horizon': horizon, 'Entry': round(close_p, 2), 'Signal': signal, 'Score': score, 'RSI': round(rsi_val, 1),
+                'Qty': qty, 'EqSL': sl_price, 'EqT1': round(close_p + (t1_m * atr), 1), 'EqT2': round(close_p + (t2_m * atr), 1), 'EqT3': round(close_p + (t3_m * atr), 1),
+                'Option': opt_str, 'EstPrem': est_prem, 'Delta': delta, 'OptSL': opt_sl, 'OptT1': opt_t1, 'OptT2': opt_t2, 'OptT3': opt_t3
             })
-        except Exception: continue
+        except: continue
+    return pd.DataFrame(results).sort_values(by=['Score', 'RSI'], ascending=[False, False]) if results else pd.DataFrame()
 
-    df_results = pd.DataFrame(results)
-    if not df_results.empty:
-        df_results = df_results.sort_values(by=['Score /10', 'Composite /100'], ascending=[False, False]).head(25)
-    return df_results
+def get_tab_display_df(df, filter_text=None):
+    if df is None or df.empty: return pd.DataFrame()
+    dff = df[df['Horizon'].str.contains(filter_text, case=False, na=False)].copy() if filter_text else df.copy()
+    if dff.empty: return pd.DataFrame()
+    dff['Rank'] = range(1, len(dff) + 1)
+    return dff[[c for c in ['Rank', 'Stock', 'Horizon', 'Signal', 'Entry', 'Qty', 'Score', 'RSI', 'EqSL', 'EqT1', 'EqT2', 'EqT3', 'Option', 'EstPrem', 'Delta', 'OptSL', 'OptT1', 'OptT2', 'OptT3'] if c in dff.columns]]
 
-# --- VIEW 1: DASHBOARD ---
+# --- VIEWS ---
 if page == "Dashboard":
-    st.title("Institutional Swing Trading System (ISTS Pro)")
-    st.markdown("Live Market Top-Down Momentum & Multi-Target Trading Terminal")
-    col1, col2, col3, col4 = st.columns(4)
-    col1.metric("Market Status", "OPEN", "NSE Live Feed")
-    col2.metric("Morning Scan", "09:15-09:45 IST", "Intraday & Swing Focus")
-    col3.metric("Pre-Close Scan", "15:15 IST", "BTST Entry Focus")
-    col4.metric("Multi-Target Engine", "3 Targets + SL", "Equity & Options")
+    st.title("ISTS Pro Quant Terminal")
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("Risk Capital", f"₹{st.session_state['capital']:,.0f}")
+    c2.metric("Risk/Trade", f"{st.session_state['risk_pct']}%")
+    c3.metric("Option Engine", "10-D Parkinson HV")
+    c4.metric("Algorithm", "RSI Momentum")
 
-# --- VIEW 2 & 3: STRICT & AGGRESSIVE SCANNERS ---
-elif page in ["Strict ISTS Scan", "Aggressive Momentum Scan"]:
-    mode_key = "strict" if page == "Strict ISTS Scan" else "aggressive"
+elif page in ["Strict ISTS Scan", "Aggressive Momentum Scan", "Budget Scanner (< ₹500)"]:
+    mode = "aggressive" if "Aggressive" in page else "strict"
     st.title(f"🚀 {page}")
-    
-    if st.button(f"Run {page}", type="primary"):
-        with st.spinner("Scanning Nifty 500 & Index trends..."):
-            df_idx = get_index_options_ideas()
-            res = run_scan(mode=mode_key)
-            st.session_state['index_res'] = df_idx
-            st.session_state[f'{mode_key}_res'] = res
-            st.success("Scan complete!")
+    if st.button("Run Quant Engine", type="primary"):
+        with st.spinner("Calculating Volatility & Greeks..."):
+            st.session_state['idx_res'] = get_index_options_ideas()
+            res = run_scan(mode)
+            if "Budget" in page and not res.empty: res = res[res['Entry'] <= 500].copy()
+            st.session_state['scan_res'] = res
+            st.success("Complete!")
 
-    if 'index_res' in st.session_state and not st.session_state['index_res'].empty:
-        st.subheader("🏛️ Live Index Options (Nifty 50 & Bank Nifty) — Call & Put Strategies")
-        st.dataframe(st.session_state['index_res'], use_container_width=True, hide_index=True)
-        st.markdown("---")
+    if 'idx_res' in st.session_state and not st.session_state['idx_res'].empty:
+        st.subheader("🏛️ Index Options (Black-Scholes Parkinson)")
+        st.dataframe(st.session_state['idx_res'], use_container_width=True, hide_index=True)
 
-    if f'{mode_key}_res' in st.session_state and not st.session_state[f'{mode_key}_res'].empty:
-        df = st.session_state[f'{mode_key}_res']
-        tab1, tab2, tab3, tab4 = st.tabs(["⚡ Intraday Setups (09:15 IST)", "🌙 BTST Setups (15:15 IST)", "📈 Swing Setups (1-2 Weeks)", "🏆 All Setups"])
+    if 'scan_res' in st.session_state and not st.session_state['scan_res'].empty:
+        df = st.session_state['scan_res']
+        t1, t2, t3, t4 = st.tabs(["⚡ Intraday", "🌙 BTST", "📈 Swing", "🏆 All"])
+        with t1: st.dataframe(get_tab_display_df(df, "Intraday"), use_container_width=True, hide_index=True)
+        with t2: st.dataframe(get_tab_display_df(df, "BTST"), use_container_width=True, hide_index=True)
+        with t3: st.dataframe(get_tab_display_df(df, "Swing"), use_container_width=True, hide_index=True)
+        with t4: st.dataframe(get_tab_display_df(df), use_container_width=True, hide_index=True)
 
-        with tab1:
-            st.subheader("⚡ Morning Intraday Setups (3 Targets + SL)")
-            df_t1 = get_tab_display_df(df, "Intraday")
-            if not df_t1.empty:
-                st.dataframe(df_t1.drop(columns=['Horizon'], errors='ignore'), use_container_width=True, hide_index=True)
-            else:
-                st.info("No Intraday setups in this scan.")
+elif page == "MCX Commodities (Crude/NG)":
+    st.title("🛢️ MCX Quant Commodities")
+    if st.button("Scan Commodities", type="primary"):
+        with st.spinner("Pricing NYMEX proxies..."):
+            res = []
+            for name, sym in {'Crude Oil': 'CL=F', 'Natural Gas': 'NG=F', 'Gold': 'GC=F', 'Silver': 'SI=F'}.items():
+                try:
+                    df = yf.download(sym, period="1mo", interval="1d", progress=False)
+                    if isinstance(df.columns, pd.MultiIndex): df.columns = df.columns.get_level_values(0)
+                    close = float(df['Close'].iloc[-1])
+                    df['RSI'] = calculate_rsi(df['Close'])
+                    ema20 = float(df['Close'].ewm(span=20).mean().iloc[-1])
+                    bias = "🟢 BULLISH" if close > ema20 else "🔴 BEARISH"
+                    hl, hc, lc = df['High']-df['Low'], np.abs(df['High']-df['Close'].shift()), np.abs(df['Low']-df['Close'].shift())
+                    atr = float(pd.concat([hl, hc, lc], axis=1).max(axis=1).ewm(alpha=1/14).mean().iloc[-1])
+                    mult = 1 if close > ema20 else -1
+                    res.append({'Commodity': name, 'Spot (USD)': round(close,2), 'Bias': bias, 'RSI': round(float(df['RSI'].iloc[-1]),1), 'ATR': round(atr,2), 'SL': round(close - (1.5*atr*mult), 2), 'T1': round(close + (1.5*atr*mult), 2), 'T2': round(close + (3.0*atr*mult), 2)})
+                except: continue
+            st.dataframe(pd.DataFrame(res), use_container_width=True, hide_index=True)
 
-        with tab2:
-            st.subheader("🌙 Pre-Close BTST Setups (3 Targets + SL)")
-            df_t2 = get_tab_display_df(df, "BTST")
-            if not df_t2.empty:
-                st.dataframe(df_t2.drop(columns=['Horizon'], errors='ignore'), use_container_width=True, hide_index=True)
-            else:
-                st.info("No BTST setups in this scan.")
-
-        with tab3:
-            st.subheader("📈 Swing Trading Setups (3 Targets + SL)")
-            df_t3 = get_tab_display_df(df, "Swing")
-            if not df_t3.empty:
-                st.dataframe(df_t3.drop(columns=['Horizon'], errors='ignore'), use_container_width=True, hide_index=True)
-            else:
-                st.info("No Swing setups in this scan.")
-
-        with tab4:
-            st.subheader("🏆 Complete Categorized Leaderboard")
-            df_t4 = get_tab_display_df(df, None)
-            st.dataframe(df_t4, use_container_width=True, hide_index=True)
-
-# --- VIEW 4: BUDGET SCANNER (< ₹500) ---
-elif page == "Budget Scanner (< ₹500)":
-    st.title("💡 Sub-₹500 Momentum & Budget Scanner")
-    budget_limit = st.number_input("Max Stock Price (₹)", min_value=50, max_value=1000, value=500, step=50)
-
-    if st.button("Run Budget Market Scan", type="primary"):
-        with st.spinner("Scanning budget universe..."):
-            df_idx = get_index_options_ideas()
-            full_res = run_scan(mode="strict")
-            st.session_state['index_res'] = df_idx
-            if not full_res.empty:
-                b_res = full_res[full_res['Entry Price'] <= budget_limit].copy()
-                st.session_state['b_res'] = b_res
-            st.success("Budget scan complete!")
-
-    if 'index_res' in st.session_state and not st.session_state['index_res'].empty:
-        st.subheader("🏛️ Live Index Options (Nifty 50 & Bank Nifty) — Call & Put Strategies")
-        st.dataframe(st.session_state['index_res'], use_container_width=True, hide_index=True)
-        st.markdown("---")
-
-    if 'b_res' in st.session_state and not st.session_state['b_res'].empty:
-        df_b = st.session_state['b_res']
-        
-        tab1, tab2, tab3, tab4 = st.tabs(["⚡ Intraday Budget Setups", "🌙 BTST Budget Setups", "📈 Swing Budget Setups", "🏆 All Budget Setups"])
-
-        with tab1:
-            st.subheader("⚡ Morning Intraday Budget Setups (Under ₹500)")
-            df_bt1 = get_tab_display_df(df_b, "Intraday")
-            if not df_bt1.empty:
-                st.dataframe(df_bt1.drop(columns=['Horizon'], errors='ignore'), use_container_width=True, hide_index=True)
-            else:
-                st.info("No Intraday budget setups found in this scan.")
-
-        with tab2:
-            st.subheader("🌙 Pre-Close BTST Budget Setups (Under ₹500)")
-            df_bt2 = get_tab_display_df(df_b, "BTST")
-            if not df_bt2.empty:
-                st.dataframe(df_bt2.drop(columns=['Horizon'], errors='ignore'), use_container_width=True, hide_index=True)
-            else:
-                st.info("No BTST budget setups found in this scan.")
-
-        with tab3:
-            st.subheader("📈 Swing Trading Budget Setups (Under ₹500)")
-            df_bt3 = get_tab_display_df(df_b, "Swing")
-            if not df_bt3.empty:
-                st.dataframe(df_bt3.drop(columns=['Horizon'], errors='ignore'), use_container_width=True, hide_index=True)
-            else:
-                st.info("No Swing budget setups found in this scan.")
-
-        with tab4:
-            st.subheader("🏆 Complete Categorized Budget Leaderboard")
-            df_bt4 = get_tab_display_df(df_b, None)
-            st.dataframe(df_bt4, use_container_width=True, hide_index=True)
-
-# --- VIEW 5: WATCHLIST ---
 elif page == "Watchlist":
-    st.title("📌 Custom Watchlist Tracker")
-    new_stock = st.text_input("Enter NSE Symbol:").strip().upper()
-    if st.button("➕ Add") and new_stock:
-        if new_stock not in st.session_state['watchlist']:
-            st.session_state['watchlist'].append(new_stock)
-            st.rerun()
+    st.title("📌 Watchlist")
+    n = st.text_input("NSE Symbol:").strip().upper()
+    if st.button("Add") and n and n not in st.session_state['watchlist']: st.session_state['watchlist'].append(n); st.rerun()
     st.write(st.session_state['watchlist'])
 
-# --- VIEW 6: SETTINGS ---
 elif page == "Settings":
     st.title("⚙️ Parameters")
-    st.session_state['atr_sl_mult'] = st.number_input("SL Multiplier", value=float(st.session_state['atr_sl_mult']))
+    st.session_state['capital'] = st.number_input("Capital (₹)", value=st.session_state['capital'])
+    st.session_state['risk_pct'] = st.number_input("Risk %", value=st.session_state['risk_pct'])
