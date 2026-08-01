@@ -24,8 +24,34 @@ def generate_quant_option(price, df, dte=15):
     prem, delta = black_scholes(price, atm, dte/365.0, 0.07, vol)
     return f"{atm} CE", prem, delta, round(price*0.985, 1), round(price*1.02, 1), round(price*1.04, 1), round(price*1.06, 1)
 
+def get_index_options_ideas():
+    ideas = []
+    for name, symbol, step in [('NIFTY 50', '^NSEI', 50), ('BANK NIFTY', '^NSEBANK', 100)]:
+        try:
+            df = yf.download(symbol, period="1mo", interval="1d", progress=False)
+            if isinstance(df.columns, pd.MultiIndex): df.columns = df.columns.get_level_values(0)
+            if df.empty: continue
+            close_p = float(df['Close'].iloc[-1])
+            ema_20 = float(df['Close'].ewm(span=20).mean().iloc[-1])
+            atm_strike = int(round(close_p / step) * step)
+            
+            hl_log_sq = (np.log(df['High'] / df['Low']) ** 2).tail(10)
+            vol = math.sqrt((1.0 / (4.0 * math.log(2.0))) * hl_log_sq.mean()) * math.sqrt(252)
+            if math.isnan(vol) or vol == 0:
+                df['Log_Ret'] = np.log(df['Close'] / df['Close'].shift(1))
+                vol = df['Log_Ret'].tail(10).std() * math.sqrt(252)
+
+            if close_p >= ema_20:
+                ideas.append({'Index': name, 'Spot': round(close_p, 2), 'Bias': "🟢 BULLISH", 'Opt': f"BUY {atm_strike} CE", 'SL': round(close_p*0.995, 1), 'T1': round(close_p*1.005, 1), 'T2': round(close_p*1.010, 1), 'T3': round(close_p*1.015, 1)})
+            else:
+                ideas.append({'Index': name, 'Spot': round(close_p, 2), 'Bias': "🔴 BEARISH", 'Opt': f"BUY {atm_strike} PE", 'SL': round(close_p*1.005, 1), 'T1': round(close_p*0.995, 1), 'T2': round(close_p*0.990, 1), 'T3': round(close_p*0.985, 1)})
+        except: continue
+    return pd.DataFrame(ideas)
+
 def run():
     sess_title, sess_type = get_session_info()
+    df_index = get_index_options_ideas()
+    
     try:
         df = pd.read_csv(io.StringIO(requests.get("https://archives.nseindia.com/content/indices/ind_nifty500list.csv", headers={'User-Agent': 'Mozilla/5.0'}, timeout=10).text))
         tickers = [f"{s}.NS" for s in df['Symbol'].tolist()]
@@ -42,8 +68,8 @@ def run():
             close_p = float(df['Close'].iloc[-1])
             
             # BUDGET SCANNER RULES
-            if close_p > 500: continue # PRICE LIMIT
-            if close_p < float(df['Close'].ewm(span=50).mean().iloc[-1]): continue # STRICT UPTREND FILTER
+            if close_p > 500: continue
+            if close_p < float(df['Close'].ewm(span=50).mean().iloc[-1]): continue
             
             high_p, low_p = float(df['High'].iloc[-1]), float(df['Low'].iloc[-1])
             pos = round(((close_p - low_p) / (high_p - low_p)) * 100, 1) if high_p != low_p else 50.0
@@ -55,22 +81,33 @@ def run():
             if sess_type == "Intraday": hor = "⚡ Intraday" if vol_vs >= 1.3 or pos >= 70 else "📈 Swing"
             else: hor = "🌙 BTST" if pos >= 75 and vol_vs >= 1.2 else "📈 Swing"
 
+            score = (2 if rsi>=60 else 0)+(2 if vol_vs>=2 else 0)
+            if score < 2: continue
+
             hl, hc, lc = df['High']-df['Low'], np.abs(df['High']-df['Close'].shift()), np.abs(df['Low']-df['Close'].shift())
             atr = float(pd.concat([hl, hc, lc], axis=1).max(axis=1).ewm(alpha=1/14).mean().iloc[-1])
-
             opt, prem, delta, osl, ot1, ot2, ot3 = generate_quant_option(close_p, df)
             
-            results.append({'Stock': ticker.replace(".NS", ""), 'Horizon': hor, 'Entry': round(close_p, 2), 'RSI': round(rsi,1), 'Score': (2 if rsi>=60 else 0)+(2 if vol_vs>=2 else 0), 'EqSL': round(close_p-1.5*atr,1), 'EqT1': round(close_p+1.5*atr,1), 'EqT2': round(close_p+3.0*atr,1), 'EqT3': round(close_p+4.5*atr,1), 'Opt': opt, 'Prem': prem, 'Delta': delta, 'OSL': osl, 'OT1': ot1, 'OT2': ot2, 'OT3': ot3})
+            results.append({'Stock': ticker.replace(".NS", ""), 'Horizon': hor, 'Entry': round(close_p, 2), 'RSI': round(rsi,1), 'Score': score, 'EqSL': round(close_p-1.5*atr,1), 'EqT1': round(close_p+1.5*atr,1), 'EqT2': round(close_p+3.0*atr,1), 'EqT3': round(close_p+4.5*atr,1), 'Opt': opt, 'Prem': prem, 'Delta': delta, 'OSL': osl, 'OT1': ot1, 'OT2': ot2, 'OT3': ot3})
         except: continue
 
-    df_r = pd.DataFrame(results).sort_values(by=['Score', 'RSI'], ascending=[False, False]) if results else pd.DataFrame()
+    # STRICTLY CAP AT TOP 20
+    df_r = pd.DataFrame(results).sort_values(by=['Score', 'RSI'], ascending=[False, False]).head(20) if results else pd.DataFrame()
     
-    md = f"# 💡 Budget Quant Report (< ₹500) — {sess_title}\n\n"
+    md = f"# 💡 Top 20 Budget Quant Setups (< ₹500) — {sess_title}\n\n"
+    
+    if not df_index.empty:
+        df_index.insert(0, 'S.No', range(1, len(df_index) + 1))
+        md += "## 🏛️ Index Options (Nifty 50 & Bank Nifty CEs/PEs)\n| S.No | Index | Spot | Bias | Option | Spot SL | Spot T1 | Spot T2 | Spot T3 |\n|---|---|---|---|---|---|---|---|---|\n"
+        for _, r in df_index.iterrows(): md += f"| {r['S.No']} | **{r['Index']}** | ₹{r['Spot']} | {r['Bias']} | **{r['Opt']}** | ₹{r['SL']} | ₹{r['T1']} | ₹{r['T2']} | ₹{r['T3']} |\n"
+        md += "\n---\n"
+
     for h_name, h_filter in [("Intraday (Morning Only)", "Intraday"), ("BTST (Pre-Close Only)", "BTST"), ("Positional Swing", "Swing")]:
         dff = df_r[df_r['Horizon'].str.contains(h_filter)] if not df_r.empty else pd.DataFrame()
         if not dff.empty:
-            md += f"## {h_name}\n| Stock | Entry | RSI | Eq SL | Target 1 | Target 2 | Target 3 | CE Option | Est Prem | Delta | Opt SL | Spot T1 | Spot T2 | Spot T3 |\n|---|---|---|---|---|---|---|---|---|---|---|---|---|---|\n"
-            for _, r in dff.iterrows(): md += f"| **{r['Stock']}** | ₹{r['Entry']} | {r['RSI']} | ₹{r['EqSL']} | ₹{r['EqT1']} | ₹{r['EqT2']} | ₹{r['EqT3']} | **{r['Opt']}** | ₹{r['Prem']} | {r['Delta']} | ₹{r['OSL']} | ₹{r['OT1']} | ₹{r['OT2']} | ₹{r['OT3']} |\n"
+            dff.insert(0, 'S.No', range(1, len(dff) + 1))
+            md += f"## {h_name}\n| S.No | Stock | Entry | RSI | Eq SL | Target 1 | Target 2 | Target 3 | CE Option | Est Prem | Delta | Opt SL | Spot T1 | Spot T2 | Spot T3 |\n|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|\n"
+            for _, r in dff.iterrows(): md += f"| {r['S.No']} | **{r['Stock']}** | ₹{r['Entry']} | {r['RSI']} | ₹{r['EqSL']} | ₹{r['EqT1']} | ₹{r['EqT2']} | ₹{r['EqT3']} | **{r['Opt']}** | ₹{r['Prem']} | {r['Delta']} | ₹{r['OSL']} | ₹{r['OT1']} | ₹{r['OT2']} | ₹{r['OT3']} |\n"
             md += "\n---\n"
     with open("budgetsummary.md", "w", encoding="utf-8") as f: f.write(md)
 
