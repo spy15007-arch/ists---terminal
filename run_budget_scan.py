@@ -4,192 +4,74 @@ import numpy as np
 import requests
 import io
 import datetime
+import math
+from scipy.stats import norm
 
 def get_session_info():
-    utc_now = datetime.datetime.now(datetime.timezone.utc)
-    ist_now = utc_now + datetime.timedelta(hours=5, minutes=30)
-    hour = ist_now.hour
-    if hour < 12:
-        return "🌅 MORNING BUDGET SCAN (Under ₹500)", "Intraday"
-    else:
-        return "🌙 PRE-CLOSE BUDGET SCAN (Under ₹500)", "BTST"
+    hour = (datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=5, minutes=30)).hour
+    return ("🌅 MORNING BUDGET SCAN (< ₹500) (09:15-09:45 IST)", "Intraday") if hour < 12 else ("🌙 PRE-CLOSE BUDGET SCAN (< ₹500) (15:15 IST)", "BTST")
 
-def get_index_options_ideas():
-    ideas = []
-    indices = [('NIFTY 50', '^NSEI', 50), ('BANK NIFTY', '^NSEBANK', 100)]
-    for name, symbol, step in indices:
-        try:
-            df = yf.download(symbol, period="1mo", interval="1d", progress=False)
-            if isinstance(df.columns, pd.MultiIndex):
-                df.columns = df.columns.get_level_values(0)
-            if not df.empty:
-                close_p = float(df['Close'].iloc[-1])
-                ema_20 = float(df['Close'].ewm(span=20, adjust=False).mean().iloc[-1])
-                atm_strike = int(round(close_p / step) * step)
+def black_scholes(S, K, T, r, sigma):
+    if T <= 0 or sigma == 0: return max(0, S - K), 1.0 if S > K else 0.0
+    d1 = (math.log(S / K) + (r + 0.5 * sigma ** 2) * T) / (sigma * math.sqrt(T))
+    return round(S * norm.cdf(d1) - K * math.exp(-r * T) * norm.cdf(d1 - sigma * math.sqrt(T)), 2), round(norm.cdf(d1), 2)
 
-                if close_p >= ema_20:
-                    bias = "🟢 BULLISH (Above EMA20)"
-                    contract = f"BUY {name.replace(' ', '')} {atm_strike} CE"
-                    sl = round(close_p * 0.995, 1)
-                    t1 = round(close_p * 1.005, 1)
-                    t2 = round(close_p * 1.010, 1)
-                    t3 = round(close_p * 1.015, 1)
-                else:
-                    bias = "🔴 BEARISH (Below EMA20)"
-                    contract = f"BUY {name.replace(' ', '')} {atm_strike} PE"
-                    sl = round(close_p * 1.005, 1)
-                    t1 = round(close_p * 0.995, 1)
-                    t2 = round(close_p * 0.990, 1)
-                    t3 = round(close_p * 0.985, 1)
-
-                ideas.append({
-                    'Index': name, 'Spot Price': round(close_p, 2), 'Trend Bias': bias,
-                    'Recommended Option': contract, 'Spot SL': sl,
-                    'Spot Target 1': t1, 'Spot Target 2': t2, 'Spot Target 3': t3
-                })
-        except Exception:
-            continue
-    return pd.DataFrame(ideas)
-
-def get_nifty500_tickers():
-    url = "https://archives.nseindia.com/content/indices/ind_nifty500list.csv"
-    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
-    try:
-        response = requests.get(url, headers=headers, timeout=10)
-        df = pd.read_csv(io.StringIO(response.text))
-        if 'Symbol' in df.columns:
-            return [f"{symbol}.NS" for symbol in df['Symbol'].tolist()]
-    except Exception:
-        pass
-    fallback = ['FEDERALBNK', 'RBLBANK', 'NYKAA', 'ACMESOLAR', 'EXIDEIND', 'PCBL', 'IEX', 'BHARTIHEXA', 'PARADEEP', 'FSL', 'RADICO']
-    return [f"{s}.NS" for s in fallback]
+def generate_quant_option(price, df, dte=15):
+    step = 100 if price > 5000 else (50 if price > 2000 else (20 if price > 1000 else (10 if price > 500 else 5)))
+    atm = int(round(price / step) * step)
+    vol = math.sqrt((1.0 / (4.0 * math.log(2.0))) * ((np.log(df['High']/df['Low'])**2).tail(10).mean())) * math.sqrt(252)
+    if math.isnan(vol) or vol == 0: vol = np.log(df['Close']/df['Close'].shift(1)).tail(10).std() * math.sqrt(252)
+    prem, delta = black_scholes(price, atm, dte/365.0, 0.07, vol)
+    return f"{atm} CE", prem, delta, round(price*0.985, 1), round(price*1.02, 1), round(price*1.04, 1), round(price*1.06, 1)
 
 def run():
-    session_title, session_type = get_session_info()
-    df_index = get_index_options_ideas()
-    tickers = get_nifty500_tickers()
+    sess_title, sess_type = get_session_info()
+    try:
+        df = pd.read_csv(io.StringIO(requests.get("https://archives.nseindia.com/content/indices/ind_nifty500list.csv", headers={'User-Agent': 'Mozilla/5.0'}, timeout=10).text))
+        tickers = [f"{s}.NS" for s in df['Symbol'].tolist()]
+    except: tickers = ['FEDERALBNK.NS', 'IEX.NS']
+    
+    data = yf.download(tickers, period="6mo", interval="1d", group_by='ticker', progress=False)
     results = []
 
-    try:
-        nifty = yf.download('^NSEI', period="6m", interval="1d", progress=False)['Close']
-        if isinstance(nifty, pd.DataFrame): nifty = nifty.iloc[:, 0]
-        nifty = nifty.dropna()
-        nifty_3m = ((nifty.iloc[-1] / nifty.iloc[-63]) - 1) * 100 if len(nifty) >= 63 else 0.0
-    except Exception:
-        nifty_3m = 0.0
+    for ticker in tickers:
+        try:
+            df = data[ticker].dropna() if len(tickers) > 1 else data.dropna()
+            if len(df) < 60: continue
+            
+            close_p = float(df['Close'].iloc[-1])
+            
+            # BUDGET SCANNER RULES
+            if close_p > 500: continue # PRICE LIMIT
+            if close_p < float(df['Close'].ewm(span=50).mean().iloc[-1]): continue # STRICT UPTREND FILTER
+            
+            high_p, low_p = float(df['High'].iloc[-1]), float(df['Low'].iloc[-1])
+            pos = round(((close_p - low_p) / (high_p - low_p)) * 100, 1) if high_p != low_p else 50.0
+            vol_vs = round(float(df['Volume'].iloc[-1]) / float(df['Volume'].rolling(50).mean().iloc[-1]), 2)
+            
+            df['RSI'] = 100 - (100 / (1 + (df['Close'].diff().where(df['Close'].diff()>0,0).rolling(14).mean() / -df['Close'].diff().where(df['Close'].diff()<0,0).rolling(14).mean())))
+            rsi = float(df['RSI'].iloc[-1])
 
-    try:
-        data = yf.download(tickers, period="1y", interval="1d", group_by='ticker', progress=False)
-    except Exception:
-        data = pd.DataFrame()
+            if sess_type == "Intraday": hor = "⚡ Intraday" if vol_vs >= 1.3 or pos >= 70 else "📈 Swing"
+            else: hor = "🌙 BTST" if pos >= 75 and vol_vs >= 1.2 else "📈 Swing"
 
-    if not data.empty:
-        for ticker in tickers:
-            symbol = ticker.replace(".NS", "")
-            try:
-                if ticker not in data.columns.levels[0] if isinstance(data.columns, pd.MultiIndex) else ticker not in data: continue
-                df = data[ticker].dropna() if isinstance(data.columns, pd.MultiIndex) else data.dropna()
-                if len(df) < 200: continue
+            hl, hc, lc = df['High']-df['Low'], np.abs(df['High']-df['Close'].shift()), np.abs(df['Low']-df['Close'].shift())
+            atr = float(pd.concat([hl, hc, lc], axis=1).max(axis=1).ewm(alpha=1/14).mean().iloc[-1])
 
-                close_p = float(df['Close'].iloc[-1])
-                if close_p > 500: continue
+            opt, prem, delta, osl, ot1, ot2, ot3 = generate_quant_option(close_p, df)
+            
+            results.append({'Stock': ticker.replace(".NS", ""), 'Horizon': hor, 'Entry': round(close_p, 2), 'RSI': round(rsi,1), 'Score': (2 if rsi>=60 else 0)+(2 if vol_vs>=2 else 0), 'EqSL': round(close_p-1.5*atr,1), 'EqT1': round(close_p+1.5*atr,1), 'EqT2': round(close_p+3.0*atr,1), 'EqT3': round(close_p+4.5*atr,1), 'Opt': opt, 'Prem': prem, 'Delta': delta, 'OSL': osl, 'OT1': ot1, 'OT2': ot2, 'OT3': ot3})
+        except: continue
 
-                high_p = float(df['High'].iloc[-1])
-                low_p = float(df['Low'].iloc[-1])
-                vol_today = float(df['Volume'].iloc[-1])
+    df_r = pd.DataFrame(results).sort_values(by=['Score', 'RSI'], ascending=[False, False]) if results else pd.DataFrame()
+    
+    md = f"# 💡 Budget Quant Report (< ₹500) — {sess_title}\n\n"
+    for h_name, h_filter in [("Intraday (Morning Only)", "Intraday"), ("BTST (Pre-Close Only)", "BTST"), ("Positional Swing", "Swing")]:
+        dff = df_r[df_r['Horizon'].str.contains(h_filter)] if not df_r.empty else pd.DataFrame()
+        if not dff.empty:
+            md += f"## {h_name}\n| Stock | Entry | RSI | Eq SL | Target 1 | Target 2 | Target 3 | CE Option | Est Prem | Delta | Opt SL | Spot T1 | Spot T2 | Spot T3 |\n|---|---|---|---|---|---|---|---|---|---|---|---|---|---|\n"
+            for _, r in dff.iterrows(): md += f"| **{r['Stock']}** | ₹{r['Entry']} | {r['RSI']} | ₹{r['EqSL']} | ₹{r['EqT1']} | ₹{r['EqT2']} | ₹{r['EqT3']} | **{r['Opt']}** | ₹{r['Prem']} | {r['Delta']} | ₹{r['OSL']} | ₹{r['OT1']} | ₹{r['OT2']} | ₹{r['OT3']} |\n"
+            md += "\n---\n"
+    with open("budgetsummary.md", "w", encoding="utf-8") as f: f.write(md)
 
-                ema_50 = float(df['Close'].ewm(span=50, adjust=False).mean().iloc[-1])
-                ema_200 = float(df['Close'].ewm(span=200, adjust=False).mean().iloc[-1])
-
-                if not (close_p > ema_50 and ema_50 > ema_200): continue
-
-                stock_3m_return = ((close_p / float(df['Close'].iloc[-63])) - 1) * 100
-                rs_edge_pct = round(stock_3m_return - nifty_3m, 1)
-                if rs_edge_pct < 0: continue
-
-                close_pos = round(((close_p - low_p) / (high_p - low_p)) * 100, 1) if high_p != low_p else 50.0
-                vol_50d_avg = float(df['Volume'].rolling(50).mean().iloc[-1])
-                vol_vs_50d = round(vol_today / vol_50d_avg, 2) if vol_50d_avg > 0 else 1.0
-
-                high_50d = float(df['High'].rolling(50).max().iloc[-1])
-                low_50d = float(df['Low'].rolling(50).min().iloc[-1])
-                base_range_pct = round(((high_50d - low_50d) / low_50d) * 100, 1) if low_50d > 0 else 20.0
-                resistance_clearance = round(((high_50d - close_p) / close_p) * 100, 1) if high_50d > close_p else 0.0
-
-                score = 0
-                if close_pos >= 80: score += 2
-                elif close_pos >= 65: score += 1
-                if vol_vs_50d >= 2.0: score += 2
-                elif vol_vs_50d >= 1.3: score += 1
-                if base_range_pct <= 15: score += 2
-                elif base_range_pct <= 25: score += 1
-                if rs_edge_pct >= 15: score += 2
-                elif rs_edge_pct >= 5: score += 1
-                if resistance_clearance == 0: score += 2
-                elif resistance_clearance <= 2.0: score += 1
-
-                composite = round((close_pos * 0.25) + (min(vol_vs_50d * 15, 30)) + (max(0, 25 - base_range_pct * 0.5)) + (min(max(0, rs_edge_pct), 20)), 1)
-
-                if session_type == "Intraday":
-                    if vol_vs_50d >= 1.3 or close_pos >= 70:
-                        horizon = "⚡ Intraday Momentum"
-                    else:
-                        horizon = "📈 Swing (1-2 Weeks)"
-                else: # Pre-Close
-                    if close_pos >= 75 and vol_vs_50d >= 1.2:
-                        horizon = "🌙 BTST Entry (15:15 IST)"
-                    else:
-                        horizon = "📈 Swing (1-2 Weeks)"
-
-                high_low = df['High'] - df['Low']
-                high_close = np.abs(df['High'] - df['Close'].shift())
-                low_close = np.abs(df['Low'] - df['Close'].shift())
-                tr = pd.concat([high_low, high_close, low_close], axis=1).max(axis=1)
-                atr = float(tr.ewm(alpha=1/14, adjust=False).mean().iloc[-1])
-
-                step = 100 if close_p > 5000 else (50 if close_p > 2000 else (20 if close_p > 1000 else (10 if close_p > 500 else 5)))
-                atm_strike = int(round(close_p / step) * step)
-
-                results.append({
-                    'Stock': symbol, 'Horizon': horizon, 'Entry': round(close_p, 2), 'Score': score, 'Composite': composite,
-                    'EqSL': round(close_p - (1.5 * atr), 1),
-                    'EqT1': round(close_p + (1.5 * atr), 1),
-                    'EqT2': round(close_p + (3.0 * atr), 1),
-                    'EqT3': round(close_p + (4.5 * atr), 1),
-                    'Option': f"BUY {symbol} {atm_strike} CE",
-                    'OptSL': round(close_p * 0.985, 1),
-                    'OptT1': round(close_p * 1.02, 1),
-                    'OptT2': round(close_p * 1.04, 1),
-                    'OptT3': round(close_p * 1.06, 1)
-                })
-            except Exception:
-                continue
-
-    md = f"# 💡 ISTS Pro — {session_title}\n\n"
-
-    if not df_index.empty:
-        md += "## 🏛️ Live Index Options (Nifty 50 & Bank Nifty) — Call & Put Strategies\n\n"
-        md += "| Index | Spot Price (₹) | Trend Bias | Recommended Option | Spot SL (₹) | Spot Target 1 | Spot Target 2 | Spot Target 3 |\n"
-        md += "| :--- | :---: | :---: | :--- | :---: | :---: | :---: | :---: |\n"
-        for _, r in df_index.iterrows():
-            md += f"| **{r['Index']}** | ₹{r['Spot Price']} | {r['Trend Bias']} | **{r['Recommended Option']}** | ₹{r['Spot SL']} | ₹{r['Spot Target 1']} | ₹{r['Spot Target 2']} | ₹{r['Spot Target 3']} |\n"
-        md += "\n---\n\n"
-
-    if results:
-        df_res = pd.DataFrame(results).sort_values(by=['Score', 'Composite'], ascending=[False, False]).head(25)
-        df_res['Rank'] = range(1, len(df_res) + 1)
-
-        md += "## 🏆 Budget Multi-Horizon Leaderboard (Under ₹500)\n\n"
-        md += "| Rank | Stock | Horizon | Entry (₹) | Score | Equity SL | Target 1 | Target 2 | Target 3 | Call Option Strategy | Spot SL | Spot Target 1 | Spot Target 2 | Spot Target 3 |\n"
-        md += "| :---: | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :--- | :---: | :---: | :---: | :---: |\n"
-        for _, r in df_res.iterrows():
-            badge = f"🔥 {r['Score']}/10" if r['Score'] >= 5 else f"{r['Score']}/10"
-            md += f"| {r['Rank']} | **{r['Stock']}** | {r['Horizon']} | ₹{r['Entry']} | {badge} | ₹{r['EqSL']} | ₹{r['EqT1']} | ₹{r['EqT2']} | ₹{r['EqT3']} | **{r['Option']}** | ₹{r['OptSL']} | ₹{r['OptT1']} | ₹{r['OptT2']} | ₹{r['OptT3']} |\n"
-    else:
-        md += "_No budget setups under ₹500 met criteria in this session._\n"
-
-    with open("budgetsummary.md", "w", encoding="utf-8") as f:
-        f.write(md)
-
-if __name__ == "__main__":
-    run()
+if __name__ == "__main__": run()
