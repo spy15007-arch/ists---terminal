@@ -7,8 +7,10 @@ import requests
 import datetime
 import io
 
+# --- PAGE CONFIGURATION ---
 st.set_page_config(page_title="ISTS Pro Dashboard", page_icon="📈", layout="wide")
 
+# --- SESSION STATE DEFAULTS ---
 if 'watchlist' not in st.session_state:
     st.session_state['watchlist'] = ['RELIANCE', 'SBIN', 'HAL', 'BEL', 'FEDERALBNK']
 
@@ -17,6 +19,7 @@ if 'atr_t1_mult' not in st.session_state: st.session_state['atr_t1_mult'] = 1.5
 if 'atr_t2_mult' not in st.session_state: st.session_state['atr_t2_mult'] = 3.0
 if 'atr_t3_mult' not in st.session_state: st.session_state['atr_t3_mult'] = 4.5
 
+# --- SIDEBAR NAVIGATION ---
 st.sidebar.title("ISTS Pro Terminal")
 st.sidebar.caption("Multi-Horizon Institutional Trading Engine")
 
@@ -28,6 +31,30 @@ page = st.sidebar.radio(
 st.sidebar.markdown("---")
 bot_token = st.sidebar.text_input("Bot Token", type="password")
 chat_id = st.sidebar.text_input("Chat ID", value="1338671581")
+
+# --- HELPER: DYNAMIC RANK RE-SEQUENCING FOR TABBED VIEWS ---
+def get_tab_display_df(df_input, horizon_filter=None):
+    if df_input is None or df_input.empty:
+        return pd.DataFrame()
+    
+    if horizon_filter:
+        df_filtered = df_input[df_input['Horizon'].str.contains(horizon_filter, case=False, na=False)].copy()
+    else:
+        df_filtered = df_input.copy()
+        
+    if df_filtered.empty:
+        return pd.DataFrame()
+    
+    # Reset rank sequentially: 1, 2, 3...
+    df_filtered['Rank'] = range(1, len(df_filtered) + 1)
+    
+    cols = ['Rank', 'Stock', 'Horizon', 'Entry Price', 'Score /10', 'Equity SL', 
+            'Target 1', 'Target 2', 'Target 3', 'Option Contract', 
+            'Opt Spot SL', 'Opt Spot T1', 'Opt Spot T2', 'Opt Spot T3']
+    
+    # Return available columns from requested list
+    cols_to_use = [c for c in cols if c in df_filtered.columns]
+    return df_filtered[cols_to_use]
 
 @st.cache_data(ttl=14400)
 def get_nifty500_tickers():
@@ -192,7 +219,6 @@ def run_scan(mode="strict"):
     df_results = pd.DataFrame(results)
     if not df_results.empty:
         df_results = df_results.sort_values(by=['Score /10', 'Composite /100'], ascending=[False, False]).head(25)
-        df_results['Rank'] = range(1, len(df_results) + 1)
     return df_results
 
 # --- VIEW 1: DASHBOARD ---
@@ -227,23 +253,34 @@ elif page in ["Strict ISTS Scan", "Aggressive Momentum Scan"]:
         df = st.session_state[f'{mode_key}_res']
         tab1, tab2, tab3, tab4 = st.tabs(["⚡ Intraday Setups (09:15 IST)", "🌙 BTST Setups (15:15 IST)", "📈 Swing Setups (1-2 Weeks)", "🏆 All Setups"])
 
-        col_list = ['Rank', 'Stock', 'Entry Price', 'Score /10', 'Equity SL', 'Target 1', 'Target 2', 'Target 3', 'Option Contract', 'Opt Spot SL', 'Opt Spot T1', 'Opt Spot T2', 'Opt Spot T3']
-
         with tab1:
             st.subheader("⚡ Morning Intraday Setups (3 Targets + SL)")
-            st.dataframe(df[df['Horizon'].str.contains("Intraday")][col_list], use_container_width=True, hide_index=True)
+            df_t1 = get_tab_display_df(df, "Intraday")
+            if not df_t1.empty:
+                st.dataframe(df_t1.drop(columns=['Horizon'], errors='ignore'), use_container_width=True, hide_index=True)
+            else:
+                st.info("No Intraday setups in this scan.")
 
         with tab2:
             st.subheader("🌙 Pre-Close BTST Setups (3 Targets + SL)")
-            st.dataframe(df[df['Horizon'].str.contains("BTST")][col_list], use_container_width=True, hide_index=True)
+            df_t2 = get_tab_display_df(df, "BTST")
+            if not df_t2.empty:
+                st.dataframe(df_t2.drop(columns=['Horizon'], errors='ignore'), use_container_width=True, hide_index=True)
+            else:
+                st.info("No BTST setups in this scan.")
 
         with tab3:
             st.subheader("📈 Swing Trading Setups (3 Targets + SL)")
-            st.dataframe(df[df['Horizon'].str.contains("Swing")][col_list], use_container_width=True, hide_index=True)
+            df_t3 = get_tab_display_df(df, "Swing")
+            if not df_t3.empty:
+                st.dataframe(df_t3.drop(columns=['Horizon'], errors='ignore'), use_container_width=True, hide_index=True)
+            else:
+                st.info("No Swing setups in this scan.")
 
         with tab4:
             st.subheader("🏆 Complete Categorized Leaderboard")
-            st.dataframe(df[['Rank', 'Stock', 'Horizon', 'Entry Price', 'Score /10', 'Equity SL', 'Target 1', 'Target 2', 'Target 3', 'Option Contract', 'Opt Spot SL', 'Opt Spot T1', 'Opt Spot T2', 'Opt Spot T3']], use_container_width=True, hide_index=True)
+            df_t4 = get_tab_display_df(df, None)
+            st.dataframe(df_t4, use_container_width=True, hide_index=True)
 
 # --- VIEW 4: BUDGET SCANNER (< ₹500) ---
 elif page == "Budget Scanner (< ₹500)":
@@ -257,8 +294,6 @@ elif page == "Budget Scanner (< ₹500)":
             st.session_state['index_res'] = df_idx
             if not full_res.empty:
                 b_res = full_res[full_res['Entry Price'] <= budget_limit].copy()
-                if not b_res.empty:
-                    b_res['Rank'] = range(1, len(b_res) + 1)
                 st.session_state['b_res'] = b_res
             st.success("Budget scan complete!")
 
@@ -271,23 +306,35 @@ elif page == "Budget Scanner (< ₹500)":
         df_b = st.session_state['b_res']
         
         tab1, tab2, tab3, tab4 = st.tabs(["⚡ Intraday Budget Setups", "🌙 BTST Budget Setups", "📈 Swing Budget Setups", "🏆 All Budget Setups"])
-        col_list = ['Rank', 'Stock', 'Entry Price', 'Score /10', 'Equity SL', 'Target 1', 'Target 2', 'Target 3', 'Option Contract', 'Opt Spot SL', 'Opt Spot T1', 'Opt Spot T2', 'Opt Spot T3']
 
         with tab1:
-            st.subheader("⚡ Morning Intraday Budget Setups (3 Targets + SL)")
-            st.dataframe(df_b[df_b['Horizon'].str.contains("Intraday")][col_list], use_container_width=True, hide_index=True)
+            st.subheader("⚡ Morning Intraday Budget Setups (Under ₹500)")
+            df_bt1 = get_tab_display_df(df_b, "Intraday")
+            if not df_bt1.empty:
+                st.dataframe(df_bt1.drop(columns=['Horizon'], errors='ignore'), use_container_width=True, hide_index=True)
+            else:
+                st.info("No Intraday budget setups found in this scan.")
 
         with tab2:
-            st.subheader("🌙 Pre-Close BTST Budget Setups (3 Targets + SL)")
-            st.dataframe(df_b[df_b['Horizon'].str.contains("BTST")][col_list], use_container_width=True, hide_index=True)
+            st.subheader("🌙 Pre-Close BTST Budget Setups (Under ₹500)")
+            df_bt2 = get_tab_display_df(df_b, "BTST")
+            if not df_bt2.empty:
+                st.dataframe(df_bt2.drop(columns=['Horizon'], errors='ignore'), use_container_width=True, hide_index=True)
+            else:
+                st.info("No BTST budget setups found in this scan.")
 
         with tab3:
-            st.subheader("📈 Swing Trading Budget Setups (3 Targets + SL)")
-            st.dataframe(df_b[df_b['Horizon'].str.contains("Swing")][col_list], use_container_width=True, hide_index=True)
+            st.subheader("📈 Swing Trading Budget Setups (Under ₹500)")
+            df_bt3 = get_tab_display_df(df_b, "Swing")
+            if not df_bt3.empty:
+                st.dataframe(df_bt3.drop(columns=['Horizon'], errors='ignore'), use_container_width=True, hide_index=True)
+            else:
+                st.info("No Swing budget setups found in this scan.")
 
         with tab4:
             st.subheader("🏆 Complete Categorized Budget Leaderboard")
-            st.dataframe(df_b[['Rank', 'Stock', 'Horizon', 'Entry Price', 'Score /10', 'Equity SL', 'Target 1', 'Target 2', 'Target 3', 'Option Contract', 'Opt Spot SL', 'Opt Spot T1', 'Opt Spot T2', 'Opt Spot T3']], use_container_width=True, hide_index=True)
+            df_bt4 = get_tab_display_df(df_b, None)
+            st.dataframe(df_bt4, use_container_width=True, hide_index=True)
 
 # --- VIEW 5: WATCHLIST ---
 elif page == "Watchlist":
