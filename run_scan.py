@@ -11,6 +11,11 @@ def get_session_info():
     hour = (datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=5, minutes=30)).hour
     return ("🌅 MORNING STRICT SCAN (09:15-09:45 IST)", "Intraday") if hour < 12 else ("🌙 PRE-CLOSE STRICT SCAN (15:15 IST)", "BTST")
 
+def calculate_lorentzian_distance(current_rsi, current_vol_vs, ideal_rsi=70.0, ideal_vol=2.0):
+    dist_rsi = math.log(1 + abs(current_rsi - ideal_rsi))
+    dist_vol = math.log(1 + abs(current_vol_vs - ideal_vol))
+    return round(dist_rsi + dist_vol, 2)
+
 def black_scholes(S, K, T, r, sigma):
     if T <= 0 or sigma == 0: return max(0, S - K), 1.0 if S > K else 0.0
     d1 = (math.log(S / K) + (r + 0.5 * sigma ** 2) * T) / (sigma * math.sqrt(T))
@@ -78,7 +83,12 @@ def run():
             else: hor = "🌙 BTST" if pos >= 75 and vol_vs >= 1.2 else "📈 Swing"
 
             score = (2 if rsi>=60 else 0)+(2 if vol_vs>=2 else 0)
-            if score < 2: continue # Basic Conviction Filter
+            
+            lorentzian_score = calculate_lorentzian_distance(rsi, vol_vs)
+            if lorentzian_score > 1.5: score -= 1
+            elif lorentzian_score < 0.5: score += 1
+            
+            if score < 2: continue
 
             hl, hc, lc = df['High']-df['Low'], np.abs(df['High']-df['Close'].shift()), np.abs(df['Low']-df['Close'].shift())
             atr = float(pd.concat([hl, hc, lc], axis=1).max(axis=1).ewm(alpha=1/14).mean().iloc[-1])
@@ -87,7 +97,6 @@ def run():
             results.append({'Stock': ticker.replace(".NS", ""), 'Horizon': hor, 'Entry': round(close_p, 2), 'RSI': round(rsi,1), 'Score': score, 'EqSL': round(close_p-1.5*atr,1), 'EqT1': round(close_p+1.5*atr,1), 'EqT2': round(close_p+3.0*atr,1), 'EqT3': round(close_p+4.5*atr,1), 'Opt': opt, 'Prem': prem, 'Delta': delta, 'OSL': osl, 'OT1': ot1, 'OT2': ot2, 'OT3': ot3})
         except: continue
 
-    # STRICTLY CAP AT TOP 20
     df_r = pd.DataFrame(results).sort_values(by=['Score', 'RSI'], ascending=[False, False]).head(20) if results else pd.DataFrame()
     
     md = f"# 📊 Top 20 Quant Setups — {sess_title}\n\n"
@@ -101,7 +110,7 @@ def run():
     for h_name, h_filter in [("Intraday (Morning Only)", "Intraday"), ("BTST (Pre-Close Only)", "BTST"), ("Positional Swing", "Swing")]:
         dff = df_r[df_r['Horizon'].str.contains(h_filter)] if not df_r.empty else pd.DataFrame()
         if not dff.empty:
-            dff.insert(0, 'S.No', range(1, len(dff) + 1)) # Re-Index perfectly for Markdown
+            dff.insert(0, 'S.No', range(1, len(dff) + 1))
             md += f"## {h_name}\n| S.No | Stock | Entry | RSI | Eq SL | Target 1 | Target 2 | Target 3 | CE Option | Est Prem | Delta | Opt SL | Spot T1 | Spot T2 | Spot T3 |\n|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|\n"
             for _, r in dff.iterrows(): md += f"| {r['S.No']} | **{r['Stock']}** | ₹{r['Entry']} | {r['RSI']} | ₹{r['EqSL']} | ₹{r['EqT1']} | ₹{r['EqT2']} | ₹{r['EqT3']} | **{r['Opt']}** | ₹{r['Prem']} | {r['Delta']} | ₹{r['OSL']} | ₹{r['OT1']} | ₹{r['OT2']} | ₹{r['OT3']} |\n"
             md += "\n---\n"
