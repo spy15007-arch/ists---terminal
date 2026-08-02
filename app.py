@@ -12,7 +12,6 @@ from scipy.stats import norm
 
 st.set_page_config(page_title="ISTS Pro Quant Terminal", page_icon="📈", layout="wide")
 
-# --- SESSION DEFAULTS ---
 if 'watchlist' not in st.session_state: st.session_state['watchlist'] = ['RELIANCE', 'SBIN', 'HAL', 'BEL', 'FEDERALBNK']
 if 'atr_sl_mult' not in st.session_state: st.session_state['atr_sl_mult'] = 1.5
 if 'atr_t1_mult' not in st.session_state: st.session_state['atr_t1_mult'] = 1.5
@@ -33,7 +32,6 @@ st.sidebar.markdown("---")
 bot_token = st.sidebar.text_input("Telegram Bot Token", type="password")
 chat_id = st.sidebar.text_input("Telegram Chat ID", value="1338671581")
 
-# --- QUANT MATH ENGINES ---
 def calculate_rsi(series, period=14):
     delta = series.diff()
     gain = (delta.where(delta > 0, 0)).rolling(window=period).mean()
@@ -64,14 +62,25 @@ def generate_quant_option(symbol, price, df, dte=15):
     prem, delta = black_scholes_call(price, atm_strike, dte/365.0, 0.07, vol)
     return f"{atm_strike} CE", prem, delta, round(price*0.985, 1), round(price*1.02, 1), round(price*1.04, 1), round(price*1.06, 1)
 
-@st.cache_data(ttl=14400)
-def get_nifty500_tickers():
-    url = "https://archives.nseindia.com/content/indices/ind_nifty500list.csv"
+@st.cache_data(ttl=86400)
+def get_fno_symbols():
     try:
+        url = "https://archives.nseindia.com/content/fo/fo_mktlots.csv"
+        df = pd.read_csv(url)
+        cols = [c.strip() for c in df.columns]
+        df.columns = cols
+        if 'SYMBOL' in df.columns: return [str(x).strip().upper() for x in df['SYMBOL'].tolist()]
+    except: pass
+    return ["AARTIIND", "ABB", "ABBOTINDIA", "ABCAPITAL", "ABFRL", "ACC", "ADANIENT", "ADANIPORTS", "ALKEM", "AMBUJACEM", "APOLLOHOSP", "APOLLOTYRE", "ASHOKLEY", "ASIANPAINT", "ASTRAL", "ATUL", "AUBANK", "AUROPHARMA", "AXISBANK", "BAJAJ-AUTO", "BAJAJFINSV", "BAJFINANCE", "BALRAMCHIN", "BANDHANBNK", "BANKBARODA", "BATAINDIA", "BEL", "BERGEPAINT", "BHARATFORG", "BHARTIARTL", "BHEL", "BIOCON", "BOSCHLTD", "BPCL", "BRITANNIA", "BSOFT", "CANBK", "CANFINHOME", "CHAMBLFERT", "CHOLAFIN", "CIPLA", "COALINDIA", "COFORGE", "COLPAL", "CONCOR", "COROMANDEL", "CROMPTON", "CUB", "CUMMINSIND", "DABUR", "DALBHARAT", "DEEPAKNTR", "DIVISLAB", "DIXON", "DLF", "DRREDDY", "EICHERMOT", "ESCORTS", "EXIDEIND", "FEDERALBNK", "GAIL", "GLENMARK", "GMRINFRA", "GNFC", "GODREJCP", "GODREJPROP", "GRANULES", "GRASIM", "GUJGASLTD", "HAL", "HAVELLS", "HCLTECH", "HDFCAMC", "HDFCBANK", "HDFCLIFE", "HEROMOTOCO", "HINDALCO", "HINDCOPPER", "HINDPETRO", "HINDUNILVR", "ICICIBANK", "ICICIGI", "ICICIPRULI", "IDEA", "IDFC", "IDFCFIRSTB", "IEX", "IGL", "INDHOTEL", "INDIACEM", "INDIAMART", "INDIGO", "INDUSINDBK", "INDUSTOWER", "INFY", "INTELLECT", "IOC", "IPCALAB", "IRCTC", "ITC", "JINDALSTEL", "JKCEMENT", "JSWSTEEL", "JUBLFOOD", "KOTAKBANK", "LALPATHLAB", "LAURUSLABS", "LICHSGFIN", "LT", "LTIM", "LTTS", "LUPIN", "M&M", "M&MFIN", "MANAPPURAM", "MARICO", "MARUTI", "MCDOWELL-N", "MCX", "METROPOLIS", "MFSL", "MGL", "MOTHERSON", "MPHASIS", "MRF", "MUTHOOTFIN", "NATIONALUM", "NAUKRI", "NAVINFLUOR", "NESTLEIND", "NMDC", "NTPC", "OBEROIRLTY", "OFSS", "ONGC", "PAGEIND", "PEL", "PERSISTENT", "PETRONET", "PFC", "PIDILITIND", "PIIND", "PNB", "POLYCAB", "POWERGRID", "PVRINOX", "RAMCOCEM", "RBLBANK", "RECLTD", "RELIANCE", "SAIL", "SBICARD", "SBILIFE", "SBIN", "SHREECEM", "SHRIRAMFIN", "SIEMENS", "SRF", "SUNTV", "SYNGENE", "TATACHEM", "TATACOMM", "TATACONSUM", "TATAMOTORS", "TATAPOWER", "TATASTEEL", "TCS", "TECHM", "TITAN", "TORNTPHARM", "TORNTPOWER", "TRENT", "TVSMOTOR", "UBL", "ULTRACEMCO", "UPLLTD", "VEDL", "VOLTAS", "WIPRO", "ZEEL", "ZYDUSLIFE"]
+
+@st.cache_data(ttl=14400)
+def get_all_nse_tickers():
+    try:
+        url = "https://archives.nseindia.com/content/equities/EQUITY_L.csv"
         response = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=10)
         df = pd.read_csv(io.StringIO(response.text))
-        return [f"{s}.NS" for s in df['Symbol'].tolist()]
-    except: return ['RELIANCE.NS', 'SBIN.NS', 'HAL.NS', 'BEL.NS', 'DIXON.NS']
+        return [f"{str(s).strip()}.NS" for s in df['SYMBOL'].tolist()]
+    except: return ['RELIANCE.NS', 'SBIN.NS', 'HAL.NS', 'BEL.NS']
 
 def get_index_options_ideas():
     ideas = []
@@ -104,64 +113,71 @@ def get_index_options_ideas():
     return pd.DataFrame(ideas)
 
 def run_scan(mode="strict"):
-    tickers = get_nifty500_tickers()
+    tickers = get_all_nse_tickers()
+    fno_symbols = get_fno_symbols()
     results = []
-    data = yf.download(tickers, period="6mo", interval="1d", group_by='ticker', progress=False)
-
-    sl_m, t1_m, t2_m, t3_m = st.session_state['atr_sl_mult'], st.session_state['atr_t1_mult'], st.session_state['atr_t2_mult'], st.session_state['atr_t3_mult']
-    risk_amt = st.session_state['capital'] * (st.session_state['risk_pct'] / 100.0)
-
-    for ticker in tickers:
-        symbol = ticker.replace(".NS", "")
-        try:
-            df = data[ticker].dropna() if len(tickers) > 1 else data.dropna()
-            if len(df) < 60: continue
-
-            close_p = float(df['Close'].iloc[-1])
-            high_p, low_p, vol_today = float(df['High'].iloc[-1]), float(df['Low'].iloc[-1]), float(df['Volume'].iloc[-1])
-            ema_50 = float(df['Close'].ewm(span=50).mean().iloc[-1])
-            if mode == "strict" and close_p < ema_50: continue
-
-            df['RSI'] = calculate_rsi(df['Close'])
-            rsi_val = float(df['RSI'].iloc[-1])
-            close_pos = round(((close_p - low_p) / (high_p - low_p)) * 100, 1) if high_p != low_p else 50.0
-            vol_50d_avg = float(df['Volume'].rolling(50).mean().iloc[-1])
-            vol_vs_50d = round(vol_today / vol_50d_avg, 2) if vol_50d_avg > 0 else 1.0
-
-            signal = "🚀 STRONG BULL" if (rsi_val > 60 and vol_vs_50d > 1.5) else ("📈 BULLISH" if rsi_val > 50 else "NEUTRAL")
-            
-            # Base Score
-            score = min(10, (2 if close_pos >= 80 else (1 if close_pos >= 65 else 0)) + 
-                        (2 if vol_vs_50d >= 2.0 else (1 if vol_vs_50d >= 1.3 else 0)) + 
-                        (2 if rsi_val >= 60 else (1 if rsi_val >= 50 else 0)) + 
-                        (2 if mode == "aggressive" else 0))
-            
-            # Lorentzian Filter
-            lorentzian_score = calculate_lorentzian_distance(rsi_val, vol_vs_50d)
-            if lorentzian_score > 1.5: score -= 1
-            elif lorentzian_score < 0.5: score += 1
-            
-            if score < 4: continue
-            
-            horizon = "🌙 BTST" if (close_pos >= 75 and vol_vs_50d >= 1.2) else ("⚡ Intraday" if vol_vs_50d >= 1.3 else "📈 Swing")
-
-            high_low, high_close, low_close = df['High'] - df['Low'], np.abs(df['High'] - df['Close'].shift()), np.abs(df['Low'] - df['Close'].shift())
-            atr = float(pd.concat([high_low, high_close, low_close], axis=1).max(axis=1).ewm(alpha=1/14).mean().iloc[-1])
-            sl_price = round(close_p - (sl_m * atr), 1)
-            qty = int(risk_amt / (close_p - sl_price)) if close_p > sl_price else 0
-
-            opt_str, est_prem, delta, opt_sl, opt_t1, opt_t2, opt_t3 = generate_quant_option(symbol, close_p, df)
-            broker_link = f"https://in.tradingview.com/chart/?symbol=NSE:{symbol}"
-
-            results.append({
-                'Stock': symbol, 'Horizon': horizon, 'Entry': round(close_p, 2), 'Signal': signal, 'Score': score, 'RSI': round(rsi_val, 1),
-                'Qty': qty, 'EqSL': sl_price, 'EqT1': round(close_p + (t1_m * atr), 1), 'EqT2': round(close_p + (t2_m * atr), 1), 'EqT3': round(close_p + (t3_m * atr), 1),
-                'Option': opt_str, 'EstPrem': est_prem, 'Delta': delta, 'OptSL': opt_sl, 'OptT1': opt_t1, 'OptT2': opt_t2, 'OptT3': opt_t3,
-                'Execute': broker_link
-            })
-        except: continue
     
-    return pd.DataFrame(results).sort_values(by=['Score', 'RSI'], ascending=[False, False]).head(20) if results else pd.DataFrame()
+    # Process in chunks to prevent yfinance timeouts on 2000+ stocks
+    chunk_size = 500
+    for i in range(0, len(tickers), chunk_size):
+        chunk = tickers[i:i + chunk_size]
+        data = yf.download(chunk, period="6mo", interval="1d", group_by='ticker', progress=False)
+
+        sl_m, t1_m, t2_m, t3_m = st.session_state['atr_sl_mult'], st.session_state['atr_t1_mult'], st.session_state['atr_t2_mult'], st.session_state['atr_t3_mult']
+        risk_amt = st.session_state['capital'] * (st.session_state['risk_pct'] / 100.0)
+
+        for ticker in chunk:
+            symbol = ticker.replace(".NS", "")
+            try:
+                df = data[ticker].dropna() if len(chunk) > 1 else data.dropna()
+                if len(df) < 60: continue
+
+                close_p = float(df['Close'].iloc[-1])
+                high_p, low_p, vol_today = float(df['High'].iloc[-1]), float(df['Low'].iloc[-1]), float(df['Volume'].iloc[-1])
+                ema_50 = float(df['Close'].ewm(span=50).mean().iloc[-1])
+                
+                # Budget limit applied if budget mode
+                if "budget" in mode.lower() and close_p > 500: continue
+                # EMA 50 strict filter applied for both strict and budget
+                if mode != "aggressive" and close_p < ema_50: continue
+
+                df['RSI'] = calculate_rsi(df['Close'])
+                rsi_val = float(df['RSI'].iloc[-1])
+                close_pos = round(((close_p - low_p) / (high_p - low_p)) * 100, 1) if high_p != low_p else 50.0
+                vol_50d_avg = float(df['Volume'].rolling(50).mean().iloc[-1])
+                vol_vs_50d = round(vol_today / vol_50d_avg, 2) if vol_50d_avg > 0 else 1.0
+
+                signal = "🚀 STRONG BULL" if (rsi_val > 60 and vol_vs_50d > 1.5) else ("📈 BULLISH" if rsi_val > 50 else "NEUTRAL")
+                score = min(10, (2 if close_pos >= 80 else (1 if close_pos >= 65 else 0)) + (2 if vol_vs_50d >= 2.0 else (1 if vol_vs_50d >= 1.3 else 0)) + (2 if rsi_val >= 60 else (1 if rsi_val >= 50 else 0)) + (2 if mode == "aggressive" else 0))
+                
+                lorentzian_score = calculate_lorentzian_distance(rsi_val, vol_vs_50d)
+                if lorentzian_score > 1.5: score -= 1 
+                elif lorentzian_score < 0.5: score += 1 
+
+                if score < 4: continue
+                
+                horizon = "🌙 BTST" if (close_pos >= 75 and vol_vs_50d >= 1.2) else ("⚡ Intraday" if vol_vs_50d >= 1.3 else "📈 Swing")
+                high_low, high_close, low_close = df['High'] - df['Low'], np.abs(df['High'] - df['Close'].shift()), np.abs(df['Low'] - df['Close'].shift())
+                atr = float(pd.concat([high_low, high_close, low_close], axis=1).max(axis=1).ewm(alpha=1/14).mean().iloc[-1])
+                sl_price = round(close_p - (sl_m * atr), 1)
+                qty = int(risk_amt / (close_p - sl_price)) if close_p > sl_price else 0
+
+                if symbol in fno_symbols:
+                    opt_str, est_prem, delta, opt_sl, opt_t1, opt_t2, opt_t3 = generate_quant_option(symbol, close_p, df)
+                else:
+                    opt_str, est_prem, delta, opt_sl, opt_t1, opt_t2, opt_t3 = "N/A (Cash)", "-", "-", "-", "-", "-", "-"
+
+                broker_link = f"https://in.tradingview.com/chart/?symbol=NSE:{symbol}"
+
+                results.append({
+                    'Stock': symbol, 'Horizon': horizon, 'Entry': round(close_p, 2), 'Signal': signal, 'Score': score, 'RSI': round(rsi_val, 1),
+                    'Qty': qty, 'EqSL': sl_price, 'EqT1': round(close_p + (t1_m * atr), 1), 'EqT2': round(close_p + (t2_m * atr), 1), 'EqT3': round(close_p + (t3_m * atr), 1),
+                    'Option': opt_str, 'EstPrem': est_prem, 'Delta': delta, 'OptSL': opt_sl, 'OptT1': opt_t1, 'OptT2': opt_t2, 'OptT3': opt_t3,
+                    'Execute': broker_link
+                })
+            except: continue
+    
+    return pd.DataFrame(results).sort_values(by=['Score', 'RSI'], ascending=[False, False]).head(25) if results else pd.DataFrame()
 
 def render_dataframe(df_input, horizon_filter=None):
     if df_input is None or df_input.empty: return
@@ -177,7 +193,6 @@ def render_dataframe(df_input, horizon_filter=None):
         column_config={"Execute": st.column_config.LinkColumn("Execute (Chart)", display_text="Open ⚡")}
     )
 
-# --- BACKTESTING ENGINE ---
 def run_backtest(symbol, strategy="Strict"):
     df = yf.download(f"{symbol}.NS", period="2y", interval="1d", progress=False)
     if isinstance(df.columns, pd.MultiIndex): df.columns = df.columns.get_level_values(0)
@@ -217,23 +232,27 @@ def run_backtest(symbol, strategy="Strict"):
                 
     return df, pd.DataFrame(trades, columns=['Date', 'Entry', 'Exit', 'Result', 'PnL'])
 
-# --- VIEWS ---
 if page == "Dashboard":
     st.title("ISTS Pro Quant Terminal")
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("Risk Capital", f"₹{st.session_state['capital']:,.0f}")
     c2.metric("Risk/Trade", f"{st.session_state['risk_pct']}%")
-    c3.metric("Top Stocks Cap", "Top 20 Sure Shot")
-    c4.metric("Algorithm", "Lorentzian + RSI")
+    c3.metric("F&O Integrity Filter", "Active")
+    c4.metric("Algorithm", "RSI + Lorentzian ML")
 
 elif page in ["Strict ISTS Scan", "Aggressive Momentum Scan", "Budget Scanner (< ₹500)"]:
-    mode = "aggressive" if "Aggressive" in page else "strict"
+    if "Aggressive" in page:
+        mode = "aggressive"
+    elif "Budget" in page:
+        mode = "budget"
+    else:
+        mode = "strict"
+        
     st.title(f"🚀 {page}")
     if st.button("Run High Conviction Engine", type="primary"):
-        with st.spinner("Extracting Top 20 Setups via Lorentzian Classification..."):
+        with st.spinner("Extracting Top 25 Sure Shot Setups & F&O Chains (Scanning All NSE Stocks)..."):
             st.session_state['idx_res'] = get_index_options_ideas()
             res = run_scan(mode)
-            if "Budget" in page and not res.empty: res = res[res['Entry'] <= 500].copy()
             st.session_state['scan_res'] = res
             st.success("Extraction Complete!")
 
@@ -245,7 +264,7 @@ elif page in ["Strict ISTS Scan", "Aggressive Momentum Scan", "Budget Scanner (<
 
     if 'scan_res' in st.session_state and not st.session_state['scan_res'].empty:
         df = st.session_state['scan_res']
-        t1, t2, t3, t4 = st.tabs(["⚡ Intraday", "🌙 BTST", "📈 Swing", "🏆 Top 20 All Setups"])
+        t1, t2, t3, t4 = st.tabs(["⚡ Intraday", "🌙 BTST", "📈 Swing", "🏆 Top 25 All Setups"])
         with t1: render_dataframe(df, "Intraday")
         with t2: render_dataframe(df, "BTST")
         with t3: render_dataframe(df, "Swing")
