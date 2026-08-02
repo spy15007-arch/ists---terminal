@@ -8,6 +8,7 @@ import datetime
 import io
 import math
 import os
+import time
 from scipy.stats import norm
 
 st.set_page_config(page_title="ISTS Pro Quant Terminal", page_icon="📈", layout="wide")
@@ -29,8 +30,6 @@ page = st.sidebar.radio(
      "MCX Commodities", "🧪 Backtesting Engine", "📓 Trade Journal", "Watchlist", "Settings"]
 )
 st.sidebar.markdown("---")
-bot_token = st.sidebar.text_input("Telegram Bot Token", type="password")
-chat_id = st.sidebar.text_input("Telegram Chat ID", value="1338671581")
 
 def calculate_rsi(series, period=14):
     delta = series.diff()
@@ -54,11 +53,17 @@ def black_scholes_call(S, K, T, r, sigma):
 def generate_quant_option(symbol, price, df, dte=15):
     step = 100 if price > 5000 else (50 if price > 2000 else (20 if price > 1000 else (10 if price > 500 else 5)))
     atm_strike = int(round(price / step) * step)
-    hl_log_sq = (np.log(df['High'] / df['Low']) ** 2).tail(10)
-    vol = math.sqrt((1.0 / (4.0 * math.log(2.0))) * hl_log_sq.mean()) * math.sqrt(252)
-    if math.isnan(vol) or vol == 0:
-        df['Log_Ret'] = np.log(df['Close'] / df['Close'].shift(1))
-        vol = df['Log_Ret'].tail(10).std() * math.sqrt(252)
+    
+    # Safely calculate volatility for options
+    try:
+        hl_log_sq = (np.log(df['High'] / df['Low']) ** 2).tail(10)
+        vol = math.sqrt((1.0 / (4.0 * math.log(2.0))) * hl_log_sq.mean()) * math.sqrt(252)
+        if math.isnan(vol) or vol == 0:
+            df['Log_Ret'] = np.log(df['Close'] / df['Close'].shift(1))
+            vol = df['Log_Ret'].tail(10).std() * math.sqrt(252)
+        if math.isnan(vol) or vol == 0: vol = 0.2 # Fallback vol
+    except: vol = 0.2
+
     prem, delta = black_scholes_call(price, atm_strike, dte/365.0, 0.07, vol)
     return f"{atm_strike} CE", prem, delta, round(price*0.985, 1), round(price*1.02, 1), round(price*1.04, 1), round(price*1.06, 1)
 
@@ -71,7 +76,7 @@ def get_fno_symbols():
         df.columns = cols
         if 'SYMBOL' in df.columns: return [str(x).strip().upper() for x in df['SYMBOL'].tolist()]
     except: pass
-    return ["AARTIIND", "ABB", "ABBOTINDIA", "ABCAPITAL", "ABFRL", "ACC", "ADANIENT", "ADANIPORTS", "ALKEM", "AMBUJACEM", "APOLLOHOSP", "APOLLOTYRE", "ASHOKLEY", "ASIANPAINT", "ASTRAL", "ATUL", "AUBANK", "AUROPHARMA", "AXISBANK", "BAJAJ-AUTO", "BAJAJFINSV", "BAJFINANCE", "BALRAMCHIN", "BANDHANBNK", "BANKBARODA", "BATAINDIA", "BEL", "BERGEPAINT", "BHARATFORG", "BHARTIARTL", "BHEL", "BIOCON", "BOSCHLTD", "BPCL", "BRITANNIA", "BSOFT", "CANBK", "CANFINHOME", "CHAMBLFERT", "CHOLAFIN", "CIPLA", "COALINDIA", "COFORGE", "COLPAL", "CONCOR", "COROMANDEL", "CROMPTON", "CUB", "CUMMINSIND", "DABUR", "DALBHARAT", "DEEPAKNTR", "DIVISLAB", "DIXON", "DLF", "DRREDDY", "EICHERMOT", "ESCORTS", "EXIDEIND", "FEDERALBNK", "GAIL", "GLENMARK", "GMRINFRA", "GNFC", "GODREJCP", "GODREJPROP", "GRANULES", "GRASIM", "GUJGASLTD", "HAL", "HAVELLS", "HCLTECH", "HDFCAMC", "HDFCBANK", "HDFCLIFE", "HEROMOTOCO", "HINDALCO", "HINDCOPPER", "HINDPETRO", "HINDUNILVR", "ICICIBANK", "ICICIGI", "ICICIPRULI", "IDEA", "IDFC", "IDFCFIRSTB", "IEX", "IGL", "INDHOTEL", "INDIACEM", "INDIAMART", "INDIGO", "INDUSINDBK", "INDUSTOWER", "INFY", "INTELLECT", "IOC", "IPCALAB", "IRCTC", "ITC", "JINDALSTEL", "JKCEMENT", "JSWSTEEL", "JUBLFOOD", "KOTAKBANK", "LALPATHLAB", "LAURUSLABS", "LICHSGFIN", "LT", "LTIM", "LTTS", "LUPIN", "M&M", "M&MFIN", "MANAPPURAM", "MARICO", "MARUTI", "MCDOWELL-N", "MCX", "METROPOLIS", "MFSL", "MGL", "MOTHERSON", "MPHASIS", "MRF", "MUTHOOTFIN", "NATIONALUM", "NAUKRI", "NAVINFLUOR", "NESTLEIND", "NMDC", "NTPC", "OBEROIRLTY", "OFSS", "ONGC", "PAGEIND", "PEL", "PERSISTENT", "PETRONET", "PFC", "PIDILITIND", "PIIND", "PNB", "POLYCAB", "POWERGRID", "PVRINOX", "RAMCOCEM", "RBLBANK", "RECLTD", "RELIANCE", "SAIL", "SBICARD", "SBILIFE", "SBIN", "SHREECEM", "SHRIRAMFIN", "SIEMENS", "SRF", "SUNTV", "SYNGENE", "TATACHEM", "TATACOMM", "TATACONSUM", "TATAMOTORS", "TATAPOWER", "TATASTEEL", "TCS", "TECHM", "TITAN", "TORNTPHARM", "TORNTPOWER", "TRENT", "TVSMOTOR", "UBL", "ULTRACEMCO", "UPLLTD", "VEDL", "VOLTAS", "WIPRO", "ZEEL", "ZYDUSLIFE"]
+    return ["RELIANCE", "SBIN", "HDFCBANK", "ICICIBANK", "INFY"]
 
 @st.cache_data(ttl=14400)
 def get_all_nse_tickers():
@@ -80,7 +85,7 @@ def get_all_nse_tickers():
         response = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=10)
         df = pd.read_csv(io.StringIO(response.text))
         return [f"{str(s).strip()}.NS" for s in df['SYMBOL'].tolist()]
-    except: return ['RELIANCE.NS', 'SBIN.NS', 'HAL.NS', 'BEL.NS']
+    except: return ['RELIANCE.NS', 'SBIN.NS']
 
 def get_index_options_ideas():
     ideas = []
@@ -117,35 +122,53 @@ def run_scan(mode="strict"):
     fno_symbols = get_fno_symbols()
     results = []
     
-    # Process in chunks to prevent yfinance timeouts on 2000+ stocks
-    chunk_size = 500
+    sl_m, t1_m, t2_m, t3_m = st.session_state['atr_sl_mult'], st.session_state['atr_t1_mult'], st.session_state['atr_t2_mult'], st.session_state['atr_t3_mult']
+    risk_amt = st.session_state['capital'] * (st.session_state['risk_pct'] / 100.0)
+
+    # Bulletproof: Process in small batches of 100 to prevent Yahoo Finance IP block
+    chunk_size = 100
+    
+    progress_text = "Scanning 2,200+ NSE Stocks. Please wait..."
+    my_bar = st.progress(0, text=progress_text)
+    
     for i in range(0, len(tickers), chunk_size):
         chunk = tickers[i:i + chunk_size]
         data = yf.download(chunk, period="6mo", interval="1d", group_by='ticker', progress=False)
-
-        sl_m, t1_m, t2_m, t3_m = st.session_state['atr_sl_mult'], st.session_state['atr_t1_mult'], st.session_state['atr_t2_mult'], st.session_state['atr_t3_mult']
-        risk_amt = st.session_state['capital'] * (st.session_state['risk_pct'] / 100.0)
+        
+        # Update progress bar safely
+        prog = min(1.0, (i + chunk_size) / len(tickers))
+        my_bar.progress(prog, text=f"Processed {min(i + chunk_size, len(tickers))} of {len(tickers)} stocks...")
 
         for ticker in chunk:
             symbol = ticker.replace(".NS", "")
             try:
                 df = data[ticker].dropna() if len(chunk) > 1 else data.dropna()
+                
+                # Bulletproof: Skip dead/suspended stocks immediately
                 if len(df) < 60: continue
-
+                
                 close_p = float(df['Close'].iloc[-1])
-                high_p, low_p, vol_today = float(df['High'].iloc[-1]), float(df['Low'].iloc[-1]), float(df['Volume'].iloc[-1])
+                high_p = float(df['High'].iloc[-1])
+                low_p = float(df['Low'].iloc[-1])
+                vol_today = float(df['Volume'].iloc[-1])
+                
+                # Bulletproof: Prevent divide-by-zero on illiquid frozen stocks
+                if high_p == low_p: continue
+                
                 ema_50 = float(df['Close'].ewm(span=50).mean().iloc[-1])
                 
-                # Budget limit applied if budget mode
                 if "budget" in mode.lower() and close_p > 500: continue
-                # EMA 50 strict filter applied for both strict and budget
                 if mode != "aggressive" and close_p < ema_50: continue
+
+                vol_50d_avg = float(df['Volume'].rolling(50).mean().iloc[-1])
+                if vol_50d_avg <= 0: continue # Skip zero-volume penny stocks
 
                 df['RSI'] = calculate_rsi(df['Close'])
                 rsi_val = float(df['RSI'].iloc[-1])
-                close_pos = round(((close_p - low_p) / (high_p - low_p)) * 100, 1) if high_p != low_p else 50.0
-                vol_50d_avg = float(df['Volume'].rolling(50).mean().iloc[-1])
-                vol_vs_50d = round(vol_today / vol_50d_avg, 2) if vol_50d_avg > 0 else 1.0
+                if math.isnan(rsi_val): continue
+
+                close_pos = round(((close_p - low_p) / (high_p - low_p)) * 100, 1)
+                vol_vs_50d = round(vol_today / vol_50d_avg, 2)
 
                 signal = "🚀 STRONG BULL" if (rsi_val > 60 and vol_vs_50d > 1.5) else ("📈 BULLISH" if rsi_val > 50 else "NEUTRAL")
                 score = min(10, (2 if close_pos >= 80 else (1 if close_pos >= 65 else 0)) + (2 if vol_vs_50d >= 2.0 else (1 if vol_vs_50d >= 1.3 else 0)) + (2 if rsi_val >= 60 else (1 if rsi_val >= 50 else 0)) + (2 if mode == "aggressive" else 0))
@@ -159,6 +182,7 @@ def run_scan(mode="strict"):
                 horizon = "🌙 BTST" if (close_pos >= 75 and vol_vs_50d >= 1.2) else ("⚡ Intraday" if vol_vs_50d >= 1.3 else "📈 Swing")
                 high_low, high_close, low_close = df['High'] - df['Low'], np.abs(df['High'] - df['Close'].shift()), np.abs(df['Low'] - df['Close'].shift())
                 atr = float(pd.concat([high_low, high_close, low_close], axis=1).max(axis=1).ewm(alpha=1/14).mean().iloc[-1])
+                
                 sl_price = round(close_p - (sl_m * atr), 1)
                 qty = int(risk_amt / (close_p - sl_price)) if close_p > sl_price else 0
 
@@ -175,8 +199,13 @@ def run_scan(mode="strict"):
                     'Option': opt_str, 'EstPrem': est_prem, 'Delta': delta, 'OptSL': opt_sl, 'OptT1': opt_t1, 'OptT2': opt_t2, 'OptT3': opt_t3,
                     'Execute': broker_link
                 })
-            except: continue
+            except Exception as e: 
+                continue
+        
+        # Very short pause to reset Yahoo connection limits
+        time.sleep(0.5)
     
+    my_bar.empty()
     return pd.DataFrame(results).sort_values(by=['Score', 'RSI'], ascending=[False, False]).head(25) if results else pd.DataFrame()
 
 def render_dataframe(df_input, horizon_filter=None):
@@ -241,16 +270,13 @@ if page == "Dashboard":
     c4.metric("Algorithm", "RSI + Lorentzian ML")
 
 elif page in ["Strict ISTS Scan", "Aggressive Momentum Scan", "Budget Scanner (< ₹500)"]:
-    if "Aggressive" in page:
-        mode = "aggressive"
-    elif "Budget" in page:
-        mode = "budget"
-    else:
-        mode = "strict"
+    if "Aggressive" in page: mode = "aggressive"
+    elif "Budget" in page: mode = "budget"
+    else: mode = "strict"
         
     st.title(f"🚀 {page}")
     if st.button("Run High Conviction Engine", type="primary"):
-        with st.spinner("Extracting Top 25 Sure Shot Setups & F&O Chains (Scanning All NSE Stocks)..."):
+        with st.spinner(f"Extracting Top 25 Setups from 2,200+ NSE Stocks..."):
             st.session_state['idx_res'] = get_index_options_ideas()
             res = run_scan(mode)
             st.session_state['scan_res'] = res
