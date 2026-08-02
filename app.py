@@ -41,6 +41,11 @@ def calculate_rsi(series, period=14):
     rs = gain / loss
     return 100 - (100 / (1 + rs))
 
+def calculate_lorentzian_distance(current_rsi, current_vol_vs, ideal_rsi=70.0, ideal_vol=2.0):
+    dist_rsi = math.log(1 + abs(current_rsi - ideal_rsi))
+    dist_vol = math.log(1 + abs(current_vol_vs - ideal_vol))
+    return round(dist_rsi + dist_vol, 2)
+
 def black_scholes_call(S, K, T, r, sigma):
     if T <= 0 or sigma == 0: return max(0, S - K), 1.0 if S > K else 0.0
     d1 = (math.log(S / K) + (r + 0.5 * sigma ** 2) * T) / (sigma * math.sqrt(T))
@@ -124,9 +129,18 @@ def run_scan(mode="strict"):
             vol_vs_50d = round(vol_today / vol_50d_avg, 2) if vol_50d_avg > 0 else 1.0
 
             signal = "🚀 STRONG BULL" if (rsi_val > 60 and vol_vs_50d > 1.5) else ("📈 BULLISH" if rsi_val > 50 else "NEUTRAL")
-            score = min(10, (2 if close_pos >= 80 else (1 if close_pos >= 65 else 0)) + (2 if vol_vs_50d >= 2.0 else (1 if vol_vs_50d >= 1.3 else 0)) + (2 if rsi_val >= 60 else (1 if rsi_val >= 50 else 0)) + (2 if mode == "aggressive" else 0))
             
-            # Minimum conviction score required to be considered "Sure Shot"
+            # Base Score
+            score = min(10, (2 if close_pos >= 80 else (1 if close_pos >= 65 else 0)) + 
+                        (2 if vol_vs_50d >= 2.0 else (1 if vol_vs_50d >= 1.3 else 0)) + 
+                        (2 if rsi_val >= 60 else (1 if rsi_val >= 50 else 0)) + 
+                        (2 if mode == "aggressive" else 0))
+            
+            # Lorentzian Filter
+            lorentzian_score = calculate_lorentzian_distance(rsi_val, vol_vs_50d)
+            if lorentzian_score > 1.5: score -= 1
+            elif lorentzian_score < 0.5: score += 1
+            
             if score < 4: continue
             
             horizon = "🌙 BTST" if (close_pos >= 75 and vol_vs_50d >= 1.2) else ("⚡ Intraday" if vol_vs_50d >= 1.3 else "📈 Swing")
@@ -147,7 +161,6 @@ def run_scan(mode="strict"):
             })
         except: continue
     
-    # STRICT CAP AT TOP 20 SURE SHOT STOCKS
     return pd.DataFrame(results).sort_values(by=['Score', 'RSI'], ascending=[False, False]).head(20) if results else pd.DataFrame()
 
 def render_dataframe(df_input, horizon_filter=None):
@@ -156,7 +169,6 @@ def render_dataframe(df_input, horizon_filter=None):
     if dff.empty: 
         st.info(f"No {horizon_filter if horizon_filter else ''} setups currently.")
         return
-    # Reset Serial Number perfectly for the displayed tab
     dff['S.No'] = range(1, len(dff) + 1)
     
     st.dataframe(
@@ -212,13 +224,13 @@ if page == "Dashboard":
     c1.metric("Risk Capital", f"₹{st.session_state['capital']:,.0f}")
     c2.metric("Risk/Trade", f"{st.session_state['risk_pct']}%")
     c3.metric("Top Stocks Cap", "Top 20 Sure Shot")
-    c4.metric("Algorithm", "RSI Momentum")
+    c4.metric("Algorithm", "Lorentzian + RSI")
 
 elif page in ["Strict ISTS Scan", "Aggressive Momentum Scan", "Budget Scanner (< ₹500)"]:
     mode = "aggressive" if "Aggressive" in page else "strict"
     st.title(f"🚀 {page}")
     if st.button("Run High Conviction Engine", type="primary"):
-        with st.spinner("Extracting Top 20 Sure Shot Setups & Index Trends..."):
+        with st.spinner("Extracting Top 20 Setups via Lorentzian Classification..."):
             st.session_state['idx_res'] = get_index_options_ideas()
             res = run_scan(mode)
             if "Budget" in page and not res.empty: res = res[res['Entry'] <= 500].copy()
