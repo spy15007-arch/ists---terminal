@@ -1,37 +1,54 @@
-name: Automated Market Scanner
+name: ISTS Quant Market Scanner
 
 on:
-  workflow_dispatch:
-  push:
-    branches: [ main ]
+  workflow_dispatch: # Allows you to manually click "Run workflow" at any time
   schedule:
-    # 1st Scan: Morning Intraday & Swing (09:15 AM IST / 03:45 AM UTC)
+    # Runs automatically at 09:15 AM IST (03:45 AM UTC) Monday - Friday
     - cron: '45 3 * * 1-5'
-    # 2nd Scan: Pre-Close BTST & Swing (03:15 PM IST / 09:45 AM UTC)
+    # Runs automatically at 03:15 PM IST (09:45 AM UTC) Monday - Friday
     - cron: '45 9 * * 1-5'
 
 jobs:
-  scan:
+  quant_scan:
     runs-on: ubuntu-latest
+    
+    # Required to allow GitHub Actions to save the .md files back to your repo
     permissions:
-      contents: write
+      contents: write 
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v4
         with:
-          python-version: "3.10"
-      - name: Install dependencies (Including SciPy for Options Math)
-        run: pip install yfinance pandas numpy requests scipy
-      - name: Run Quant Market Scanners
+          python-version: '3.10'
+
+      - name: Install Dependencies
         run: |
-          python run_scan.py
-          python run_budget_scan.py
-          python run_aggressive_scan.py
+          python -m pip install --upgrade pip
+          pip install yfinance pandas numpy requests scipy
+
+      - name: Run Strict Master Scan
+        run: python run_scan.py
+
+      - name: Run Aggressive Momentum Scan
+        run: python run_aggressive_scan.py
+
+      - name: Run Budget Filter Scan
+        run: python run_budget_scan.py
+
+      - name: Push Reports to Telegram
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python telegram_push.py
+          
       - name: Commit & Push Updated Reports
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git add *.md
-          git commit -m "Auto-update quant reports with Parkinson Volatility" || exit 0
+          git commit -m "Auto-update quant reports" || echo "No changes to commit"
           git push
