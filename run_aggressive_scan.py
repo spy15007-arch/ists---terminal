@@ -11,6 +11,11 @@ def get_session_info():
     hour = (datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=5, minutes=30)).hour
     return ("🌅 MORNING AGGRESSIVE SCAN (09:15-09:45 IST)", "Intraday") if hour < 12 else ("🌙 PRE-CLOSE AGGRESSIVE SCAN (15:15 IST)", "BTST")
 
+def calculate_lorentzian_distance(current_rsi, current_vol_vs, ideal_rsi=70.0, ideal_vol=2.0):
+    dist_rsi = math.log(1 + abs(current_rsi - ideal_rsi))
+    dist_vol = math.log(1 + abs(current_vol_vs - ideal_vol))
+    return round(dist_rsi + dist_vol, 2)
+
 def black_scholes(S, K, T, r, sigma):
     if T <= 0 or sigma == 0: return max(0, S - K), 1.0 if S > K else 0.0
     d1 = (math.log(S / K) + (r + 0.5 * sigma ** 2) * T) / (sigma * math.sqrt(T))
@@ -66,9 +71,6 @@ def run():
             if len(df) < 60: continue
             
             close_p = float(df['Close'].iloc[-1])
-            
-            # NO EMA 50 FILTER FOR AGGRESSIVE
-            
             high_p, low_p = float(df['High'].iloc[-1]), float(df['Low'].iloc[-1])
             pos = round(((close_p - low_p) / (high_p - low_p)) * 100, 1) if high_p != low_p else 50.0
             vol_vs = round(float(df['Volume'].iloc[-1]) / float(df['Volume'].rolling(50).mean().iloc[-1]), 2)
@@ -80,6 +82,11 @@ def run():
             else: hor = "🌙 BTST" if pos >= 75 and vol_vs >= 1.2 else "📈 Swing"
 
             score = (2 if rsi>=60 else 0)+(2 if vol_vs>=2 else 0) + 2
+            
+            lorentzian_score = calculate_lorentzian_distance(rsi, vol_vs)
+            if lorentzian_score > 1.5: score -= 1
+            elif lorentzian_score < 0.5: score += 1
+            
             if score < 2: continue
 
             hl, hc, lc = df['High']-df['Low'], np.abs(df['High']-df['Close'].shift()), np.abs(df['Low']-df['Close'].shift())
@@ -89,7 +96,6 @@ def run():
             results.append({'Stock': ticker.replace(".NS", ""), 'Horizon': hor, 'Entry': round(close_p, 2), 'RSI': round(rsi,1), 'Score': score, 'EqSL': round(close_p-1.5*atr,1), 'EqT1': round(close_p+1.5*atr,1), 'EqT2': round(close_p+3.0*atr,1), 'EqT3': round(close_p+4.5*atr,1), 'Opt': opt, 'Prem': prem, 'Delta': delta, 'OSL': osl, 'OT1': ot1, 'OT2': ot2, 'OT3': ot3})
         except: continue
 
-    # STRICTLY CAP AT TOP 20
     df_r = pd.DataFrame(results).sort_values(by=['Score', 'RSI'], ascending=[False, False]).head(20) if results else pd.DataFrame()
     
     md = f"# ⚡ Top 20 Aggressive Quant Setups — {sess_title}\n\n"
