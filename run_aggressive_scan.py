@@ -29,6 +29,16 @@ def generate_quant_option(price, df, dte=15):
     prem, delta = black_scholes(price, atm, dte/365.0, 0.07, vol)
     return f"{atm} CE", prem, delta, round(price*0.985, 1), round(price*1.02, 1), round(price*1.04, 1), round(price*1.06, 1)
 
+def get_fno_symbols():
+    try:
+        url = "https://archives.nseindia.com/content/fo/fo_mktlots.csv"
+        df = pd.read_csv(url)
+        cols = [c.strip() for c in df.columns]
+        df.columns = cols
+        if 'SYMBOL' in df.columns: return [str(x).strip().upper() for x in df['SYMBOL'].tolist()]
+    except: pass
+    return ["RELIANCE", "SBIN", "HDFCBANK", "ICICIBANK"]
+
 def get_index_options_ideas():
     ideas = []
     for name, symbol, step in [('NIFTY 50', '^NSEI', 50), ('BANK NIFTY', '^NSEBANK', 100)]:
@@ -56,49 +66,59 @@ def get_index_options_ideas():
 def run():
     sess_title, sess_type = get_session_info()
     df_index = get_index_options_ideas()
+    fno_list = get_fno_symbols()
     
     try:
-        df = pd.read_csv(io.StringIO(requests.get("https://archives.nseindia.com/content/indices/ind_nifty500list.csv", headers={'User-Agent': 'Mozilla/5.0'}, timeout=10).text))
-        tickers = [f"{s}.NS" for s in df['Symbol'].tolist()]
+        url = "https://archives.nseindia.com/content/equities/EQUITY_L.csv"
+        df_master = pd.read_csv(io.StringIO(requests.get(url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=10).text))
+        tickers = [f"{str(s).strip()}.NS" for s in df_master['SYMBOL'].tolist()]
     except: tickers = ['RELIANCE.NS', 'SBIN.NS']
     
-    data = yf.download(tickers, period="6mo", interval="1d", group_by='ticker', progress=False)
     results = []
-
-    for ticker in tickers:
-        try:
-            df = data[ticker].dropna() if len(tickers) > 1 else data.dropna()
-            if len(df) < 60: continue
-            
-            close_p = float(df['Close'].iloc[-1])
-            high_p, low_p = float(df['High'].iloc[-1]), float(df['Low'].iloc[-1])
-            pos = round(((close_p - low_p) / (high_p - low_p)) * 100, 1) if high_p != low_p else 50.0
-            vol_vs = round(float(df['Volume'].iloc[-1]) / float(df['Volume'].rolling(50).mean().iloc[-1]), 2)
-            
-            df['RSI'] = 100 - (100 / (1 + (df['Close'].diff().where(df['Close'].diff()>0,0).rolling(14).mean() / -df['Close'].diff().where(df['Close'].diff()<0,0).rolling(14).mean())))
-            rsi = float(df['RSI'].iloc[-1])
-
-            if sess_type == "Intraday": hor = "⚡ Intraday" if vol_vs >= 1.3 or pos >= 70 else "📈 Swing"
-            else: hor = "🌙 BTST" if pos >= 75 and vol_vs >= 1.2 else "📈 Swing"
-
-            score = (2 if rsi>=60 else 0)+(2 if vol_vs>=2 else 0) + 2
-            
-            lorentzian_score = calculate_lorentzian_distance(rsi, vol_vs)
-            if lorentzian_score > 1.5: score -= 1
-            elif lorentzian_score < 0.5: score += 1
-            
-            if score < 2: continue
-
-            hl, hc, lc = df['High']-df['Low'], np.abs(df['High']-df['Close'].shift()), np.abs(df['Low']-df['Close'].shift())
-            atr = float(pd.concat([hl, hc, lc], axis=1).max(axis=1).ewm(alpha=1/14).mean().iloc[-1])
-            opt, prem, delta, osl, ot1, ot2, ot3 = generate_quant_option(close_p, df)
-            
-            results.append({'Stock': ticker.replace(".NS", ""), 'Horizon': hor, 'Entry': round(close_p, 2), 'RSI': round(rsi,1), 'Score': score, 'EqSL': round(close_p-1.5*atr,1), 'EqT1': round(close_p+1.5*atr,1), 'EqT2': round(close_p+3.0*atr,1), 'EqT3': round(close_p+4.5*atr,1), 'Opt': opt, 'Prem': prem, 'Delta': delta, 'OSL': osl, 'OT1': ot1, 'OT2': ot2, 'OT3': ot3})
-        except: continue
-
-    df_r = pd.DataFrame(results).sort_values(by=['Score', 'RSI'], ascending=[False, False]).head(20) if results else pd.DataFrame()
     
-    md = f"# ⚡ Top 20 Aggressive Quant Setups — {sess_title}\n\n"
+    chunk_size = 500
+    for i in range(0, len(tickers), chunk_size):
+        chunk = tickers[i:i + chunk_size]
+        data = yf.download(chunk, period="6mo", interval="1d", group_by='ticker', progress=False)
+
+        for ticker in chunk:
+            try:
+                df = data[ticker].dropna() if len(chunk) > 1 else data.dropna()
+                if len(df) < 60: continue
+                close_p = float(df['Close'].iloc[-1])
+                
+                high_p, low_p = float(df['High'].iloc[-1]), float(df['Low'].iloc[-1])
+                pos = round(((close_p - low_p) / (high_p - low_p)) * 100, 1) if high_p != low_p else 50.0
+                vol_vs = round(float(df['Volume'].iloc[-1]) / float(df['Volume'].rolling(50).mean().iloc[-1]), 2)
+                
+                df['RSI'] = 100 - (100 / (1 + (df['Close'].diff().where(df['Close'].diff()>0,0).rolling(14).mean() / -df['Close'].diff().where(df['Close'].diff()<0,0).rolling(14).mean())))
+                rsi = float(df['RSI'].iloc[-1])
+
+                if sess_type == "Intraday": hor = "⚡ Intraday" if vol_vs >= 1.3 or pos >= 70 else "📈 Swing"
+                else: hor = "🌙 BTST" if pos >= 75 and vol_vs >= 1.2 else "📈 Swing"
+
+                score = (2 if rsi>=60 else 0)+(2 if vol_vs>=2 else 0) + 2
+                lorentzian_score = calculate_lorentzian_distance(rsi, vol_vs)
+                if lorentzian_score > 1.5: score -= 1 
+                elif lorentzian_score < 0.5: score += 1 
+
+                if score < 2: continue 
+
+                hl, hc, lc = df['High']-df['Low'], np.abs(df['High']-df['Close'].shift()), np.abs(df['Low']-df['Close'].shift())
+                atr = float(pd.concat([hl, hc, lc], axis=1).max(axis=1).ewm(alpha=1/14).mean().iloc[-1])
+                
+                symbol = ticker.replace(".NS", "")
+                if symbol in fno_list:
+                    opt, prem, delta, osl, ot1, ot2, ot3 = generate_quant_option(close_p, df)
+                else:
+                    opt, prem, delta, osl, ot1, ot2, ot3 = "N/A (Cash)", "-", "-", "-", "-", "-", "-"
+                
+                results.append({'Stock': symbol, 'Horizon': hor, 'Entry': round(close_p, 2), 'RSI': round(rsi,1), 'Score': score, 'EqSL': round(close_p-1.5*atr,1), 'EqT1': round(close_p+1.5*atr,1), 'EqT2': round(close_p+3.0*atr,1), 'EqT3': round(close_p+4.5*atr,1), 'Opt': opt, 'Prem': prem, 'Delta': delta, 'OSL': osl, 'OT1': ot1, 'OT2': ot2, 'OT3': ot3})
+            except: continue
+
+    df_r = pd.DataFrame(results).sort_values(by=['Score', 'RSI'], ascending=[False, False]).head(25) if results else pd.DataFrame()
+    
+    md = f"# ⚡ Top 25 Aggressive Quant Setups (All NSE Stocks) — {sess_title}\n\n"
     
     if not df_index.empty:
         df_index.insert(0, 'S.No', range(1, len(df_index) + 1))
@@ -111,7 +131,13 @@ def run():
         if not dff.empty:
             dff.insert(0, 'S.No', range(1, len(dff) + 1))
             md += f"## {h_name}\n| S.No | Stock | Entry | RSI | Eq SL | Target 1 | Target 2 | Target 3 | CE Option | Est Prem | Delta | Opt SL | Spot T1 | Spot T2 | Spot T3 |\n|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|\n"
-            for _, r in dff.iterrows(): md += f"| {r['S.No']} | **{r['Stock']}** | ₹{r['Entry']} | {r['RSI']} | ₹{r['EqSL']} | ₹{r['EqT1']} | ₹{r['EqT2']} | ₹{r['EqT3']} | **{r['Opt']}** | ₹{r['Prem']} | {r['Delta']} | ₹{r['OSL']} | ₹{r['OT1']} | ₹{r['OT2']} | ₹{r['OT3']} |\n"
+            for _, r in dff.iterrows():
+                prem_disp = f"₹{r['Prem']}" if str(r['Prem']) != '-' else '-'
+                osl_disp = f"₹{r['OSL']}" if str(r['OSL']) != '-' else '-'
+                ot1_disp = f"₹{r['OT1']}" if str(r['OT1']) != '-' else '-'
+                ot2_disp = f"₹{r['OT2']}" if str(r['OT2']) != '-' else '-'
+                ot3_disp = f"₹{r['OT3']}" if str(r['OT3']) != '-' else '-'
+                md += f"| {r['S.No']} | **{r['Stock']}** | ₹{r['Entry']} | {r['RSI']} | ₹{r['EqSL']} | ₹{r['EqT1']} | ₹{r['EqT2']} | ₹{r['EqT3']} | **{r['Opt']}** | {prem_disp} | {r['Delta']} | {osl_disp} | {ot1_disp} | {ot2_disp} | {ot3_disp} |\n"
             md += "\n---\n"
     with open("aggressivesummary.md", "w", encoding="utf-8") as f: f.write(md)
 
