@@ -57,13 +57,17 @@ def get_fno_symbols():
     except: pass
     return ["RELIANCE", "SBIN", "HDFCBANK", "ICICIBANK", "INFY"]
 
-def get_all_nse_tickers():
+def get_optimized_tickers():
     try:
-        url = "https://archives.nseindia.com/content/equities/EQUITY_L.csv"
-        response = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=10)
-        df = pd.read_csv(io.StringIO(response.text))
-        return [f"{str(s).strip()}.NS" for s in df['SYMBOL'].tolist()]
-    except: return ['RELIANCE.NS', 'SBIN.NS']
+        url = "https://archives.nseindia.com/content/fo/fo_mktlots.csv"
+        df = pd.read_csv(url)
+        cols = [c.strip() for c in df.columns]
+        df.columns = cols
+        if 'SYMBOL' in df.columns:
+            fno = [f"{str(x).strip()}.NS" for x in df['SYMBOL'].tolist()]
+            return list(set(fno))
+    except: pass
+    return ['RELIANCE.NS', 'SBIN.NS', 'HDFCBANK.NS', 'ICICIBANK.NS', 'TCS.NS', 'INFY.NS']
 
 def get_index_options_ideas():
     ideas = []
@@ -93,14 +97,13 @@ def run():
     sess_title, sess_type = get_session_info()
     df_index = get_index_options_ideas()
     fno_list = get_fno_symbols()
-    tickers = get_all_nse_tickers()
+    tickers = get_optimized_tickers()
     
     results = []
-    chunk_size = 150
+    chunk_size = 100
     
     for i in range(0, len(tickers), chunk_size):
         chunk = tickers[i:i + chunk_size]
-        # Multi-threaded fast download for 3 months of data
         data = yf.download(chunk, period="3mo", interval="1d", group_by='ticker', threads=True, progress=False)
 
         for ticker in chunk:
@@ -110,9 +113,7 @@ def run():
                 close_p = float(df['Close'].iloc[-1])
                 
                 high_p, low_p = float(df['High'].iloc[-1]), float(df['Low'].iloc[-1])
-                if high_p == low_p: continue # Dead stock check
-                
-                # NO EMA 50 FILTER IN AGGRESSIVE MODE
+                if high_p == low_p: continue
                 
                 vol_today = float(df['Volume'].iloc[-1])
                 vol_50d_avg = float(df['Volume'].rolling(50).mean().iloc[-1])
@@ -121,10 +122,8 @@ def run():
                 df['RSI'] = calculate_rsi(df['Close'])
                 rsi_val = float(df['RSI'].iloc[-1])
                 
-                # Overbought trap filter
                 if math.isnan(rsi_val) or rsi_val > 80: continue
 
-                # MACD Confirmation check
                 macd, macd_signal = calculate_macd(df['Close'])
                 if macd.iloc[-1] < macd_signal.iloc[-1]: continue
 
@@ -134,7 +133,7 @@ def run():
                 if sess_type == "Intraday": hor = "⚡ Intraday" if vol_vs >= 1.3 or pos >= 70 else "📈 Swing"
                 else: hor = "🌙 BTST" if pos >= 75 and vol_vs >= 1.2 else "📈 Swing"
 
-                score = (2 if rsi_val>=60 else 0) + (2 if vol_vs>=2 else 0) + 2 # Aggressive Boost
+                score = (2 if rsi_val>=60 else 0) + (2 if vol_vs>=2 else 0) + 2
                 lorentzian_score = calculate_lorentzian_distance(rsi_val, vol_vs)
                 if lorentzian_score > 1.5: score -= 1 
                 elif lorentzian_score < 0.5: score += 1 
@@ -153,31 +152,34 @@ def run():
                 results.append({'Stock': symbol, 'Horizon': hor, 'Entry': round(close_p, 2), 'RSI': round(rsi_val,1), 'Score': score, 'EqSL': round(close_p-1.5*atr,1), 'EqT1': round(close_p+1.5*atr,1), 'EqT2': round(close_p+3.0*atr,1), 'EqT3': round(close_p+4.5*atr,1), 'Opt': opt, 'Prem': prem, 'Delta': delta, 'OSL': osl, 'OT1': ot1, 'OT2': ot2, 'OT3': ot3})
             except: continue
             
-        time.sleep(0.1) # Pacing to avoid Yahoo bans
+        time.sleep(0.05)
 
     df_r = pd.DataFrame(results).sort_values(by=['Score', 'RSI'], ascending=[False, False]).head(25) if results else pd.DataFrame()
     
-    md = f"# ⚡ Top 25 Aggressive Quant Setups (All NSE Stocks) — {sess_title}\n\n"
+    md = f"# ⚡ Aggressive Quant Setups — {sess_title}\n\n"
     
     if not df_index.empty:
-        df_index.insert(0, 'S.No', range(1, len(df_index) + 1))
-        md += "## 🏛️ Index Options (Nifty 50 & Bank Nifty CEs/PEs)\n| S.No | Index | Spot | Bias | Option | Spot SL | Spot T1 | Spot T2 | Spot T3 |\n|---|---|---|---|---|---|---|---|---|\n"
-        for _, r in df_index.iterrows(): md += f"| {r['S.No']} | **{r['Index']}** | ₹{r['Spot']} | {r['Bias']} | **{r['Opt']}** | ₹{r['SL']} | ₹{r['T1']} | ₹{r['T2']} | ₹{r['T3']} |\n"
-        md += "\n---\n"
+        md += "## 🏛️ Index Options\n"
+        for _, r in df_index.iterrows():
+            md += f"📌 **{r['Index']}** ({r['Bias']})\n"
+            md += f"• Spot: ₹{r['Spot']} | Option: **{r['Opt']}**\n"
+            md += f"• Targets: T1: ₹{r['T1']} | T2: ₹{r['T2']} | T3: ₹{r['T3']} | SL: ₹{r['SL']}\n\n"
+        md += "---\n\n"
 
-    for h_name, h_filter in [("Intraday (Morning Only)", "Intraday"), ("BTST (Pre-Close Only)", "BTST"), ("Positional Swing", "Swing")]:
+    for h_name, h_filter in [("⚡ Intraday Setups", "Intraday"), ("🌙 BTST Setups", "BTST"), ("📈 Swing Setups", "Swing")]:
         dff = df_r[df_r['Horizon'].str.contains(h_filter)] if not df_r.empty else pd.DataFrame()
         if not dff.empty:
-            dff.insert(0, 'S.No', range(1, len(dff) + 1))
-            md += f"## {h_name}\n| S.No | Stock | Entry | RSI | Eq SL | Target 1 | Target 2 | Target 3 | CE Option | Est Prem | Delta | Opt SL | Spot T1 | Spot T2 | Spot T3 |\n|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|\n"
+            md += f"## {h_name}\n\n"
             for _, r in dff.iterrows():
                 prem_disp = f"₹{r['Prem']}" if str(r['Prem']) != '-' else '-'
-                osl_disp = f"₹{r['OSL']}" if str(r['OSL']) != '-' else '-'
-                ot1_disp = f"₹{r['OT1']}" if str(r['OT1']) != '-' else '-'
-                ot2_disp = f"₹{r['OT2']}" if str(r['OT2']) != '-' else '-'
-                ot3_disp = f"₹{r['OT3']}" if str(r['OT3']) != '-' else '-'
-                md += f"| {r['S.No']} | **{r['Stock']}** | ₹{r['Entry']} | {r['RSI']} | ₹{r['EqSL']} | ₹{r['EqT1']} | ₹{r['EqT2']} | ₹{r['EqT3']} | **{r['Opt']}** | {prem_disp} | {r['Delta']} | {osl_disp} | {ot1_disp} | {ot2_disp} | {ot3_disp} |\n"
-            md += "\n---\n"
+                md += f"🚀 **{r['Stock']}** (Score: {r['Score']} | RSI: {r['RSI']})\n"
+                md += f"• **Entry:** ₹{r['Entry']} | **Eq SL:** ₹{r['EqSL']}\n"
+                md += f"• **Targets:** T1: ₹{r['EqT1']} | T2: ₹{r['EqT2']} | T3: ₹{r['EqT3']}\n"
+                if str(r['Opt']) != 'N/A (Cash)':
+                    md += f"• **Option:** {r['Opt']} (Prem: {prem_disp} | Delta: {r['Delta']})\n"
+                md += "\n"
+            md += "---\n\n"
+
     with open("aggressivesummary.md", "w", encoding="utf-8") as f: f.write(md)
 
 if __name__ == "__main__": run()
