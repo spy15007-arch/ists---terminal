@@ -1,18 +1,14 @@
 name: ISTS Quant Market Scanner
 
 on:
-  workflow_dispatch: # Allows you to manually click "Run workflow" at any time
+  workflow_dispatch: 
   schedule:
-    # Runs automatically at 09:15 AM IST (03:45 AM UTC) Monday - Friday
     - cron: '45 3 * * 1-5'
-    # Runs automatically at 03:15 PM IST (09:45 AM UTC) Monday - Friday
     - cron: '45 9 * * 1-5'
 
 jobs:
   quant_scan:
     runs-on: ubuntu-latest
-    
-    # Required to allow GitHub Actions to save the .md files back to your repo
     permissions:
       contents: write 
 
@@ -30,14 +26,8 @@ jobs:
           python -m pip install --upgrade pip
           pip install yfinance pandas numpy requests scipy
 
-      - name: Run Strict Master Scan
-        run: python run_scan.py
-
-      - name: Run Aggressive Momentum Scan
-        run: python run_aggressive_scan.py
-
-      - name: Run Budget Filter Scan
-        run: python run_budget_scan.py
+      - name: Run Master Quant Scanner
+        run: python master_scanner.py
 
       - name: Push Reports to Telegram
         env:
