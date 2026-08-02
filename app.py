@@ -38,6 +38,13 @@ def calculate_rsi(series, period=14):
     rs = gain / loss
     return 100 - (100 / (1 + rs))
 
+def calculate_macd(series):
+    exp1 = series.ewm(span=12, adjust=False).mean()
+    exp2 = series.ewm(span=26, adjust=False).mean()
+    macd = exp1 - exp2
+    signal = macd.ewm(span=9, adjust=False).mean()
+    return macd, signal
+
 def calculate_lorentzian_distance(current_rsi, current_vol_vs, ideal_rsi=70.0, ideal_vol=2.0):
     dist_rsi = math.log(1 + abs(current_rsi - ideal_rsi))
     dist_vol = math.log(1 + abs(current_vol_vs - ideal_vol))
@@ -53,15 +60,13 @@ def black_scholes_call(S, K, T, r, sigma):
 def generate_quant_option(symbol, price, df, dte=15):
     step = 100 if price > 5000 else (50 if price > 2000 else (20 if price > 1000 else (10 if price > 500 else 5)))
     atm_strike = int(round(price / step) * step)
-    
-    # Safely calculate volatility for options
     try:
         hl_log_sq = (np.log(df['High'] / df['Low']) ** 2).tail(10)
         vol = math.sqrt((1.0 / (4.0 * math.log(2.0))) * hl_log_sq.mean()) * math.sqrt(252)
         if math.isnan(vol) or vol == 0:
             df['Log_Ret'] = np.log(df['Close'] / df['Close'].shift(1))
             vol = df['Log_Ret'].tail(10).std() * math.sqrt(252)
-        if math.isnan(vol) or vol == 0: vol = 0.2 # Fallback vol
+        if math.isnan(vol) or vol == 0: vol = 0.2 
     except: vol = 0.2
 
     prem, delta = black_scholes_call(price, atm_strike, dte/365.0, 0.07, vol)
@@ -125,17 +130,16 @@ def run_scan(mode="strict"):
     sl_m, t1_m, t2_m, t3_m = st.session_state['atr_sl_mult'], st.session_state['atr_t1_mult'], st.session_state['atr_t2_mult'], st.session_state['atr_t3_mult']
     risk_amt = st.session_state['capital'] * (st.session_state['risk_pct'] / 100.0)
 
-    # Bulletproof: Process in small batches of 100 to prevent Yahoo Finance IP block
-    chunk_size = 100
-    
+    chunk_size = 150
     progress_text = "Scanning 2,200+ NSE Stocks. Please wait..."
     my_bar = st.progress(0, text=progress_text)
     
     for i in range(0, len(tickers), chunk_size):
         chunk = tickers[i:i + chunk_size]
-        data = yf.download(chunk, period="6mo", interval="1d", group_by='ticker', progress=False)
         
-        # Update progress bar safely
+        # SPEED HACK: 3 months of data instead of 6, with multi-threading enabled
+        data = yf.download(chunk, period="3mo", interval="1d", group_by='ticker', threads=True, progress=False)
+        
         prog = min(1.0, (i + chunk_size) / len(tickers))
         my_bar.progress(prog, text=f"Processed {min(i + chunk_size, len(tickers))} of {len(tickers)} stocks...")
 
@@ -143,29 +147,32 @@ def run_scan(mode="strict"):
             symbol = ticker.replace(".NS", "")
             try:
                 df = data[ticker].dropna() if len(chunk) > 1 else data.dropna()
-                
-                # Bulletproof: Skip dead/suspended stocks immediately
-                if len(df) < 60: continue
+                if len(df) < 50: continue # Need at least 50 days for EMA/MACD
                 
                 close_p = float(df['Close'].iloc[-1])
                 high_p = float(df['High'].iloc[-1])
                 low_p = float(df['Low'].iloc[-1])
                 vol_today = float(df['Volume'].iloc[-1])
                 
-                # Bulletproof: Prevent divide-by-zero on illiquid frozen stocks
-                if high_p == low_p: continue
+                if high_p == low_p: continue # Dead stock check
                 
                 ema_50 = float(df['Close'].ewm(span=50).mean().iloc[-1])
                 
                 if "budget" in mode.lower() and close_p > 500: continue
                 if mode != "aggressive" and close_p < ema_50: continue
 
-                vol_50d_avg = float(df['Volume'].rolling(50).mean().iloc[-1])
-                if vol_50d_avg <= 0: continue # Skip zero-volume penny stocks
-
                 df['RSI'] = calculate_rsi(df['Close'])
                 rsi_val = float(df['RSI'].iloc[-1])
-                if math.isnan(rsi_val): continue
+                
+                # NEW UPGRADE: Prevent buying the absolute top (Overbought Ceiling)
+                if math.isnan(rsi_val) or rsi_val > 80: continue 
+
+                # NEW UPGRADE: MACD Confirmation Filter
+                macd, macd_signal = calculate_macd(df['Close'])
+                if macd.iloc[-1] < macd_signal.iloc[-1]: continue # Reject if MACD is bearish
+
+                vol_50d_avg = float(df['Volume'].rolling(50).mean().iloc[-1])
+                if vol_50d_avg <= 0: continue 
 
                 close_pos = round(((close_p - low_p) / (high_p - low_p)) * 100, 1)
                 vol_vs_50d = round(vol_today / vol_50d_avg, 2)
@@ -201,9 +208,7 @@ def run_scan(mode="strict"):
                 })
             except Exception as e: 
                 continue
-        
-        # Very short pause to reset Yahoo connection limits
-        time.sleep(0.5)
+        time.sleep(0.1) # Shorter pause due to smaller data payload
     
     my_bar.empty()
     return pd.DataFrame(results).sort_values(by=['Score', 'RSI'], ascending=[False, False]).head(25) if results else pd.DataFrame()
@@ -230,6 +235,9 @@ def run_backtest(symbol, strategy="Strict"):
     df['EMA20'] = df['Close'].ewm(span=20).mean()
     df['EMA50'] = df['Close'].ewm(span=50).mean()
     df['RSI'] = calculate_rsi(df['Close'])
+    macd, macd_signal = calculate_macd(df['Close'])
+    df['MACD'] = macd
+    df['MACD_Signal'] = macd_signal
     
     hl, hc, lc = df['High']-df['Low'], np.abs(df['High']-df['Close'].shift()), np.abs(df['Low']-df['Close'].shift())
     df['ATR'] = pd.concat([hl, hc, lc], axis=1).max(axis=1).ewm(alpha=1/14).mean()
@@ -243,8 +251,8 @@ def run_backtest(symbol, strategy="Strict"):
         c, h, l = df['Close'].iloc[i], df['High'].iloc[i], df['Low'].iloc[i]
         
         if not in_trade:
-            cond_strict = c > df['EMA50'].iloc[i] and df['RSI'].iloc[i] > 60 and df['Volume'].iloc[i] > (1.3 * df['Vol_50'].iloc[i])
-            cond_agg = df['RSI'].iloc[i] > 55 and df['Volume'].iloc[i] > (1.1 * df['Vol_50'].iloc[i]) and c > df['EMA20'].iloc[i]
+            cond_strict = c > df['EMA50'].iloc[i] and 60 < df['RSI'].iloc[i] <= 80 and df['Volume'].iloc[i] > (1.3 * df['Vol_50'].iloc[i]) and df['MACD'].iloc[i] > df['MACD_Signal'].iloc[i]
+            cond_agg = 55 < df['RSI'].iloc[i] <= 80 and df['Volume'].iloc[i] > (1.1 * df['Vol_50'].iloc[i]) and c > df['EMA20'].iloc[i] and df['MACD'].iloc[i] > df['MACD_Signal'].iloc[i]
             
             if (strategy == "Strict" and cond_strict) or (strategy == "Aggressive" and cond_agg):
                 in_trade = True
@@ -267,7 +275,7 @@ if page == "Dashboard":
     c1.metric("Risk Capital", f"₹{st.session_state['capital']:,.0f}")
     c2.metric("Risk/Trade", f"{st.session_state['risk_pct']}%")
     c3.metric("F&O Integrity Filter", "Active")
-    c4.metric("Algorithm", "RSI + Lorentzian ML")
+    c4.metric("Algorithm", "RSI + MACD + Lorentzian ML")
 
 elif page in ["Strict ISTS Scan", "Aggressive Momentum Scan", "Budget Scanner (< ₹500)"]:
     if "Aggressive" in page: mode = "aggressive"
@@ -276,7 +284,7 @@ elif page in ["Strict ISTS Scan", "Aggressive Momentum Scan", "Budget Scanner (<
         
     st.title(f"🚀 {page}")
     if st.button("Run High Conviction Engine", type="primary"):
-        with st.spinner(f"Extracting Top 25 Setups from 2,200+ NSE Stocks..."):
+        with st.spinner(f"Extracting Top 25 Setups from 2,200+ NSE Stocks (Fast Multi-Threaded)..."):
             st.session_state['idx_res'] = get_index_options_ideas()
             res = run_scan(mode)
             st.session_state['scan_res'] = res
