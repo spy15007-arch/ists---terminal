@@ -57,17 +57,13 @@ def get_fno_symbols():
     except: pass
     return ["RELIANCE", "SBIN", "HDFCBANK", "ICICIBANK", "INFY"]
 
-def get_optimized_tickers():
+def get_all_nse_tickers():
     try:
-        url = "https://archives.nseindia.com/content/fo/fo_mktlots.csv"
-        df = pd.read_csv(url)
-        cols = [c.strip() for c in df.columns]
-        df.columns = cols
-        if 'SYMBOL' in df.columns:
-            fno = [f"{str(x).strip()}.NS" for x in df['SYMBOL'].tolist()]
-            return list(set(fno))
-    except: pass
-    return ['FEDERALBNK.NS', 'IEX.NS', 'SBIN.NS']
+        url = "https://archives.nseindia.com/content/equities/EQUITY_L.csv"
+        response = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=10)
+        df = pd.read_csv(io.StringIO(response.text))
+        return [f"{str(s).strip()}.NS" for s in df['SYMBOL'].tolist()]
+    except: return ['FEDERALBNK.NS', 'IEX.NS', 'SBIN.NS']
 
 def get_index_options_ideas():
     ideas = []
@@ -97,70 +93,81 @@ def run():
     sess_title, sess_type = get_session_info()
     df_index = get_index_options_ideas()
     fno_list = get_fno_symbols()
-    tickers = get_optimized_tickers()
+    tickers = get_all_nse_tickers()
     
     results = []
-    chunk_size = 100
+    chunk_size = 400
     
     for i in range(0, len(tickers), chunk_size):
         chunk = tickers[i:i + chunk_size]
-        data = yf.download(chunk, period="3mo", interval="1d", group_by='ticker', threads=True, progress=False)
-
-        for ticker in chunk:
-            try:
-                df = data[ticker].dropna() if len(chunk) > 1 else data.dropna()
-                if len(df) < 50: continue
-                close_p = float(df['Close'].iloc[-1])
-                
-                if close_p > 500: continue
-                
-                high_p, low_p = float(df['High'].iloc[-1]), float(df['Low'].iloc[-1])
-                if high_p == low_p: continue
-                
-                if close_p < float(df['Close'].ewm(span=50).mean().iloc[-1]): continue
-                
-                vol_today = float(df['Volume'].iloc[-1])
-                vol_50d_avg = float(df['Volume'].rolling(50).mean().iloc[-1])
-                if vol_50d_avg <= 0: continue
-                
-                df['RSI'] = calculate_rsi(df['Close'])
-                rsi_val = float(df['RSI'].iloc[-1])
-                
-                if math.isnan(rsi_val) or rsi_val > 80: continue
-
-                macd, macd_signal = calculate_macd(df['Close'])
-                if macd.iloc[-1] < macd_signal.iloc[-1]: continue
-
-                pos = round(((close_p - low_p) / (high_p - low_p)) * 100, 1)
-                vol_vs = round(vol_today / vol_50d_avg, 2)
-
-                if sess_type == "Intraday": hor = "⚡ Intraday" if vol_vs >= 1.3 or pos >= 70 else "📈 Swing"
-                else: hor = "🌙 BTST" if pos >= 75 and vol_vs >= 1.2 else "📈 Swing"
-
-                score = (2 if rsi_val>=60 else 0) + (2 if vol_vs>=2 else 0)
-                lorentzian_score = calculate_lorentzian_distance(rsi_val, vol_vs)
-                if lorentzian_score > 1.5: score -= 1 
-                elif lorentzian_score < 0.5: score += 1 
-
-                if score < 2: continue 
-
-                hl, hc, lc = df['High']-df['Low'], np.abs(df['High']-df['Close'].shift()), np.abs(df['Low']-df['Close'].shift())
-                atr = float(pd.concat([hl, hc, lc], axis=1).max(axis=1).ewm(alpha=1/14).mean().iloc[-1])
-                
-                symbol = ticker.replace(".NS", "")
-                if symbol in fno_list:
-                    opt, prem, delta, osl, ot1, ot2, ot3 = generate_quant_option(close_p, df)
-                else:
-                    opt, prem, delta, osl, ot1, ot2, ot3 = "N/A (Cash)", "-", "-", "-", "-", "-", "-"
-                
-                results.append({'Stock': symbol, 'Horizon': hor, 'Entry': round(close_p, 2), 'RSI': round(rsi_val,1), 'Score': score, 'EqSL': round(close_p-1.5*atr,1), 'EqT1': round(close_p+1.5*atr,1), 'EqT2': round(close_p+3.0*atr,1), 'EqT3': round(close_p+4.5*atr,1), 'Opt': opt, 'Prem': prem, 'Delta': delta, 'OSL': osl, 'OT1': ot1, 'OT2': ot2, 'OT3': ot3})
-            except: continue
+        try:
+            data = yf.download(" ".join(chunk), period="3mo", interval="1d", progress=False, threads=True)
+            if data.empty: continue
             
-        time.sleep(0.05)
+            closes = data['Close']
+            highs = data['High']
+            lows = data['Low']
+            volumes = data['Volume']
+
+            for ticker in chunk:
+                try:
+                    if ticker not in closes.columns: continue
+                    df_c = closes[ticker].dropna()
+                    if len(df_c) < 50: continue
+                    
+                    df_h, df_l, df_v = highs[ticker].dropna(), lows[ticker].dropna(), volumes[ticker].dropna()
+                    
+                    close_p = float(df_c.iloc[-1])
+                    if close_p > 500 or close_p <= 0: continue
+                    
+                    high_p, low_p = float(df_h.iloc[-1]), float(df_l.iloc[-1])
+                    if high_p == low_p: continue
+                    
+                    # Strict EMA 50 Filter
+                    ema_50 = float(df_c.ewm(span=50).mean().iloc[-1])
+                    if close_p < ema_50: continue
+                    
+                    vol_today = float(df_v.iloc[-1])
+                    vol_50d_avg = float(df_v.rolling(50).mean().iloc[-1])
+                    if vol_50d_avg <= 0: continue
+                    
+                    rsi_series = calculate_rsi(df_c)
+                    rsi_val = float(rsi_series.iloc[-1])
+                    if math.isnan(rsi_val) or rsi_val > 80: continue
+
+                    macd, macd_signal = calculate_macd(df_c)
+                    if macd.iloc[-1] < macd_signal.iloc[-1]: continue
+
+                    pos = round(((close_p - low_p) / (high_p - low_p)) * 100, 1)
+                    vol_vs = round(vol_today / vol_50d_avg, 2)
+
+                    if sess_type == "Intraday": hor = "⚡ Intraday" if vol_vs >= 1.3 or pos >= 70 else "📈 Swing"
+                    else: hor = "🌙 BTST" if pos >= 75 and vol_vs >= 1.2 else "📈 Swing"
+
+                    score = (2 if rsi_val>=60 else 0) + (2 if vol_vs>=2 else 0)
+                    lorentzian_score = calculate_lorentzian_distance(rsi_val, vol_vs)
+                    if lorentzian_score > 1.5: score -= 1 
+                    elif lorentzian_score < 0.5: score += 1 
+
+                    if score < 2: continue 
+
+                    hl, hc, lc = df_h - df_l, np.abs(df_h - df_c.shift()), np.abs(df_l - df_c.shift())
+                    atr = float(pd.concat([hl, hc, lc], axis=1).max(axis=1).ewm(alpha=1/14).mean().iloc[-1])
+                    
+                    symbol = ticker.replace(".NS", "")
+                    df_temp = pd.DataFrame({'High': df_h, 'Low': df_l, 'Close': df_c})
+                    if symbol in fno_list:
+                        opt, prem, delta, osl, ot1, ot2, ot3 = generate_quant_option(close_p, df_temp)
+                    else:
+                        opt, prem, delta, osl, ot1, ot2, ot3 = "N/A (Cash)", "-", "-", "-", "-", "-", "-"
+                    
+                    results.append({'Stock': symbol, 'Horizon': hor, 'Entry': round(close_p, 2), 'RSI': round(rsi_val,1), 'Score': score, 'EqSL': round(close_p-1.5*atr,1), 'EqT1': round(close_p+1.5*atr,1), 'EqT2': round(close_p+3.0*atr,1), 'EqT3': round(close_p+4.5*atr,1), 'Opt': opt, 'Prem': prem, 'Delta': delta, 'OSL': osl, 'OT1': ot1, 'OT2': ot2, 'OT3': ot3})
+                except: continue
+        except: continue
 
     df_r = pd.DataFrame(results).sort_values(by=['Score', 'RSI'], ascending=[False, False]).head(25) if results else pd.DataFrame()
     
-    md = f"# 💡 Budget Quant Setups (< ₹500) — {sess_title}\n\n"
+    md = f"# 💡 Budget Quant Setups (< ₹500, All NSE) — {sess_title}\n\n"
     
     if not df_index.empty:
         md += "## 🏛️ Index Options\n"
