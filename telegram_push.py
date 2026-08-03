@@ -25,10 +25,11 @@ def main():
         print("❌ Telegram credentials not found in environment variables.")
         return
 
+    # Pointing Telegram directly to the mobile-formatted card files
     files_to_send = [
-        "intraday_report.md",
-        "btst_report.md",
-        "swing_report.md"
+        "intraday_tg.txt",
+        "btst_tg.txt",
+        "swing_tg.txt"
     ]
 
     for filename in files_to_send:
@@ -36,7 +37,6 @@ def main():
             with open(filename, "r", encoding="utf-8") as f:
                 content = f.read()
             if content.strip():
-                # Telegram has a 4096 char limit, chunks ensure long tables send cleanly
                 chunks = [content[i:i+4000] for i in range(0, len(content), 4000)]
                 for chunk in chunks:
                     send_telegram_message(token, chat_id, chunk)
