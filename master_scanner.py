@@ -25,7 +25,7 @@ def black_scholes(S, K, T, r, sigma):
     put_prem = K * math.exp(-r * T) * norm.cdf(-d2) - S * norm.cdf(-d1)
     return round(call_prem, 2), round(put_prem, 2), round(norm.cdf(d1), 2)
 
-def generate_quant_option(price, df_h, df_l, df_c, dte=15):
+def generate_quant_option(price, t1, t2, t3, df_h, df_l, df_c, dte=15):
     step = 100 if price > 5000 else (50 if price > 2000 else (20 if price > 1000 else (10 if price > 500 else 5)))
     atm = int(round(price / step) * step)
     try:
@@ -33,8 +33,14 @@ def generate_quant_option(price, df_h, df_l, df_c, dte=15):
         if math.isnan(vol) or vol == 0: vol = np.log(df_c/df_c.shift(1)).tail(10).std() * math.sqrt(252)
         if math.isnan(vol) or vol == 0: vol = 0.2
     except: vol = 0.2
-    call_prem, put_prem, delta = black_scholes(price, atm, dte/365.0, 0.07, vol)
-    return f"{atm} CE", call_prem, delta, round(price*0.985, 1), round(price*1.02, 1), round(price*1.04, 1), round(price*1.06, 1)
+    
+    # Calculate Base Premium and Projected Premiums at Targets
+    call_prem, _, _ = black_scholes(price, atm, dte/365.0, 0.07, vol)
+    pt1, _, _ = black_scholes(t1, atm, dte/365.0, 0.07, vol)
+    pt2, _, _ = black_scholes(t2, atm, dte/365.0, 0.07, vol)
+    pt3, _, _ = black_scholes(t3, atm, dte/365.0, 0.07, vol)
+    
+    return f"{atm} CE", call_prem, round(pt1, 1), round(pt2, 1), round(pt3, 1)
 
 def get_fno_symbols():
     try:
@@ -71,63 +77,71 @@ def get_index_options_ideas():
                 df['Log_Ret'] = np.log(df['Close'] / df['Close'].shift(1))
                 vol = df['Log_Ret'].tail(10).std() * math.sqrt(252)
 
-            call_prem, put_prem, _ = black_scholes(close_p, atm_strike, 15/365.0, 0.07, vol)
-            
             if close_p >= ema_20:
-                ideas.append({'Index': name, 'Spot': round(close_p, 2), 'Bias': "🟢 BULL", 'Opt': f"{atm_strike} CE", 'Prem': call_prem, 'SL': round(close_p*0.995, 1), 'T1': round(close_p*1.005, 1), 'T2': round(close_p*1.010, 1)})
+                t1, t2, t3 = round(close_p*1.005, 1), round(close_p*1.010, 1), round(close_p*1.015, 1)
+                prem, _, _ = black_scholes(close_p, atm_strike, 15/365.0, 0.07, vol)
+                pt1, _, _ = black_scholes(t1, atm_strike, 15/365.0, 0.07, vol)
+                pt2, _, _ = black_scholes(t2, atm_strike, 15/365.0, 0.07, vol)
+                pt3, _, _ = black_scholes(t3, atm_strike, 15/365.0, 0.07, vol)
+                ideas.append({'Index': name, 'Spot': round(close_p, 2), 'Bias': "🟢 BULL", 'Opt': f"{atm_strike} CE", 'Prem': prem, 'PT1': round(pt1,1), 'PT2': round(pt2,1), 'PT3': round(pt3,1), 'SL': round(close_p*0.995, 1), 'T1': t1, 'T2': t2, 'T3': t3})
             else:
-                ideas.append({'Index': name, 'Spot': round(close_p, 2), 'Bias': "🔴 BEAR", 'Opt': f"{atm_strike} PE", 'Prem': put_prem, 'SL': round(close_p*1.005, 1), 'T1': round(close_p*0.995, 1), 'T2': round(close_p*0.990, 1)})
+                t1, t2, t3 = round(close_p*0.995, 1), round(close_p*0.990, 1), round(close_p*0.985, 1)
+                _, prem, _ = black_scholes(close_p, atm_strike, 15/365.0, 0.07, vol)
+                _, pt1, _ = black_scholes(t1, atm_strike, 15/365.0, 0.07, vol)
+                _, pt2, _ = black_scholes(t2, atm_strike, 15/365.0, 0.07, vol)
+                _, pt3, _ = black_scholes(t3, atm_strike, 15/365.0, 0.07, vol)
+                ideas.append({'Index': name, 'Spot': round(close_p, 2), 'Bias': "🔴 BEAR", 'Opt': f"{atm_strike} PE", 'Prem': prem, 'PT1': round(pt1,1), 'PT2': round(pt2,1), 'PT3': round(pt3,1), 'SL': round(close_p*1.005, 1), 'T1': t1, 'T2': t2, 'T3': t3})
         except: continue
     return pd.DataFrame(ideas)
 
 def generate_tabular_markdown(df_results, df_index, title, filename, include_index=False):
-    # This creates the table layout specifically for GitHub viewing
     md = f"# {title}\n\n"
     if include_index and not df_index.empty:
-        md += "## 🏛️ Index Options\n"
-        md += "| Index | Bias | Spot | Option | Prem | SL | Target 1 | Target 2 |\n"
+        md += "## 🏛️ Index Options (3 Targets)\n"
+        md += "| Index | Bias | Spot | Option | Prem | Prem Tgts (1/2/3) | SL | Spot Tgts (1/2/3) |\n"
         md += "|---|---|---|---|---|---|---|---|\n"
         for _, r in df_index.iterrows():
-            md += f"| **{r['Index']}** | {r['Bias']} | ₹{r['Spot']} | **{r['Opt']}** | ₹{r['Prem']} | ₹{r['SL']} | ₹{r['T1']} | ₹{r['T2']} |\n"
+            md += f"| **{r['Index']}** | {r['Bias']} | ₹{r['Spot']} | **{r['Opt']}** | ₹{r['Prem']} | ₹{r['PT1']}/₹{r['PT2']}/₹{r['PT3']} | ₹{r['SL']} | ₹{r['T1']}/₹{r['T2']}/₹{r['T3']} |\n"
         md += "\n---\n\n"
 
-    md += "## 📊 Quant Stock Setups\n"
+    md += "## 📊 Quant Stock Setups (5 Targets)\n"
     if not df_results.empty:
-        md += "| Stock | Entry | SL | Target 1 | Target 2 | Option (CE) | Prem |\n"
+        md += "| Stock | Entry | SL | Tgts (1/2/3/4/5) | Opt (CE) | Prem | Prem Tgts (1/2/3) |\n"
         md += "|---|---|---|---|---|---|---|\n"
         for _, r in df_results.iterrows():
             opt_str = r['Opt'] if r['Opt'] != 'N/A (Cash)' else '-'
             prem_str = f"₹{r['Prem']}" if r['Prem'] != '-' else '-'
-            md += f"| **{r['Stock']}** | ₹{r['Entry']} | ₹{r['EqSL']} | ₹{r['EqT1']} | ₹{r['EqT2']} | {opt_str} | {prem_str} |\n"
+            pt_str = f"₹{r['PT1']}/₹{r['PT2']}/₹{r['PT3']}" if r['Prem'] != '-' else '-'
+            tgts_str = f"₹{r['EqT1']}/₹{r['EqT2']}/₹{r['EqT3']}/₹{r['EqT4']}/₹{r['EqT5']}"
+            md += f"| **{r['Stock']}** | ₹{r['Entry']} | ₹{r['EqSL']} | {tgts_str} | {opt_str} | {prem_str} | {pt_str} |\n"
     else:
         md += "> *No highly profitable momentum setups met the strict criteria for this session.*\n"
-
     with open(filename, "w", encoding="utf-8") as f: f.write(md)
 
 def generate_telegram_cards(df_results, df_index, title, filename, include_index=False):
-    # This creates the mobile-friendly vertical cards specifically for Telegram
     txt = f"*{title}*\n\n"
     if include_index and not df_index.empty:
-        txt += "🏛️ *Index Options*\n"
+        txt += "🏛️ *Index Options (3 Targets)*\n"
         for _, r in df_index.iterrows():
             txt += f"📌 *{r['Index']}* ({r['Bias']})\n"
-            txt += f"• Spot: ₹{r['Spot']} | Opt: *{r['Opt']}* (Prem: ₹{r['Prem']})\n"
-            txt += f"• T1: ₹{r['T1']} | T2: ₹{r['T2']} | SL: ₹{r['SL']}\n\n"
+            txt += f"• Spot: ₹{r['Spot']} | SL: ₹{r['SL']}\n"
+            txt += f"• Spot Tgts: ₹{r['T1']} | ₹{r['T2']} | ₹{r['T3']}\n"
+            txt += f"• Option: *{r['Opt']}* (Entry: ₹{r['Prem']})\n"
+            txt += f"• Prem Tgts: ₹{r['PT1']} | ₹{r['PT2']} | ₹{r['PT3']}\n\n"
         txt += "➖➖➖➖➖➖➖➖➖➖\n\n"
 
-    txt += "📊 *Quant Stock Setups*\n\n"
+    txt += "📊 *Quant Stock Setups (5 Targets)*\n\n"
     if not df_results.empty:
         for _, r in df_results.iterrows():
-            prem_str = f"₹{r['Prem']}" if r['Prem'] != '-' else '-'
             txt += f"🟢 *{r['Stock']}* (RSI: {r['RSI']})\n"
             txt += f"• Entry: ₹{r['Entry']} | SL: ₹{r['EqSL']}\n"
-            txt += f"• Targets: T1: ₹{r['EqT1']} | T2: ₹{r['EqT2']}\n"
+            txt += f"• Eq Tgts: ₹{r['EqT1']} | ₹{r['EqT2']} | ₹{r['EqT3']} | ₹{r['EqT4']} | ₹{r['EqT5']}\n"
             if str(r['Opt']) != 'N/A (Cash)':
-                txt += f"• Option: {r['Opt']} (Prem: {prem_str})\n"
+                txt += f"• Option: *{r['Opt']}* (Entry: ₹{r['Prem']})\n"
+                txt += f"• Prem Tgts: ₹{r['PT1']} | ₹{r['PT2']} | ₹{r['PT3']}\n"
             txt += "\n"
     else:
         txt += "No highly profitable setups met criteria.\n"
-
     with open(filename, "w", encoding="utf-8") as f: f.write(txt)
 
 def run():
@@ -205,14 +219,21 @@ def run():
 
             base_score = (2 if 55 <= rsi_val <= 68 else 0) + (2 if vol_vs>=2 else 0)
             
+            # Generate 5 Equity Targets
+            t1 = round(close_p + 1.5 * atr, 1)
+            t2 = round(close_p + 3.0 * atr, 1)
+            t3 = round(close_p + 4.5 * atr, 1)
+            t4 = round(close_p + 6.0 * atr, 1)
+            t5 = round(close_p + 7.5 * atr, 1)
+
             symbol = ticker.replace(".NS", "")
             if symbol in fno_list:
                 df_h, df_l, df_c = highs[ticker].dropna(), lows[ticker].dropna(), closes[ticker].dropna()
-                opt, prem, delta_val, osl, ot1, ot2, ot3 = generate_quant_option(close_p, df_h, df_l, df_c)
+                opt, prem, pt1, pt2, pt3 = generate_quant_option(close_p, t1, t2, t3, df_h, df_l, df_c)
             else:
-                opt, prem = "N/A (Cash)", "-"
+                opt, prem, pt1, pt2, pt3 = "N/A (Cash)", "-", "-", "-", "-"
             
-            record = {'Stock': symbol, 'Horizon': hor, 'Entry': round(close_p, 2), 'RSI': round(rsi_val,1), 'EqSL': round(close_p-1.5*atr,1), 'EqT1': round(close_p+1.5*atr,1), 'EqT2': round(close_p+3.0*atr,1), 'Opt': opt, 'Prem': prem, 'Score': base_score}
+            record = {'Stock': symbol, 'Horizon': hor, 'Entry': round(close_p, 2), 'RSI': round(rsi_val,1), 'EqSL': round(close_p-1.5*atr,1), 'EqT1': t1, 'EqT2': t2, 'EqT3': t3, 'EqT4': t4, 'EqT5': t5, 'Opt': opt, 'Prem': prem, 'PT1': pt1, 'PT2': pt2, 'PT3': pt3, 'Score': base_score}
 
             if passes_ema and base_score >= 2:
                 valid_setups.append(record)
@@ -224,12 +245,10 @@ def run():
     df_btst = df_all[df_all['Horizon'] == 'BTST'].head(20) if not df_all.empty else pd.DataFrame()
     df_swing = df_all[df_all['Horizon'] == 'Swing'].head(20) if not df_all.empty else pd.DataFrame()
 
-    # 1. Output Markdown tables for GitHub Display
     generate_tabular_markdown(df_intra, df_index, f"⚡ Intraday & Index Report — {sess_title}", "intraday_report.md", include_index=True)
     generate_tabular_markdown(df_btst, pd.DataFrame(), f"🌙 BTST Carry-Forward Report — {sess_title}", "btst_report.md", include_index=False)
     generate_tabular_markdown(df_swing, pd.DataFrame(), f"📈 Swing Trade Report — {sess_title}", "swing_report.md", include_index=False)
 
-    # 2. Output Vertical Cards for Telegram Display
     generate_telegram_cards(df_intra, df_index, f"⚡ Intraday & Index Report — {sess_title}", "intraday_tg.txt", include_index=True)
     generate_telegram_cards(df_btst, pd.DataFrame(), f"🌙 BTST Carry-Forward Report — {sess_title}", "btst_tg.txt", include_index=False)
     generate_telegram_cards(df_swing, pd.DataFrame(), f"📈 Swing Trade Report — {sess_title}", "swing_tg.txt", include_index=False)
