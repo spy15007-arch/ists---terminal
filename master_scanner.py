@@ -8,12 +8,12 @@ import math
 import time
 from scipy.stats import norm
 
-# FIREWALL-PROOF: Hardcoded F&O Universe ensures 100% option availability and zero server blocks
+# FIREWALL-PROOF: Hardcoded F&O Universe
 STATIC_FNO = ["AARTIIND", "ABB", "ABBOTINDIA", "ABCAPITAL", "ABFRL", "ACC", "ADANIENT", "ADANIPORTS", "ALKEM", "AMBUJACEM", "APOLLOHOSP", "APOLLOTYRE", "ASHOKLEY", "ASIANPAINT", "ASTRAL", "ATUL", "AUBANK", "AUROPHARMA", "AXISBANK", "BAJAJ-AUTO", "BAJAJFINSV", "BAJFINANCE", "BALKRISIND", "BALRAMCHIN", "BANDHANBNK", "BANKBARODA", "BATAINDIA", "BEL", "BERGEPAINT", "BHARATFORG", "BHARTIARTL", "BHEL", "BIOCON", "BOSCHLTD", "BPCL", "BRITANNIA", "CANBK", "CANFINHOME", "CHAMBLFERT", "CHOLAFIN", "CIPLA", "COALINDIA", "COFORGE", "COLPAL", "CONCOR", "COROMANDEL", "CROMPTON", "CUB", "CUMMINSIND", "DABUR", "DALBHARAT", "DEEPAKNTR", "DIVISLAB", "DIXON", "DLF", "DRREDDY", "EICHERMOT", "ESCORTS", "EXIDEIND", "FEDERALBNK", "GAIL", "GLENMARK", "GMRINFRA", "GNFC", "GODREJCP", "GODREJPROP", "GRANULES", "GRASIM", "GUJGASLTD", "HAL", "HAVELLS", "HCLTECH", "HDFCAMC", "HDFCBANK", "HDFCLIFE", "HEROMOTOCO", "HINDALCO", "HINDCOPPER", "HINDPETRO", "HINDUNILVR", "ICICIBANK", "ICICIGI", "ICICIPRULI", "IDEA", "IDFCFIRSTB", "IEX", "IGL", "INDHOTEL", "INDIACEM", "INDIAMART", "INDIGO", "INDUSINDBK", "INFY", "IOC", "IPCALAB", "IRCTC", "ITC", "JINDALSTEL", "JSWSTEEL", "JUBLFOOD", "KOTAKBANK", "LALPATHLAB", "LAURUSLABS", "LICHSGFIN", "LT", "LTIM", "LTTS", "LUPIN", "M&M", "M&MFIN", "MANAPPURAM", "MARICO", "MARUTI", "MCDOWELL-N", "MCX", "METROPOLIS", "MFSL", "MGL", "MOTHERSON", "MPHASIS", "MRF", "MUTHOOTFIN", "NATIONALUM", "NAUKRI", "NAVINFLUOR", "NESTLEIND", "NMDC", "NTPC", "OBEROIRLTY", "OFSS", "ONGC", "PAGEIND", "PEL", "PETRONET", "PFC", "PIDILITIND", "PIIND", "PNB", "POLYCAB", "POWERGRID", "PVRINOX", "RAMCOCEM", "RBLBANK", "RECLTD", "RELIANCE", "SAIL", "SBICARD", "SBILIFE", "SBIN", "SHREECEM", "SHRIRAMFIN", "SIEMENS", "SRF", "SUNPHARMA", "SUNTV", "SYNGENE", "TATACHEM", "TATACOMM", "TATACONSUM", "TATAMOTORS", "TATAPOWER", "TATASTEEL", "TCS", "TECHM", "TITAN", "TORNTPHARM", "TRENT", "TVSMOTOR", "UBL", "ULTRACEMCO", "UPL", "VEDL", "VOLTAS", "WIPRO", "ZEEL", "ZYDUSLIFE"]
 
 def get_session_info():
     hour = (datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=5, minutes=30)).hour
-    return ("🌅 MORNING (09:15-09:45 IST)", "Intraday") if hour < 12 else ("🌙 PRE-CLOSE (15:15 IST)", "BTST")
+    return ("🌅 MORNING (09:15-09:45 IST)", "Intraday") if hour < 12 else ("🌙 PRE-CLOSE (15:05 IST)", "BTST")
 
 def black_scholes(S, K, T, r, sigma):
     if T <= 0 or sigma == 0: return max(0, S - K), max(0, K - S), 1.0 if S > K else 0.0
@@ -158,8 +158,13 @@ def run():
     sess_title, sess_type = get_session_info()
     print(f"🕒 Timeframe Registered: {sess_title}")
     
-    print("📈 Fetching and calculating Index Options (NIFTY & BANKNIFTY)...")
-    df_index = get_index_options_ideas()
+    # NEW LOGIC: Only fetch Index Options in the morning to prevent overnight theta/gap risk
+    if sess_type == "Intraday":
+        print("📈 Fetching Index Options for Intraday (NIFTY & BANKNIFTY)...")
+        df_index = get_index_options_ideas()
+    else:
+        print("⏭️ Skipping Index Options for BTST to avoid overnight theta/gap risk...")
+        df_index = pd.DataFrame()
     
     fno_list = get_fno_symbols()
     tickers = get_all_nse_tickers()
@@ -271,11 +276,12 @@ def run():
     if sess_type == "Intraday":
         generate_tabular_markdown(df_intra, df_index, f"⚡ Intraday & Index Report — {sess_title}", "intraday_report.md", include_index=True)
         generate_tabular_markdown(df_swing, pd.DataFrame(), f"📈 Swing Trade Report — {sess_title}", "swing_report.md", include_index=False)
-        open("btst_report.md", "w").close() # Clears out BTST in the morning
+        open("btst_report.md", "w").close() 
     else:
-        generate_tabular_markdown(df_btst, df_index, f"🌙 BTST Carry-Forward & Index Report — {sess_title}", "btst_report.md", include_index=True)
+        # Removed include_index=True from BTST generation so it strictly formats as stock-only
+        generate_tabular_markdown(df_btst, pd.DataFrame(), f"🌙 BTST Carry-Forward Report — {sess_title}", "btst_report.md", include_index=False)
         generate_tabular_markdown(df_swing, pd.DataFrame(), f"📈 Swing Trade Report — {sess_title}", "swing_report.md", include_index=False)
-        open("intraday_report.md", "w").close() # Clears out Intraday in the afternoon
+        open("intraday_report.md", "w").close() 
 
     print("📱 Generating specialized mobile text cards for Telegram Bot...")
     if sess_type == "Intraday":
@@ -283,7 +289,8 @@ def run():
         generate_telegram_cards(df_swing, pd.DataFrame(), f"📈 Swing Trade Report — {sess_title}", "swing_tg.txt", include_index=False)
         open("btst_tg.txt", "w").close()
     else:
-        generate_telegram_cards(df_btst, df_index, f"🌙 BTST Carry-Forward & Index Report — {sess_title}", "btst_tg.txt", include_index=True)
+        # Prevent Telegram bot from sending index options in the afternoon
+        generate_telegram_cards(df_btst, pd.DataFrame(), f"🌙 BTST Carry-Forward Report — {sess_title}", "btst_tg.txt", include_index=False)
         generate_telegram_cards(df_swing, pd.DataFrame(), f"📈 Swing Trade Report — {sess_title}", "swing_tg.txt", include_index=False)
         open("intraday_tg.txt", "w").close()
 
