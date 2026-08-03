@@ -180,22 +180,23 @@ elif page == "Scan Market":
     if 'quant_results' in st.session_state and not st.session_state['quant_results'].empty:
         df_results = st.session_state['quant_results'].copy()
         
-        # SAFETY CHECK: Automatically generate TV_Link if missing from old cache
         if 'TV_Link' not in df_results.columns:
             df_results['TV_Link'] = df_results['Stock'].apply(
                 lambda s: f"https://in.tradingview.com/chart/?symbol=NSE:{str(s).replace('&', '_').replace('-', '_')}"
             )
+
+        # Compile Targets into Compact Strings to save horizontal space
+        df_results['Eq Tgts (1-5)'] = df_results['EqT1'].astype(str) + "/" + df_results['EqT2'].astype(str) + "/" + df_results['EqT3'].astype(str) + "/" + df_results['EqT4'].astype(str) + "/" + df_results['EqT5'].astype(str)
+        df_results['Prem Tgts (1-3)'] = df_results['PT1'].astype(str) + "/" + df_results['PT2'].astype(str) + "/" + df_results['PT3'].astype(str)
         
         # 1. HIGH CONVICTION DASHBOARD
         st.markdown("---")
         st.subheader("🌟 Top 5 High Conviction Setups")
         st.markdown("The absolute highest probability setups mathematically ranked by Base Score and RSI momentum.")
-        high_conviction = df_results.head(5).copy()
-        high_conviction['Option Tgt 1/2'] = high_conviction['PT1'].astype(str) + " / " + high_conviction['PT2'].astype(str)
-        high_conviction_display = high_conviction[['Stock', 'Horizon', 'Entry', 'EqSL', 'EqT1', 'EqT2', 'Opt', 'Prem', 'Option Tgt 1/2', 'TV_Link']]
         
+        hc_cols = ['Stock', 'Horizon', 'Entry', 'EqSL', 'Eq Tgts (1-5)', 'Opt', 'Prem', 'Prem Tgts (1-3)', 'TV_Link']
         st.dataframe(
-            high_conviction_display, 
+            df_results.head(5)[hc_cols], 
             use_container_width=True, 
             hide_index=True,
             column_config={"TV_Link": st.column_config.LinkColumn("Live Chart", display_text="📊 View in TV")}
@@ -207,24 +208,24 @@ elif page == "Scan Market":
         st.subheader("📊 Full Market Scan by Horizon")
         tab1, tab2, tab3 = st.tabs(["⚡ Intraday", "🌙 BTST", "📈 Swing"])
         
-        cols_to_show = ['Stock', 'RSI', 'Vol vs 50d', 'Entry', 'EqSL', 'EqT1', 'EqT2', 'EqT3', 'Opt', 'Prem', 'PT1', 'PT2', 'TV_Link']
+        full_cols = ['Stock', 'RSI', 'Vol vs 50d', 'Entry', 'EqSL', 'Eq Tgts (1-5)', 'Opt', 'Prem', 'Prem Tgts (1-3)', 'TV_Link']
         
         with tab1:
             df_intra = df_results[df_results['Horizon'] == 'Intraday']
             if not df_intra.empty: 
-                st.dataframe(df_intra[cols_to_show], use_container_width=True, hide_index=True, column_config={"TV_Link": st.column_config.LinkColumn("Live Chart", display_text="📊 View in TV")})
+                st.dataframe(df_intra[full_cols], use_container_width=True, hide_index=True, column_config={"TV_Link": st.column_config.LinkColumn("Live Chart", display_text="📊 View in TV")})
             else: st.info("No Intraday setups found right now.")
                 
         with tab2:
             df_btst = df_results[df_results['Horizon'] == 'BTST']
             if not df_btst.empty: 
-                st.dataframe(df_btst[cols_to_show], use_container_width=True, hide_index=True, column_config={"TV_Link": st.column_config.LinkColumn("Live Chart", display_text="📊 View in TV")})
+                st.dataframe(df_btst[full_cols], use_container_width=True, hide_index=True, column_config={"TV_Link": st.column_config.LinkColumn("Live Chart", display_text="📊 View in TV")})
             else: st.info("No BTST setups found right now.")
                 
         with tab3:
             df_swing = df_results[df_results['Horizon'] == 'Swing']
             if not df_swing.empty: 
-                st.dataframe(df_swing[cols_to_show], use_container_width=True, hide_index=True, column_config={"TV_Link": st.column_config.LinkColumn("Live Chart", display_text="📊 View in TV")})
+                st.dataframe(df_swing[full_cols], use_container_width=True, hide_index=True, column_config={"TV_Link": st.column_config.LinkColumn("Live Chart", display_text="📊 View in TV")})
             else: st.info("No Swing setups found right now.")
 
         # 3. INTERACTIVE TRADINGVIEW CHARTING & EXECUTION
@@ -289,7 +290,7 @@ elif page == "Scan Market":
             m1.metric("Quantity to Buy", f"{qty} shares")
             m2.metric("Total Investment", f"₹{(qty * entry_p):,.2f}")
             m3.metric("Max Capital at Risk", f"₹{max_risk:,.2f}")
-            m4.metric("Target 2 Profit", f"₹{(qty * (stock_row['EqT2'] - entry_p)):,.2f}")
+            m4.metric("Target 3 Profit", f"₹{(qty * (stock_row['EqT3'] - entry_p)):,.2f}")
 
 # --- VIEW: BUDGET SCANNER (< ₹500) ---
 elif page == "Budget Scanner (< ₹500)":
@@ -317,11 +318,14 @@ elif page == "Budget Scanner (< ₹500)":
             df_budget['TV_Link'] = df_budget['Stock'].apply(
                 lambda s: f"https://in.tradingview.com/chart/?symbol=NSE:{str(s).replace('&', '_').replace('-', '_')}"
             )
+        
+        df_budget['Eq Tgts (1-5)'] = df_budget['EqT1'].astype(str) + "/" + df_budget['EqT2'].astype(str) + "/" + df_budget['EqT3'].astype(str) + "/" + df_budget['EqT4'].astype(str) + "/" + df_budget['EqT5'].astype(str)
+        df_budget['Prem Tgts (1-3)'] = df_budget['PT1'].astype(str) + "/" + df_budget['PT2'].astype(str) + "/" + df_budget['PT3'].astype(str)
 
         st.subheader(f"🏆 Top Budget Quant Setups Under ₹{budget_limit}")
-        cols_to_show = ['Stock', 'Horizon', 'Entry', 'EqSL', 'EqT1', 'EqT2', 'Opt', 'Prem', 'PT1', 'TV_Link']
+        b_cols = ['Stock', 'Horizon', 'Entry', 'EqSL', 'Eq Tgts (1-5)', 'Opt', 'Prem', 'Prem Tgts (1-3)', 'TV_Link']
         st.dataframe(
-            df_budget[cols_to_show], 
+            df_budget[b_cols], 
             use_container_width=True, 
             hide_index=True,
             column_config={"TV_Link": st.column_config.LinkColumn("Live Chart", display_text="📊 View in TV")}
