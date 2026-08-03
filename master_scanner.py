@@ -25,7 +25,9 @@ def black_scholes(S, K, T, r, sigma):
     put_prem = K * math.exp(-r * T) * norm.cdf(-d2) - S * norm.cdf(-d1)
     return round(call_prem, 2), round(put_prem, 2), round(norm.cdf(d1), 2)
 
-def generate_quant_option(price, t1, t2, t3, df_h, df_l, df_c, dte=15):
+def generate_quant_option(price, t1, t2, t3, df_h, df_l, df_c):
+    # Stock options default to monthly expiry estimates (~15-20 DTE average assumption)
+    dte = 15 
     step = 100 if price > 5000 else (50 if price > 2000 else (20 if price > 1000 else (10 if price > 500 else 5)))
     atm = int(round(price / step) * step)
     try:
@@ -34,23 +36,24 @@ def generate_quant_option(price, t1, t2, t3, df_h, df_l, df_c, dte=15):
         if math.isnan(vol) or vol == 0: vol = 0.2
     except: vol = 0.2
     
-    # Calculate Base Premium and Projected Premiums at Targets
     call_prem, _, _ = black_scholes(price, atm, dte/365.0, 0.07, vol)
     pt1, _, _ = black_scholes(t1, atm, dte/365.0, 0.07, vol)
     pt2, _, _ = black_scholes(t2, atm, dte/365.0, 0.07, vol)
     pt3, _, _ = black_scholes(t3, atm, dte/365.0, 0.07, vol)
     
-    return f"{atm} CE", call_prem, round(pt1, 1), round(pt2, 1), round(pt3, 1)
+    return f"{atm} CE [Monthly]", call_prem, round(pt1, 1), round(pt2, 1), round(pt3, 1)
 
 def get_fno_symbols():
+    # Hardcoded complete FNO list to bypass NSE server blocking automated downloads
+    static_fno = ["AARTIIND", "ABB", "ABBOTINDIA", "ABCAPITAL", "ABFRL", "ACC", "ADANIENT", "ADANIPORTS", "ALKEM", "AMBUJACEM", "APOLLOHOSP", "APOLLOTYRE", "ASHOKLEY", "ASIANPAINT", "ASTRAL", "ATUL", "AUBANK", "AUROPHARMA", "AXISBANK", "BAJAJ-AUTO", "BAJAJFINSV", "BAJFINANCE", "BALKRISIND", "BALRAMCHIN", "BANDHANBNK", "BANKBARODA", "BATAINDIA", "BEL", "BERGEPAINT", "BHARATFORG", "BHARTIARTL", "BHEL", "BIOCON", "BOSCHLTD", "BPCL", "BRITANNIA", "CANBK", "CANFINHOME", "CHAMBLFERT", "CHOLAFIN", "CIPLA", "COALINDIA", "COFORGE", "COLPAL", "CONCOR", "COROMANDEL", "CROMPTON", "CUB", "CUMMINSIND", "DABUR", "DALBHARAT", "DEEPAKNTR", "DIVISLAB", "DIXON", "DLF", "DRREDDY", "EICHERMOT", "ESCORTS", "EXIDEIND", "FEDERALBNK", "GAIL", "GLENMARK", "GMRINFRA", "GNFC", "GODREJCP", "GODREJPROP", "GRANULES", "GRASIM", "GUJGASLTD", "HAL", "HAVELLS", "HCLTECH", "HDFCAMC", "HDFCBANK", "HDFCLIFE", "HEROMOTOCO", "HINDALCO", "HINDCOPPER", "HINDPETRO", "HINDUNILVR", "ICICIBANK", "ICICIGI", "ICICIPRULI", "IDEA", "IDFCFIRSTB", "IEX", "IGL", "INDHOTEL", "INDIACEM", "INDIAMART", "INDIGO", "INDUSINDBK", "INFY", "IOC", "IPCALAB", "IRCTC", "ITC", "JINDALSTEL", "JSWSTEEL", "JUBLFOOD", "KOTAKBANK", "LALPATHLAB", "LAURUSLABS", "LICHSGFIN", "LT", "LTIM", "LTTS", "LUPIN", "M&M", "M&MFIN", "MANAPPURAM", "MARICO", "MARUTI", "MCDOWELL-N", "MCX", "METROPOLIS", "MFSL", "MGL", "MOTHERSON", "MPHASIS", "MRF", "MUTHOOTFIN", "NATIONALUM", "NAUKRI", "NAVINFLUOR", "NESTLEIND", "NMDC", "NTPC", "OBEROIRLTY", "OFSS", "ONGC", "PAGEIND", "PEL", "PETRONET", "PFC", "PIDILITIND", "PIIND", "PNB", "POLYCAB", "POWERGRID", "PVRINOX", "RAMCOCEM", "RBLBANK", "RECLTD", "RELIANCE", "SAIL", "SBICARD", "SBILIFE", "SBIN", "SHREECEM", "SHRIRAMFIN", "SIEMENS", "SRF", "SUNPHARMA", "SUNTV", "SYNGENE", "TATACHEM", "TATACOMM", "TATACONSUM", "TATAMOTORS", "TATAPOWER", "TATASTEEL", "TCS", "TECHM", "TITAN", "TORNTPHARM", "TRENT", "TVSMOTOR", "UBL", "ULTRACEMCO", "UPL", "VEDL", "VOLTAS", "WIPRO", "ZEEL", "ZYDUSLIFE"]
     try:
         url = "https://archives.nseindia.com/content/fo/fo_mktlots.csv"
-        df = pd.read_csv(url)
+        df = pd.read_csv(url, timeout=5)
         cols = [c.strip() for c in df.columns]
         df.columns = cols
         if 'SYMBOL' in df.columns: return [str(x).strip().upper() for x in df['SYMBOL'].tolist()]
     except: pass
-    return ["RELIANCE", "SBIN", "HDFCBANK", "ICICIBANK", "INFY"]
+    return static_fno
 
 def get_all_nse_tickers():
     try:
@@ -77,27 +80,51 @@ def get_index_options_ideas():
                 df['Log_Ret'] = np.log(df['Close'] / df['Close'].shift(1))
                 vol = df['Log_Ret'].tail(10).std() * math.sqrt(252)
 
+            # Generate targets
             if close_p >= ema_20:
                 t1, t2, t3 = round(close_p*1.005, 1), round(close_p*1.010, 1), round(close_p*1.015, 1)
-                prem, _, _ = black_scholes(close_p, atm_strike, 15/365.0, 0.07, vol)
-                pt1, _, _ = black_scholes(t1, atm_strike, 15/365.0, 0.07, vol)
-                pt2, _, _ = black_scholes(t2, atm_strike, 15/365.0, 0.07, vol)
-                pt3, _, _ = black_scholes(t3, atm_strike, 15/365.0, 0.07, vol)
-                ideas.append({'Index': name, 'Spot': round(close_p, 2), 'Bias': "🟢 BULL", 'Opt': f"{atm_strike} CE", 'Prem': prem, 'PT1': round(pt1,1), 'PT2': round(pt2,1), 'PT3': round(pt3,1), 'SL': round(close_p*0.995, 1), 'T1': t1, 'T2': t2, 'T3': t3})
+                bias = "🟢 BULL"
+                opt_type = "CE"
             else:
                 t1, t2, t3 = round(close_p*0.995, 1), round(close_p*0.990, 1), round(close_p*0.985, 1)
-                _, prem, _ = black_scholes(close_p, atm_strike, 15/365.0, 0.07, vol)
-                _, pt1, _ = black_scholes(t1, atm_strike, 15/365.0, 0.07, vol)
-                _, pt2, _ = black_scholes(t2, atm_strike, 15/365.0, 0.07, vol)
-                _, pt3, _ = black_scholes(t3, atm_strike, 15/365.0, 0.07, vol)
-                ideas.append({'Index': name, 'Spot': round(close_p, 2), 'Bias': "🔴 BEAR", 'Opt': f"{atm_strike} PE", 'Prem': prem, 'PT1': round(pt1,1), 'PT2': round(pt2,1), 'PT3': round(pt3,1), 'SL': round(close_p*1.005, 1), 'T1': t1, 'T2': t2, 'T3': t3})
+                bias = "🔴 BEAR"
+                opt_type = "PE"
+                
+            sl = round(close_p*0.995, 1) if bias == "🟢 BULL" else round(close_p*1.005, 1)
+
+            # Calculate for CURRENT WEEK (Approx 3 DTE)
+            c_call, c_put, _ = black_scholes(close_p, atm_strike, 3/365.0, 0.07, vol)
+            c_pt1_call, c_pt1_put, _ = black_scholes(t1, atm_strike, 3/365.0, 0.07, vol)
+            c_pt2_call, c_pt2_put, _ = black_scholes(t2, atm_strike, 3/365.0, 0.07, vol)
+            c_pt3_call, c_pt3_put, _ = black_scholes(t3, atm_strike, 3/365.0, 0.07, vol)
+            
+            c_prem = c_call if opt_type == "CE" else c_put
+            c_pt1 = c_pt1_call if opt_type == "CE" else c_pt1_put
+            c_pt2 = c_pt2_call if opt_type == "CE" else c_pt2_put
+            c_pt3 = c_pt3_call if opt_type == "CE" else c_pt3_put
+
+            ideas.append({'Index': f"{name} (Curr Wk)", 'Spot': round(close_p, 2), 'Bias': bias, 'Opt': f"{atm_strike} {opt_type} [CW]", 'Prem': c_prem, 'PT1': round(c_pt1,1), 'PT2': round(c_pt2,1), 'PT3': round(c_pt3,1), 'SL': sl, 'T1': t1, 'T2': t2, 'T3': t3})
+
+            # Calculate for NEXT WEEK (Approx 10 DTE)
+            n_call, n_put, _ = black_scholes(close_p, atm_strike, 10/365.0, 0.07, vol)
+            n_pt1_call, n_pt1_put, _ = black_scholes(t1, atm_strike, 10/365.0, 0.07, vol)
+            n_pt2_call, n_pt2_put, _ = black_scholes(t2, atm_strike, 10/365.0, 0.07, vol)
+            n_pt3_call, n_pt3_put, _ = black_scholes(t3, atm_strike, 10/365.0, 0.07, vol)
+            
+            n_prem = n_call if opt_type == "CE" else n_put
+            n_pt1 = n_pt1_call if opt_type == "CE" else n_pt1_put
+            n_pt2 = n_pt2_call if opt_type == "CE" else n_pt2_put
+            n_pt3 = n_pt3_call if opt_type == "CE" else n_pt3_put
+
+            ideas.append({'Index': f"{name} (Next Wk)", 'Spot': round(close_p, 2), 'Bias': bias, 'Opt': f"{atm_strike} {opt_type} [NW]", 'Prem': n_prem, 'PT1': round(n_pt1,1), 'PT2': round(n_pt2,1), 'PT3': round(n_pt3,1), 'SL': sl, 'T1': t1, 'T2': t2, 'T3': t3})
+            
         except: continue
     return pd.DataFrame(ideas)
 
 def generate_tabular_markdown(df_results, df_index, title, filename, include_index=False):
     md = f"# {title}\n\n"
     if include_index and not df_index.empty:
-        md += "## 🏛️ Index Options (3 Targets)\n"
+        md += "## 🏛️ Index Options (Curr & Next Week)\n"
         md += "| Index | Bias | Spot | Option | Prem | Prem Tgts (1/2/3) | SL | Spot Tgts (1/2/3) |\n"
         md += "|---|---|---|---|---|---|---|---|\n"
         for _, r in df_index.iterrows():
@@ -121,7 +148,7 @@ def generate_tabular_markdown(df_results, df_index, title, filename, include_ind
 def generate_telegram_cards(df_results, df_index, title, filename, include_index=False):
     txt = f"*{title}*\n\n"
     if include_index and not df_index.empty:
-        txt += "🏛️ *Index Options (3 Targets)*\n"
+        txt += "🏛️ *Index Options (Curr & Next Wk)*\n"
         for _, r in df_index.iterrows():
             txt += f"📌 *{r['Index']}* ({r['Bias']})\n"
             txt += f"• Spot: ₹{r['Spot']} | SL: ₹{r['SL']}\n"
@@ -219,7 +246,6 @@ def run():
 
             base_score = (2 if 55 <= rsi_val <= 68 else 0) + (2 if vol_vs>=2 else 0)
             
-            # Generate 5 Equity Targets
             t1 = round(close_p + 1.5 * atr, 1)
             t2 = round(close_p + 3.0 * atr, 1)
             t3 = round(close_p + 4.5 * atr, 1)
