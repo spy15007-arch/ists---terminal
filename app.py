@@ -296,6 +296,52 @@ elif page == "Budget Scanner (< ₹500)":
     st.title("💡 Sub-₹500 Budget Quant Scanner")
     st.markdown("Scans the F&O Universe specifically for mathematically confirmed setups priced under ₹500.")
 
-    budget_limit = st.number_input("Max Stock Price (₹)", min_value=50, max_value=1000, value=500, step=50I can definitely provide the complete, amended code so you can easily copy and replace the entire file. 
+    budget_limit = st.number_input("Max Stock Price (₹)", min_value=50, max_value=1000, value=500, step=50)
 
-Could you please specify which file in your [ISTS repository](https://github.com/spy15007-arch/ists---terminal) (such as `app.py` or `master_scanner.py`) you are working on, and describe the specific changes or new logic—perhaps adjusting your EMA crossover or RSI calculations—that you need implemented?
+    if st.button("Run Budget Market Scan", type="primary"):
+        with st.spinner(f"Scanning for setups under ₹{budget_limit}..."):
+            full_res = run_quant_scan()
+            if not full_res.empty:
+                budget_res = full_res[full_res['Entry'] <= budget_limit].copy()
+                if not budget_res.empty:
+                    st.session_state['budget_results'] = budget_res
+                    st.success(f"Found {len(budget_res)} quant setups under ₹{budget_limit}!")
+                else:
+                    st.session_state['budget_results'] = pd.DataFrame()
+                    st.warning(f"No setups found under ₹{budget_limit} today.")
+
+    if 'budget_results' in st.session_state and not st.session_state['budget_results'].empty:
+        df_budget = st.session_state['budget_results'].copy()
+        
+        if 'TV_Link' not in df_budget.columns:
+            df_budget['TV_Link'] = df_budget['Stock'].apply(
+                lambda s: f"https://in.tradingview.com/chart/?symbol=NSE:{str(s).replace('&', '_').replace('-', '_')}"
+            )
+
+        st.subheader(f"🏆 Top Budget Quant Setups Under ₹{budget_limit}")
+        cols_to_show = ['Stock', 'Horizon', 'Entry', 'EqSL', 'EqT1', 'EqT2', 'Opt', 'Prem', 'PT1', 'TV_Link']
+        st.dataframe(
+            df_budget[cols_to_show], 
+            use_container_width=True, 
+            hide_index=True,
+            column_config={"TV_Link": st.column_config.LinkColumn("Live Chart", display_text="📊 View in TV")}
+        )
+
+        st.markdown("---")
+        st.subheader("🔍 Budget Position & Share Quantity Calculator")
+        selected_stock = st.selectbox("Select stock to evaluate:", df_budget['Stock'].tolist())
+        stock_row = df_budget[df_budget['Stock'] == selected_stock].iloc[0]
+
+        col1, col2 = st.columns(2)
+        with col1:
+            st.markdown(f"**Stock:** `{selected_stock}`")
+            st.markdown(f"**Entry Price:** ₹{stock_row['Entry']}")
+            st.markdown(f"**Base Quant Score:** {stock_row['Score']}")
+            st.markdown(f"**Option Recommendation:** `{stock_row['Opt']}` at ₹{stock_row['Prem']}")
+        
+        with col2:
+            trade_capital = st.number_input("Allocated Capital for this Trade (₹)", min_value=5000, value=50000, step=5000)
+            shares_qty = int(trade_capital // stock_row['Entry'])
+            actual_inv = round(shares_qty * stock_row['Entry'], 2)
+            st.metric("Affordable Shares", f"{shares_qty} shares")
+            st.metric("Total Investment Required", f"₹{actual_inv:,.2f}")
