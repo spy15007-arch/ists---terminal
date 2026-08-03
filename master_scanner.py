@@ -7,18 +7,10 @@ import datetime
 import math
 import time
 from scipy.stats import norm
-from concurrent.futures import ThreadPoolExecutor
 
 def get_session_info():
     hour = (datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=5, minutes=30)).hour
     return ("🌅 MORNING SCAN (09:15-09:45 IST)", "Intraday") if hour < 12 else ("🌙 PRE-CLOSE SCAN (15:15 IST)", "BTST")
-
-def calculate_rsi_vectorized(df_close, period=14):
-    delta = df_close.diff()
-    gain = (delta.where(delta > 0, 0)).rolling(window=period).mean()
-    loss = (-delta.where(delta < 0, 0)).rolling(window=period).mean()
-    rs = gain / loss
-    return 100 - (100 / (1 + rs))
 
 def calculate_lorentzian_distance(current_rsi, current_vol_vs, ideal_rsi=70.0, ideal_vol=2.0):
     dist_rsi = math.log(1 + abs(current_rsi - ideal_rsi))
@@ -56,6 +48,11 @@ def get_all_nse_tickers():
         url = "https://archives.nseindia.com/content/equities/EQUITY_L.csv"
         response = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=10)
         df = pd.read_csv(io.StringIO(response.text))
+        # Critical speedup: Only fetch actual companies (EQ), ignore bonds, REITs, etc.
+        if ' SERIES' in df.columns:
+            df = df[df[' SERIES'].str.strip() == 'EQ']
+        elif 'SERIES' in df.columns:
+            df = df[df['SERIES'].str.strip() == 'EQ']
         return [f"{str(s).strip()}.NS" for s in df['SYMBOL'].tolist()]
     except: return ['RELIANCE.NS', 'SBIN.NS']
 
@@ -106,96 +103,7 @@ def generate_markdown(df_results, df_index, title, filename):
                     md += f"• **Option:** {r['Opt']} (Prem: {prem_disp} | Delta: {r['Delta']})\n"
                 md += "\n"
             md += "---\n\n"
-
-    with open(filename, "w", encoding="utf-8") as f: 
-        f.write(md)
-
-def process_chunk(chunk, fno_list, sess_type):
-    res_strict, res_aggressive, res_budget = [], [], []
-    try:
-        data = yf.download(" ".join(chunk), period="3mo", interval="1d", progress=False, threads=True)
-        if data.empty: return res_strict, res_aggressive, res_budget
-        
-        closes, highs, lows, volumes = data['Close'], data['High'], data['Low'], data['Volume']
-        
-        # VECTORIZED CALCULATIONS ACROSS ALL STOCKS IN CHUNK
-        ema_50_all = closes.ewm(span=50).mean()
-        rsi_all = calculate_rsi_vectorized(closes)
-        
-        exp1 = closes.ewm(span=12, adjust=False).mean()
-        exp2 = closes.ewm(span=26, adjust=False).mean()
-        macd_all = exp1 - exp2
-        macd_signal_all = macd_all.ewm(span=9, adjust=False).mean()
-
-        for ticker in chunk:
-            try:
-                if ticker not in closes.columns: continue
-                
-                df_c = closes[ticker].dropna()
-                if len(df_c) < 50: continue
-                
-                df_h, df_l, df_v = highs[ticker].dropna(), lows[ticker].dropna(), volumes[ticker].dropna()
-                
-                close_p = float(df_c.iloc[-1])
-                high_p, low_p = float(df_h.iloc[-1]), float(df_l.iloc[-1])
-                vol_today = float(df_v.iloc[-1])
-                
-                # Pre-filter out illiquid / bad data
-                if high_p == low_p or close_p <= 0 or vol_today < 1000: continue
-                
-                vol_50d_avg = float(df_v.rolling(50).mean().iloc[-1])
-                if vol_50d_avg <= 0: continue
-                
-                rsi_val = float(rsi_all[ticker].iloc[-1])
-                if math.isnan(rsi_val) or rsi_val > 80: continue
-
-                if macd_all[ticker].iloc[-1] < macd_signal_all[ticker].iloc[-1]: continue
-
-                pos = round(((close_p - low_p) / (high_p - low_p)) * 100, 1)
-                vol_vs = round(vol_today / vol_50d_avg, 2)
-
-                if sess_type == "Intraday": hor = "⚡ Intraday" if vol_vs >= 1.3 or pos >= 70 else "📈 Swing"
-                else: hor = "🌙 BTST" if pos >= 75 and vol_vs >= 1.2 else "📈 Swing"
-
-                base_score = (2 if rsi_val>=60 else 0) + (2 if vol_vs>=2 else 0)
-                lorentzian_score = calculate_lorentzian_distance(rsi_val, vol_vs)
-                if lorentzian_score > 1.5: base_score -= 1 
-                elif lorentzian_score < 0.5: base_score += 1 
-
-                ema_50 = float(ema_50_all[ticker].iloc[-1])
-                passes_ema = close_p >= ema_50
-                
-                hl, hc, lc = df_h - df_l, np.abs(df_h - df_c.shift()), np.abs(df_l - df_c.shift())
-                atr = float(pd.concat([hl, hc, lc], axis=1).max(axis=1).ewm(alpha=1/14).mean().iloc[-1])
-                
-                symbol = ticker.replace(".NS", "")
-                if symbol in fno_list:
-                    opt, prem, delta, osl, ot1, ot2, ot3 = generate_quant_option(close_p, df_h, df_l, df_c)
-                else:
-                    opt, prem, delta, osl, ot1, ot2, ot3 = "N/A (Cash)", "-", "-", "-", "-", "-", "-"
-                
-                record = {'Stock': symbol, 'Horizon': hor, 'Entry': round(close_p, 2), 'RSI': round(rsi_val,1), 'EqSL': round(close_p-1.5*atr,1), 'EqT1': round(close_p+1.5*atr,1), 'EqT2': round(close_p+3.0*atr,1), 'EqT3': round(close_p+4.5*atr,1), 'Opt': opt, 'Prem': prem, 'Delta': delta, 'OSL': osl, 'OT1': ot1, 'OT2': ot2, 'OT3': ot3}
-
-                # 1. Strict Scan
-                if passes_ema and base_score >= 2:
-                    rec_strict = record.copy()
-                    rec_strict['Score'] = base_score
-                    res_strict.append(rec_strict)
-                    
-                    # 3. Budget Scan
-                    if close_p < 500:
-                        res_budget.append(rec_strict)
-
-                # 2. Aggressive Scan
-                agg_score = base_score + 2
-                if agg_score >= 2:
-                    rec_agg = record.copy()
-                    rec_agg['Score'] = agg_score
-                    res_aggressive.append(rec_agg)
-
-            except: continue
-    except: pass
-    return res_strict, res_aggressive, res_budget
+    with open(filename, "w", encoding="utf-8") as f: f.write(md)
 
 def run():
     sess_title, sess_type = get_session_info()
@@ -203,18 +111,115 @@ def run():
     fno_list = get_fno_symbols()
     tickers = get_all_nse_tickers()
     
-    res_strict, res_aggressive, res_budget = [], [], []
-    chunk_size = 400
-    chunks = [tickers[i:i + chunk_size] for i in range(0, len(tickers), chunk_size)]
+    # ONE SINGLE MASSIVE DOWNLOAD - Let yfinance handle the threading optimally
+    data = yf.download(tickers, period="3mo", interval="1d", progress=False, threads=True)
+    if data.empty: return
     
-    # Process chunks in parallel using ThreadPoolExecutor
-    with ThreadPoolExecutor(max_workers=2) as executor:
-        futures = [executor.submit(process_chunk, chunk, fno_list, sess_type) for chunk in chunks]
-        for future in futures:
-            s, a, b = future.result()
-            res_strict.extend(s)
-            res_aggressive.extend(a)
-            res_budget.extend(b)
+    closes, highs, lows, volumes = data['Close'], data['High'], data['Low'], data['Volume']
+    
+    # -------------------------------------------------------------
+    # PURE VECTORIZATION MATRIX MATH ON THE ENTIRE MARKET AT ONCE
+    # -------------------------------------------------------------
+    ema_50_all = closes.ewm(span=50).mean()
+    vol_50d_avg_all = volumes.rolling(50).mean()
+    
+    # RSI Matrix
+    delta = closes.diff()
+    gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
+    loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
+    rsi_all = 100 - (100 / (1 + (gain / loss)))
+
+    # MACD Matrix
+    exp1 = closes.ewm(span=12, adjust=False).mean()
+    exp2 = closes.ewm(span=26, adjust=False).mean()
+    macd_all = exp1 - exp2
+    macd_signal_all = macd_all.ewm(span=9, adjust=False).mean()
+    
+    # ATR Matrix
+    hl = highs - lows
+    hc = (highs - closes.shift(1)).abs()
+    lc = (lows - closes.shift(1)).abs()
+    tr = pd.DataFrame(np.maximum(hl.values, np.maximum(hc.values, lc.values)), index=hl.index, columns=hl.columns)
+    atr_all = tr.ewm(alpha=1/14).mean()
+
+    # Get only the very last row for all calculations
+    last_close = closes.iloc[-1]
+    last_high = highs.iloc[-1]
+    last_low = lows.iloc[-1]
+    last_vol = volumes.iloc[-1]
+    last_vol_50 = vol_50d_avg_all.iloc[-1]
+    last_rsi = rsi_all.iloc[-1]
+    last_macd = macd_all.iloc[-1]
+    last_macd_signal = macd_signal_all.iloc[-1]
+    last_ema_50 = ema_50_all.iloc[-1]
+    last_atr = atr_all.iloc[-1]
+
+    res_strict, res_aggressive, res_budget = [], [], []
+
+    # Extremely fast loop over the final scalar values
+    for ticker in closes.columns:
+        try:
+            close_p = float(last_close[ticker])
+            high_p = float(last_high[ticker])
+            low_p = float(last_low[ticker])
+            vol_today = float(last_vol[ticker])
+            
+            # Base filters
+            if pd.isna(close_p) or close_p <= 0 or high_p == low_p or vol_today < 1000: continue
+            
+            vol_50_avg = float(last_vol_50[ticker])
+            if pd.isna(vol_50_avg) or vol_50_avg <= 0: continue
+            
+            rsi_val = float(last_rsi[ticker])
+            # 1. Hard Ceiling: Reject anything already in the extreme overbought zone
+            if pd.isna(rsi_val) or rsi_val > 72.0: continue
+            
+            macd_val = float(last_macd[ticker])
+            macd_sig = float(last_macd_signal[ticker])
+            if macd_val < macd_sig: continue
+            
+            ema_50 = float(last_ema_50[ticker])
+            passes_ema = close_p >= ema_50
+            atr = float(last_atr[ticker])
+
+            pos = round(((close_p - low_p) / (high_p - low_p)) * 100, 1)
+            
+            # 2. Correction Filter: Reject stocks closing in the bottom half of their daily candle
+            if pos < 55.0: continue 
+
+            vol_vs = round(vol_today / vol_50_avg, 2)
+
+            if sess_type == "Intraday": hor = "⚡ Intraday" if vol_vs >= 1.3 else "📈 Swing"
+            else: hor = "🌙 BTST" if vol_vs >= 1.2 else "📈 Swing"
+
+            # 3. Sweet Spot Scoring: Only reward RSI if it is in the early momentum phase (55 to 68)
+            base_score = (2 if 55 <= rsi_val <= 68 else 0) + (2 if vol_vs>=2 else 0)
+            
+            lorentzian_score = calculate_lorentzian_distance(rsi_val, vol_vs)
+            if lorentzian_score > 1.5: base_score -= 1 
+            elif lorentzian_score < 0.5: base_score += 1 
+
+            symbol = ticker.replace(".NS", "")
+            if symbol in fno_list:
+                df_h, df_l, df_c = highs[ticker].dropna(), lows[ticker].dropna(), closes[ticker].dropna()
+                opt, prem, delta, osl, ot1, ot2, ot3 = generate_quant_option(close_p, df_h, df_l, df_c)
+            else:
+                opt, prem, delta, osl, ot1, ot2, ot3 = "N/A (Cash)", "-", "-", "-", "-", "-", "-"
+            
+            record = {'Stock': symbol, 'Horizon': hor, 'Entry': round(close_p, 2), 'RSI': round(rsi_val,1), 'EqSL': round(close_p-1.5*atr,1), 'EqT1': round(close_p+1.5*atr,1), 'EqT2': round(close_p+3.0*atr,1), 'EqT3': round(close_p+4.5*atr,1), 'Opt': opt, 'Prem': prem, 'Delta': delta, 'OSL': osl, 'OT1': ot1, 'OT2': ot2, 'OT3': ot3}
+
+            if passes_ema and base_score >= 2:
+                rec_strict = record.copy()
+                rec_strict['Score'] = base_score
+                res_strict.append(rec_strict)
+                if close_p < 500: res_budget.append(rec_strict)
+
+            agg_score = base_score + 2
+            if agg_score >= 2:
+                rec_agg = record.copy()
+                rec_agg['Score'] = agg_score
+                res_aggressive.append(rec_agg)
+        except: continue
 
     df_strict = pd.DataFrame(res_strict).sort_values(by=['Score', 'RSI'], ascending=[False, False]).head(25) if res_strict else pd.DataFrame()
     df_agg = pd.DataFrame(res_aggressive).sort_values(by=['Score', 'RSI'], ascending=[False, False]).head(25) if res_aggressive else pd.DataFrame()
