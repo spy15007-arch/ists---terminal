@@ -2,116 +2,104 @@
 
 ## 🏛️ Index Options
 📌 **NIFTY 50** (🟢 BULLISH)
-• Spot: ₹24383.6 | Option: **BUY 24400 CE**
-• Targets: T1: ₹24505.5 | T2: ₹24627.4 | T3: ₹24749.4 | SL: ₹24261.7
+• Spot: ₹24550.0 | Option: **BUY 24550 CE**
+• Targets: T1: ₹24672.7 | T2: ₹24795.5 | T3: ₹24918.2 | SL: ₹24427.2
 
-📌 **BANK NIFTY** (🔴 BEARISH)
-• Spot: ₹57264.85 | Option: **BUY 57300 PE**
-• Targets: T1: ₹56978.5 | T2: ₹56692.2 | T3: ₹56405.9 | SL: ₹57551.2
+📌 **BANK NIFTY** (🟢 BULLISH)
+• Spot: ₹57773.3 | Option: **BUY 57800 CE**
+• Targets: T1: ₹58062.2 | T2: ₹58351.0 | T3: ₹58639.9 | SL: ₹57484.4
 
 ---
 
 ## ⚡ Intraday Setups
 
-🟢 **ORIENTPPR** (Score: 5 | RSI: 69.8)
-• **Entry:** ₹18.37 | **Eq SL:** ₹17.4
-• **Targets:** T1: ₹19.3 | T2: ₹20.3 | T3: ₹21.3
+🟢 **SIGMA** (Score: 3 | RSI: 76.4)
+• **Entry:** ₹51.0 | **Eq SL:** ₹46.2
+• **Targets:** T1: ₹55.8 | T2: ₹60.5 | T3: ₹65.3
 
-🟢 **RADHIKAJWE** (Score: 4 | RSI: 71.0)
-• **Entry:** ₹71.75 | **Eq SL:** ₹66.3
-• **Targets:** T1: ₹77.2 | T2: ₹82.7 | T3: ₹88.1
+🟢 **BESTAGRO** (Score: 3 | RSI: 75.3)
+• **Entry:** ₹18.83 | **Eq SL:** ₹17.4
+• **Targets:** T1: ₹20.3 | T2: ₹21.8 | T3: ₹23.2
 
-🟢 **SAHYADRI** (Score: 4 | RSI: 70.6)
-• **Entry:** ₹303.6 | **Eq SL:** ₹284.6
-• **Targets:** T1: ₹322.6 | T2: ₹341.7 | T3: ₹360.7
+🟢 **GAEL** (Score: 3 | RSI: 74.6)
+• **Entry:** ₹178.78 | **Eq SL:** ₹168.8
+• **Targets:** T1: ₹188.8 | T2: ₹198.7 | T3: ₹208.7
 
-🟢 **JPPOWER** (Score: 4 | RSI: 69.8)
-• **Entry:** ₹18.29 | **Eq SL:** ₹17.4
-• **Targets:** T1: ₹19.2 | T2: ₹20.1 | T3: ₹21.0
+🟢 **URBANCO** (Score: 3 | RSI: 71.7)
+• **Entry:** ₹147.25 | **Eq SL:** ₹139.4
+• **Targets:** T1: ₹155.1 | T2: ₹163.0 | T3: ₹170.8
 
-🟢 **AVONMORE** (Score: 4 | RSI: 68.6)
-• **Entry:** ₹11.17 | **Eq SL:** ₹10.3
-• **Targets:** T1: ₹12.0 | T2: ₹12.9 | T3: ₹13.7
+🟢 **SAHYADRI** (Score: 3 | RSI: 68.7)
+• **Entry:** ₹324.0 | **Eq SL:** ₹302.6
+• **Targets:** T1: ₹345.4 | T2: ₹366.8 | T3: ₹388.2
 
-🟢 **RSDFIN** (Score: 3 | RSI: 79.9)
-• **Entry:** ₹110.74 | **Eq SL:** ₹99.6
-• **Targets:** T1: ₹121.9 | T2: ₹133.1 | T3: ₹144.2
+🟢 **SHALPAINTS** (Score: 3 | RSI: 68.2)
+• **Entry:** ₹73.62 | **Eq SL:** ₹66.2
+• **Targets:** T1: ₹81.0 | T2: ₹88.4 | T3: ₹95.8
 
-🟢 **VRLLOG** (Score: 3 | RSI: 79.8)
-• **Entry:** ₹265.65 | **Eq SL:** ₹253.8
-• **Targets:** T1: ₹277.5 | T2: ₹289.3 | T3: ₹301.1
+🟢 **HPIL** (Score: 3 | RSI: 62.2)
+• **Entry:** ₹129.85 | **Eq SL:** ₹122.7
+• **Targets:** T1: ₹137.0 | T2: ₹144.2 | T3: ₹151.4
 
-🟢 **COMFINTE** (Score: 3 | RSI: 79.0)
-• **Entry:** ₹6.91 | **Eq SL:** ₹6.3
-• **Targets:** T1: ₹7.5 | T2: ₹8.0 | T3: ₹8.6
+🟢 **TIJARIA** (Score: 3 | RSI: 60.9)
+• **Entry:** ₹5.15 | **Eq SL:** ₹4.6
+• **Targets:** T1: ₹5.7 | T2: ₹6.3 | T3: ₹6.9
 
-🟢 **VINEETLAB** (Score: 3 | RSI: 79.0)
-• **Entry:** ₹39.63 | **Eq SL:** ₹36.8
-• **Targets:** T1: ₹42.5 | T2: ₹45.3 | T3: ₹48.2
+🟢 **ADROITINFO** (Score: 2 | RSI: 72.9)
+• **Entry:** ₹10.02 | **Eq SL:** ₹9.1
+• **Targets:** T1: ₹10.9 | T2: ₹11.8 | T3: ₹12.7
 
-🟢 **QUESS** (Score: 3 | RSI: 77.7)
-• **Entry:** ₹332.55 | **Eq SL:** ₹312.9
-• **Targets:** T1: ₹352.2 | T2: ₹371.8 | T3: ₹391.5
-
-🟢 **SCANSTL** (Score: 3 | RSI: 77.5)
-• **Entry:** ₹62.72 | **Eq SL:** ₹56.7
-• **Targets:** T1: ₹68.8 | T2: ₹74.8 | T3: ₹80.8
-
-🟢 **BESTAGRO** (Score: 3 | RSI: 76.9)
-• **Entry:** ₹19.12 | **Eq SL:** ₹17.7
-• **Targets:** T1: ₹20.6 | T2: ₹22.0 | T3: ₹23.4
-
-🟢 **MOLDTECH** (Score: 3 | RSI: 76.8)
-• **Entry:** ₹152.76 | **Eq SL:** ₹141.5
-• **Targets:** T1: ₹164.0 | T2: ₹175.2 | T3: ₹186.4
-
-🟢 **EASTSILK** (Score: 3 | RSI: 76.6)
-• **Entry:** ₹56.81 | **Eq SL:** ₹52.8
-• **Targets:** T1: ₹60.8 | T2: ₹64.7 | T3: ₹68.7
-
-🟢 **FSL** (Score: 3 | RSI: 76.6)
-• **Entry:** ₹302.12 | **Eq SL:** ₹284.6
-• **Targets:** T1: ₹319.7 | T2: ₹337.3 | T3: ₹354.8
-
-🟢 **SICALLOG** (Score: 3 | RSI: 76.5)
-• **Entry:** ₹112.53 | **Eq SL:** ₹104.2
-• **Targets:** T1: ₹120.8 | T2: ₹129.1 | T3: ₹137.5
-
-🟢 **UEL** (Score: 3 | RSI: 76.4)
-• **Entry:** ₹153.73 | **Eq SL:** ₹142.1
-• **Targets:** T1: ₹165.3 | T2: ₹176.9 | T3: ₹188.5
-
-🟢 **IL&FSENGG** (Score: 3 | RSI: 75.0)
-• **Entry:** ₹35.53 | **Eq SL:** ₹33.2
-• **Targets:** T1: ₹37.8 | T2: ₹40.1 | T3: ₹42.4
-
-🟢 **NAZARA** (Score: 3 | RSI: 74.8)
-• **Entry:** ₹339.0 | **Eq SL:** ₹323.6
-• **Targets:** T1: ₹354.4 | T2: ₹369.8 | T3: ₹385.2
-
-🟢 **BBTCL** (Score: 3 | RSI: 74.6)
-• **Entry:** ₹241.22 | **Eq SL:** ₹225.6
-• **Targets:** T1: ₹256.8 | T2: ₹272.5 | T3: ₹288.1
-
-🟢 **GATECHDVR** (Score: 3 | RSI: 73.7)
-• **Entry:** ₹0.53 | **Eq SL:** ₹0.5
+🟢 **GATECHDVR** (Score: 2 | RSI: 71.4)
+• **Entry:** ₹0.54 | **Eq SL:** ₹0.5
 • **Targets:** T1: ₹0.6 | T2: ₹0.6 | T3: ₹0.7
 
-🟢 **ALPHAGEO** (Score: 3 | RSI: 73.5)
-• **Entry:** ₹220.13 | **Eq SL:** ₹205.9
-• **Targets:** T1: ₹234.4 | T2: ₹248.6 | T3: ₹262.9
+🟢 **IGPL** (Score: 2 | RSI: 71.2)
+• **Entry:** ₹490.9 | **Eq SL:** ₹466.1
+• **Targets:** T1: ₹515.7 | T2: ₹540.4 | T3: ₹565.2
 
-🟢 **XTGLOBAL** (Score: 3 | RSI: 72.8)
-• **Entry:** ₹32.03 | **Eq SL:** ₹29.7
-• **Targets:** T1: ₹34.3 | T2: ₹36.6 | T3: ₹38.9
+🟢 **ORIENTPPR** (Score: 2 | RSI: 70.7)
+• **Entry:** ₹18.64 | **Eq SL:** ₹17.7
+• **Targets:** T1: ₹19.6 | T2: ₹20.6 | T3: ₹21.6
 
-🟢 **GPTHEALTH** (Score: 3 | RSI: 72.3)
-• **Entry:** ₹170.49 | **Eq SL:** ₹161.9
-• **Targets:** T1: ₹179.1 | T2: ₹187.6 | T3: ₹196.2
+🟢 **TI** (Score: 2 | RSI: 70.5)
+• **Entry:** ₹480.1 | **Eq SL:** ₹460.2
+• **Targets:** T1: ₹500.0 | T2: ₹519.8 | T3: ₹539.7
 
-🟢 **GAEL** (Score: 3 | RSI: 72.0)
-• **Entry:** ₹172.11 | **Eq SL:** ₹162.4
-• **Targets:** T1: ₹181.8 | T2: ₹191.4 | T3: ₹201.1
+🟢 **TIMETECHNO** (Score: 2 | RSI: 69.6)
+• **Entry:** ₹212.77 | **Eq SL:** ₹201.6
+• **Targets:** T1: ₹223.9 | T2: ₹235.0 | T3: ₹246.2
+
+🟢 **TIL** (Score: 2 | RSI: 69.4)
+• **Entry:** ₹256.4 | **Eq SL:** ₹232.6
+• **Targets:** T1: ₹280.2 | T2: ₹304.0 | T3: ₹327.8
+
+🟢 **KOTHARIPET** (Score: 2 | RSI: 67.4)
+• **Entry:** ₹145.78 | **Eq SL:** ₹136.8
+• **Targets:** T1: ₹154.7 | T2: ₹163.7 | T3: ₹172.6
+
+---
+
+## 📈 Swing Setups
+
+🟢 **JINDWORLD** (Score: 2 | RSI: 70.4)
+• **Entry:** ₹38.08 | **Eq SL:** ₹34.7
+• **Targets:** T1: ₹41.4 | T2: ₹44.8 | T3: ₹48.2
+
+🟢 **XTGLOBAL** (Score: 2 | RSI: 70.3)
+• **Entry:** ₹34.14 | **Eq SL:** ₹31.7
+• **Targets:** T1: ₹36.6 | T2: ₹39.1 | T3: ₹41.5
+
+🟢 **BBTCL** (Score: 2 | RSI: 70.0)
+• **Entry:** ₹231.66 | **Eq SL:** ₹217.3
+• **Targets:** T1: ₹246.0 | T2: ₹260.3 | T3: ₹274.6
+
+🟢 **SANDUMA** (Score: 2 | RSI: 69.7)
+• **Entry:** ₹213.5 | **Eq SL:** ₹204.1
+• **Targets:** T1: ₹222.9 | T2: ₹232.3 | T3: ₹241.8
+
+🟢 **BPCL** (Score: 2 | RSI: 69.6)
+• **Entry:** ₹323.05 | **Eq SL:** ₹311.9
+• **Targets:** T1: ₹334.2 | T2: ₹345.3 | T3: ₹356.5
 
 ---
 
