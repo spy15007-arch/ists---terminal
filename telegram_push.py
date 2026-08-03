@@ -1,38 +1,48 @@
 import os
 import requests
+import time
 
-# Fetch secrets securely from GitHub Actions
-BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
-CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
+def send_telegram_message(token, chat_id, text):
+    url = f"https://api.telegram.org/bot{token}/sendMessage"
+    payload = {
+        "chat_id": chat_id,
+        "text": text,
+        "parse_mode": "Markdown",
+        "disable_web_page_preview": True
+    }
+    try:
+        response = requests.post(url, json=payload)
+        response.raise_for_status()
+        print("✅ Message sent successfully.")
+    except Exception as e:
+        print(f"❌ Failed to send message: {e}")
 
-def send_telegram_message(text):
-    if not BOT_TOKEN or not CHAT_ID:
-        print("Telegram credentials missing. Skipping push.")
+def main():
+    token = os.environ.get("TELEGRAM_BOT_TOKEN")
+    chat_id = os.environ.get("TELEGRAM_CHAT_ID")
+    
+    if not token or not chat_id:
+        print("❌ Telegram credentials not found in environment variables.")
         return
 
-    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
-    
-    # Telegram has a 4096 character limit per message; chunk if necessary
-    chunks = [text[i:i+4000] for i in range(0, len(text), 4000)]
-    for chunk in chunks:
-        payload = {
-            "chat_id": CHAT_ID,
-            "text": chunk,
-            "parse_mode": "Markdown",
-            "disable_web_page_preview": True
-        }
-        response = requests.post(url, json=payload)
-        if response.status_code == 200:
-            print("Successfully sent to Telegram!")
+    files_to_send = [
+        "intraday_report.md",
+        "btst_report.md",
+        "swing_report.md"
+    ]
+
+    for filename in files_to_send:
+        if os.path.exists(filename):
+            with open(filename, "r", encoding="utf-8") as f:
+                content = f.read()
+            if content.strip():
+                # Telegram has a 4096 char limit, chunks ensure long tables send cleanly
+                chunks = [content[i:i+4000] for i in range(0, len(content), 4000)]
+                for chunk in chunks:
+                    send_telegram_message(token, chat_id, chunk)
+                    time.sleep(1) 
         else:
-            print(f"Failed to send: {response.text}")
+            print(f"⚠️ {filename} not found.")
 
 if __name__ == "__main__":
-    reports = ["breakoutsummary.md", "aggressivesummary.md", "budgetsummary.md"]
-    
-    for report in reports:
-        if os.path.exists(report):
-            with open(report, "r", encoding="utf-8") as file:
-                content = file.read().strip()
-                if len(content) > 10:
-                    send_telegram_message(content)
+    main()
