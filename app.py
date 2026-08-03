@@ -137,11 +137,14 @@ def run_quant_scan():
             df_h, df_l, df_c = highs[ticker].dropna(), lows[ticker].dropna(), closes[ticker].dropna()
             opt, prem, pt1, pt2, pt3 = generate_quant_option(close_p, t1, t2, t3, df_h, df_l, df_c)
             
+            # Clean TV symbol format
+            tv_clean_sym = symbol.replace("&", "_").replace("-", "_")
+            
             record = {
                 'Stock': symbol, 'Horizon': hor, 'Entry': round(close_p, 2), 'RSI': round(rsi_val,1), 'Vol vs 50d': vol_vs,
                 'EqSL': round(close_p-1.5*atr,1), 'EqT1': t1, 'EqT2': t2, 'EqT3': t3, 'EqT4': t4, 'EqT5': t5,
                 'Opt': opt, 'Prem': prem, 'PT1': pt1, 'PT2': pt2, 'PT3': pt3, 'Score': base_score,
-                'TV_Link': f"https://in.tradingview.com/chart/?symbol=NSE:{symbol}"
+                'TV_Link': f"https://in.tradingview.com/chart/?symbol=NSE:{tv_clean_sym}"
             }
 
             if passes_ema and base_score >= 2:
@@ -224,17 +227,19 @@ elif page == "Scan Market":
         st.subheader("🔍 Live TradingView Analysis")
         selected_stock = st.selectbox("Select stock to load live chart:", df_results['Stock'].tolist())
         
+        # Sanitize symbol for TradingView format
+        tv_symbol = selected_stock.replace("&", "_").replace("-", "_")
+        
         tv_widget = f"""
         <!-- TradingView Widget BEGIN -->
-        <div class="tradingview-widget-container">
-          <div id="tradingview_widget"></div>
+        <div class="tradingview-widget-container" style="height:600px;width:100%;">
+          <div id="tradingview_widget_{tv_symbol}" style="height:600px;width:100%;"></div>
           <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
           <script type="text/javascript">
           new TradingView.widget(
           {{
-          "width": "100%",
-          "height": 600,
-          "symbol": "NSE:{selected_stock}",
+          "autosize": true,
+          "symbol": "NSE:{tv_symbol}",
           "interval": "D",
           "timezone": "Asia/Kolkata",
           "theme": "dark",
@@ -242,14 +247,14 @@ elif page == "Scan Market":
           "locale": "in",
           "enable_publishing": false,
           "allow_symbol_change": true,
-          "container_id": "tradingview_widget"
+          "container_id": "tradingview_widget_{tv_symbol}"
         }}
           );
           </script>
         </div>
         <!-- TradingView Widget END -->
         """
-        components.html(tv_widget, height=600)
+        components.html(tv_widget, height=610, key=f"tv_chart_{tv_symbol}")
 
         # 4. POSITION CALCULATOR
         st.markdown("---")
