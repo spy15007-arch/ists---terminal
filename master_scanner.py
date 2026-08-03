@@ -18,9 +18,16 @@ def calculate_lorentzian_distance(current_rsi, current_vol_vs, ideal_rsi=70.0, i
     return round(dist_rsi + dist_vol, 2)
 
 def black_scholes(S, K, T, r, sigma):
-    if T <= 0 or sigma == 0: return max(0, S - K), 1.0 if S > K else 0.0
+    # Updated to return both Call and Put premiums simultaneously
+    if T <= 0 or sigma == 0: 
+        return max(0, S - K), max(0, K - S), 1.0 if S > K else 0.0
     d1 = (math.log(S / K) + (r + 0.5 * sigma ** 2) * T) / (sigma * math.sqrt(T))
-    return round(S * norm.cdf(d1) - K * math.exp(-r * T) * norm.cdf(d1 - sigma * math.sqrt(T)), 2), round(norm.cdf(d1), 2)
+    d2 = d1 - sigma * math.sqrt(T)
+    
+    call_prem = S * norm.cdf(d1) - K * math.exp(-r * T) * norm.cdf(d2)
+    put_prem = K * math.exp(-r * T) * norm.cdf(-d2) - S * norm.cdf(-d1)
+    
+    return round(call_prem, 2), round(put_prem, 2), round(norm.cdf(d1), 2)
 
 def generate_quant_option(price, df_h, df_l, df_c, dte=15):
     step = 100 if price > 5000 else (50 if price > 2000 else (20 if price > 1000 else (10 if price > 500 else 5)))
@@ -30,8 +37,8 @@ def generate_quant_option(price, df_h, df_l, df_c, dte=15):
         if math.isnan(vol) or vol == 0: vol = np.log(df_c/df_c.shift(1)).tail(10).std() * math.sqrt(252)
         if math.isnan(vol) or vol == 0: vol = 0.2
     except: vol = 0.2
-    prem, delta = black_scholes(price, atm, dte/365.0, 0.07, vol)
-    return f"{atm} CE", prem, delta, round(price*0.985, 1), round(price*1.02, 1), round(price*1.04, 1), round(price*1.06, 1)
+    call_prem, put_prem, delta = black_scholes(price, atm, dte/365.0, 0.07, vol)
+    return f"{atm} CE", call_prem, delta, round(price*0.985, 1), round(price*1.02, 1), round(price*1.04, 1), round(price*1.06, 1)
 
 def get_fno_symbols():
     try:
@@ -45,13 +52,11 @@ def get_fno_symbols():
 
 def get_all_nse_tickers():
     try:
-        url = "https://archives.nseindia.com/content/equities/EQUITY_L.csv"
+        url = "https://archives.nseindia.com/content/indices/ind_nifty500list.csv"
         response = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=10)
         df = pd.read_csv(io.StringIO(response.text))
-        if ' SERIES' in df.columns: df = df[df[' SERIES'].str.strip() == 'EQ']
-        elif 'SERIES' in df.columns: df = df[df['SERIES'].str.strip() == 'EQ']
-        return [f"{str(s).strip()}.NS" for s in df['SYMBOL'].tolist()]
-    except: return ['RELIANCE.NS', 'SBIN.NS']
+        return [f"{str(s).strip()}.NS" for s in df['Symbol'].tolist()]
+    except: return ['RELIANCE.NS', 'SBIN.NS', 'HDFCBANK.NS', 'ICICIBANK.NS', 'INFY.NS']
 
 def get_index_options_ideas():
     ideas = []
@@ -64,10 +69,18 @@ def get_index_options_ideas():
             ema_20 = float(df['Close'].ewm(span=20).mean().iloc[-1])
             atm_strike = int(round(close_p / step) * step)
             
+            hl_log_sq = (np.log(df['High'] / df['Low']) ** 2).tail(10)
+            vol = math.sqrt((1.0 / (4.0 * math.log(2.0))) * hl_log_sq.mean()) * math.sqrt(252)
+            if math.isnan(vol) or vol == 0:
+                df['Log_Ret'] = np.log(df['Close'] / df['Close'].shift(1))
+                vol = df['Log_Ret'].tail(10).std() * math.sqrt(252)
+
+            call_prem, put_prem, _ = black_scholes(close_p, atm_strike, 15/365.0, 0.07, vol)
+            
             if close_p >= ema_20:
-                ideas.append({'Index': name, 'Spot': round(close_p, 2), 'Bias': "🟢 BULL", 'Opt': f"{atm_strike} CE", 'SL': round(close_p*0.995, 1), 'T1': round(close_p*1.005, 1), 'T2': round(close_p*1.010, 1)})
+                ideas.append({'Index': name, 'Spot': round(close_p, 2), 'Bias': "🟢 BULL", 'Opt': f"{atm_strike} CE", 'Prem': call_prem, 'SL': round(close_p*0.995, 1), 'T1': round(close_p*1.005, 1), 'T2': round(close_p*1.010, 1)})
             else:
-                ideas.append({'Index': name, 'Spot': round(close_p, 2), 'Bias': "🔴 BEAR", 'Opt': f"{atm_strike} PE", 'SL': round(close_p*1.005, 1), 'T1': round(close_p*0.995, 1), 'T2': round(close_p*0.990, 1)})
+                ideas.append({'Index': name, 'Spot': round(close_p, 2), 'Bias': "🔴 BEAR", 'Opt': f"{atm_strike} PE", 'Prem': put_prem, 'SL': round(close_p*1.005, 1), 'T1': round(close_p*0.995, 1), 'T2': round(close_p*0.990, 1)})
         except: continue
     return pd.DataFrame(ideas)
 
@@ -76,10 +89,10 @@ def generate_tabular_markdown(df_results, df_index, title, filename, include_ind
     
     if include_index and not df_index.empty:
         md += "## 🏛️ Index Options\n"
-        md += "| Index | Bias | Spot | Option | SL | Target 1 | Target 2 |\n"
-        md += "|---|---|---|---|---|---|---|\n"
+        md += "| Index | Bias | Spot | Option | Prem | SL | Target 1 | Target 2 |\n"
+        md += "|---|---|---|---|---|---|---|---|\n"
         for _, r in df_index.iterrows():
-            md += f"| **{r['Index']}** | {r['Bias']} | ₹{r['Spot']} | **{r['Opt']}** | ₹{r['SL']} | ₹{r['T1']} | ₹{r['T2']} |\n"
+            md += f"| **{r['Index']}** | {r['Bias']} | ₹{r['Spot']} | **{r['Opt']}** | ₹{r['Prem']} | ₹{r['SL']} | ₹{r['T1']} | ₹{r['T2']} |\n"
         md += "\n---\n\n"
 
     md += "## 📊 Quant Stock Setups\n"
@@ -180,7 +193,6 @@ def run():
             
             record = {'Stock': symbol, 'Horizon': hor, 'Entry': round(close_p, 2), 'RSI': round(rsi_val,1), 'EqSL': round(close_p-1.5*atr,1), 'EqT1': round(close_p+1.5*atr,1), 'EqT2': round(close_p+3.0*atr,1), 'Opt': opt, 'Prem': prem, 'Score': base_score}
 
-            # Only append high-probability setups
             if passes_ema and base_score >= 2:
                 valid_setups.append(record)
         except: continue
@@ -191,7 +203,6 @@ def run():
     df_btst = df_all[df_all['Horizon'] == 'BTST'].head(20) if not df_all.empty else pd.DataFrame()
     df_swing = df_all[df_all['Horizon'] == 'Swing'].head(20) if not df_all.empty else pd.DataFrame()
 
-    # Generate the exactly requested file structures
     generate_tabular_markdown(df_intra, df_index, f"⚡ Intraday & Index Report — {sess_title}", "intraday_report.md", include_index=True)
     generate_tabular_markdown(df_btst, pd.DataFrame(), f"🌙 BTST Carry-Forward Report — {sess_title}", "btst_report.md", include_index=False)
     generate_tabular_markdown(df_swing, pd.DataFrame(), f"📈 Swing Trade Report — {sess_title}", "swing_report.md", include_index=False)
