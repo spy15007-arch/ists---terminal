@@ -18,15 +18,11 @@ def calculate_lorentzian_distance(current_rsi, current_vol_vs, ideal_rsi=70.0, i
     return round(dist_rsi + dist_vol, 2)
 
 def black_scholes(S, K, T, r, sigma):
-    # Updated to return both Call and Put premiums simultaneously
-    if T <= 0 or sigma == 0: 
-        return max(0, S - K), max(0, K - S), 1.0 if S > K else 0.0
+    if T <= 0 or sigma == 0: return max(0, S - K), max(0, K - S), 1.0 if S > K else 0.0
     d1 = (math.log(S / K) + (r + 0.5 * sigma ** 2) * T) / (sigma * math.sqrt(T))
     d2 = d1 - sigma * math.sqrt(T)
-    
     call_prem = S * norm.cdf(d1) - K * math.exp(-r * T) * norm.cdf(d2)
     put_prem = K * math.exp(-r * T) * norm.cdf(-d2) - S * norm.cdf(-d1)
-    
     return round(call_prem, 2), round(put_prem, 2), round(norm.cdf(d1), 2)
 
 def generate_quant_option(price, df_h, df_l, df_c, dte=15):
@@ -56,7 +52,7 @@ def get_all_nse_tickers():
         response = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=10)
         df = pd.read_csv(io.StringIO(response.text))
         return [f"{str(s).strip()}.NS" for s in df['Symbol'].tolist()]
-    except: return ['RELIANCE.NS', 'SBIN.NS', 'HDFCBANK.NS', 'ICICIBANK.NS', 'INFY.NS']
+    except: return ['RELIANCE.NS', 'SBIN.NS']
 
 def get_index_options_ideas():
     ideas = []
@@ -85,8 +81,8 @@ def get_index_options_ideas():
     return pd.DataFrame(ideas)
 
 def generate_tabular_markdown(df_results, df_index, title, filename, include_index=False):
+    # This creates the table layout specifically for GitHub viewing
     md = f"# {title}\n\n"
-    
     if include_index and not df_index.empty:
         md += "## 🏛️ Index Options\n"
         md += "| Index | Bias | Spot | Option | Prem | SL | Target 1 | Target 2 |\n"
@@ -108,6 +104,32 @@ def generate_tabular_markdown(df_results, df_index, title, filename, include_ind
 
     with open(filename, "w", encoding="utf-8") as f: f.write(md)
 
+def generate_telegram_cards(df_results, df_index, title, filename, include_index=False):
+    # This creates the mobile-friendly vertical cards specifically for Telegram
+    txt = f"*{title}*\n\n"
+    if include_index and not df_index.empty:
+        txt += "🏛️ *Index Options*\n"
+        for _, r in df_index.iterrows():
+            txt += f"📌 *{r['Index']}* ({r['Bias']})\n"
+            txt += f"• Spot: ₹{r['Spot']} | Opt: *{r['Opt']}* (Prem: ₹{r['Prem']})\n"
+            txt += f"• T1: ₹{r['T1']} | T2: ₹{r['T2']} | SL: ₹{r['SL']}\n\n"
+        txt += "➖➖➖➖➖➖➖➖➖➖\n\n"
+
+    txt += "📊 *Quant Stock Setups*\n\n"
+    if not df_results.empty:
+        for _, r in df_results.iterrows():
+            prem_str = f"₹{r['Prem']}" if r['Prem'] != '-' else '-'
+            txt += f"🟢 *{r['Stock']}* (RSI: {r['RSI']})\n"
+            txt += f"• Entry: ₹{r['Entry']} | SL: ₹{r['EqSL']}\n"
+            txt += f"• Targets: T1: ₹{r['EqT1']} | T2: ₹{r['EqT2']}\n"
+            if str(r['Opt']) != 'N/A (Cash)':
+                txt += f"• Option: {r['Opt']} (Prem: {prem_str})\n"
+            txt += "\n"
+    else:
+        txt += "No highly profitable setups met criteria.\n"
+
+    with open(filename, "w", encoding="utf-8") as f: f.write(txt)
+
 def run():
     sess_title, sess_type = get_session_info()
     df_index = get_index_options_ideas()
@@ -118,7 +140,6 @@ def run():
     if data.empty: return
     
     closes, highs, lows, volumes = data['Close'], data['High'], data['Low'], data['Volume']
-    
     ema_50_all = closes.ewm(span=50).mean()
     vol_50d_avg_all = volumes.rolling(50).mean()
     
@@ -203,8 +224,14 @@ def run():
     df_btst = df_all[df_all['Horizon'] == 'BTST'].head(20) if not df_all.empty else pd.DataFrame()
     df_swing = df_all[df_all['Horizon'] == 'Swing'].head(20) if not df_all.empty else pd.DataFrame()
 
+    # 1. Output Markdown tables for GitHub Display
     generate_tabular_markdown(df_intra, df_index, f"⚡ Intraday & Index Report — {sess_title}", "intraday_report.md", include_index=True)
     generate_tabular_markdown(df_btst, pd.DataFrame(), f"🌙 BTST Carry-Forward Report — {sess_title}", "btst_report.md", include_index=False)
     generate_tabular_markdown(df_swing, pd.DataFrame(), f"📈 Swing Trade Report — {sess_title}", "swing_report.md", include_index=False)
+
+    # 2. Output Vertical Cards for Telegram Display
+    generate_telegram_cards(df_intra, df_index, f"⚡ Intraday & Index Report — {sess_title}", "intraday_tg.txt", include_index=True)
+    generate_telegram_cards(df_btst, pd.DataFrame(), f"🌙 BTST Carry-Forward Report — {sess_title}", "btst_tg.txt", include_index=False)
+    generate_telegram_cards(df_swing, pd.DataFrame(), f"📈 Swing Trade Report — {sess_title}", "swing_tg.txt", include_index=False)
 
 if __name__ == "__main__": run()
