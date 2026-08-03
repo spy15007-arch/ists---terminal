@@ -4,8 +4,9 @@ import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
 import requests
-import threading
-import io
+import datetime
+import math
+from scipy.stats import norm
 
 # --- PAGE CONFIGURATION ---
 st.set_page_config(
@@ -14,305 +15,210 @@ st.set_page_config(
     layout="wide"
 )
 
+# --- FIREWALL-PROOF F&O UNIVERSE ---
+STATIC_FNO = ["AARTIIND", "ABB", "ABBOTINDIA", "ABCAPITAL", "ABFRL", "ACC", "ADANIENT", "ADANIPORTS", "ALKEM", "AMBUJACEM", "APOLLOHOSP", "APOLLOTYRE", "ASHOKLEY", "ASIANPAINT", "ASTRAL", "ATUL", "AUBANK", "AUROPHARMA", "AXISBANK", "BAJAJ-AUTO", "BAJAJFINSV", "BAJFINANCE", "BALKRISIND", "BALRAMCHIN", "BANDHANBNK", "BANKBARODA", "BATAINDIA", "BEL", "BERGEPAINT", "BHARATFORG", "BHARTIARTL", "BHEL", "BIOCON", "BOSCHLTD", "BPCL", "BRITANNIA", "CANBK", "CANFINHOME", "CHAMBLFERT", "CHOLAFIN", "CIPLA", "COALINDIA", "COFORGE", "COLPAL", "CONCOR", "COROMANDEL", "CROMPTON", "CUB", "CUMMINSIND", "DABUR", "DALBHARAT", "DEEPAKNTR", "DIVISLAB", "DIXON", "DLF", "DRREDDY", "EICHERMOT", "ESCORTS", "EXIDEIND", "FEDERALBNK", "GAIL", "GLENMARK", "GMRINFRA", "GNFC", "GODREJCP", "GODREJPROP", "GRANULES", "GRASIM", "GUJGASLTD", "HAL", "HAVELLS", "HCLTECH", "HDFCAMC", "HDFCBANK", "HDFCLIFE", "HEROMOTOCO", "HINDALCO", "HINDCOPPER", "HINDPETRO", "HINDUNILVR", "ICICIBANK", "ICICIGI", "ICICIPRULI", "IDEA", "IDFCFIRSTB", "IEX", "IGL", "INDHOTEL", "INDIACEM", "INDIAMART", "INDIGO", "INDUSINDBK", "INFY", "IOC", "IPCALAB", "IRCTC", "ITC", "JINDALSTEL", "JSWSTEEL", "JUBLFOOD", "KOTAKBANK", "LALPATHLAB", "LAURUSLABS", "LICHSGFIN", "LT", "LTIM", "LTTS", "LUPIN", "M&M", "M&MFIN", "MANAPPURAM", "MARICO", "MARUTI", "MCDOWELL-N", "MCX", "METROPOLIS", "MFSL", "MGL", "MOTHERSON", "MPHASIS", "MRF", "MUTHOOTFIN", "NATIONALUM", "NAUKRI", "NAVINFLUOR", "NESTLEIND", "NMDC", "NTPC", "OBEROIRLTY", "OFSS", "ONGC", "PAGEIND", "PEL", "PETRONET", "PFC", "PIDILITIND", "PIIND", "PNB", "POLYCAB", "POWERGRID", "PVRINOX", "RAMCOCEM", "RBLBANK", "RECLTD", "RELIANCE", "SAIL", "SBICARD", "SBILIFE", "SBIN", "SHREECEM", "SHRIRAMFIN", "SIEMENS", "SRF", "SUNPHARMA", "SUNTV", "SYNGENE", "TATACHEM", "TATACOMM", "TATACONSUM", "TATAMOTORS", "TATAPOWER", "TATASTEEL", "TCS", "TECHM", "TITAN", "TORNTPHARM", "TRENT", "TVSMOTOR", "UBL", "ULTRACEMCO", "UPL", "VEDL", "VOLTAS", "WIPRO", "ZEEL", "ZYDUSLIFE"]
+
 # --- SIDEBAR SETUP ---
 st.sidebar.title("ISTS Pro Terminal")
-st.sidebar.caption("Institutional Swing & BTST Trading System")
+st.sidebar.caption("Institutional Quant Trading System")
 
 page = st.sidebar.radio(
     "Navigation", 
-    ["Dashboard", "Scan Market", "Budget Scanner (< ₹500)", "Watchlist", "Portfolio", "Settings"]
+    ["Dashboard", "Scan Market", "Budget Scanner (< ₹500)"]
 )
 
-st.sidebar.markdown("---")
-st.sidebar.subheader("📲 Telegram Alert Setup")
-bot_token = st.sidebar.text_input("Bot Token", type="password")
-chat_id = st.sidebar.text_input("Chat ID", value="1338671581")
-enable_alerts = st.sidebar.checkbox("Enable Automated Alerts (>=75%)", value=True)
+# --- TIME & MATH HELPERS ---
+def get_session_info():
+    hour = (datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=5, minutes=30)).hour
+    return "Intraday" if hour < 12 else "BTST"
 
-# --- TELEGRAM ALERT ENGINE ---
-def send_telegram_alert_async(symbol, price, score, composite, opt_contract, token, c_id, is_budget=False):
-    if not token or not c_id: return
-    header = "💡 *ISTS PRO BUDGET ALERT (< ₹500)* 💡" if is_budget else "🚨 *ISTS PRO BREAKOUT ALERT* 🚨"
-    message = (
-        f"{header}\n\n"
-        f"📌 *Stock:* `{symbol}`\n"
-        f"💰 *Price:* ₹{price}\n"
-        f"⭐ *Readiness Score:* *{score}/10*\n"
-        f"📊 *Composite Score:* *{composite}/100*\n"
-        f"🎯 *Option Strategy:* `{opt_contract}`\n\n"
-        f"🎯 Review chart on ISTS Pro Terminal."
-    )
-    url = f"https://api.telegram.org/bot{token.strip()}/sendMessage"
-    payload = {"chat_id": c_id.strip(), "text": message, "parse_mode": "Markdown"}
-    threading.Thread(target=requests.post, args=(url,), kwargs={'json': payload, 'timeout': 5}, daemon=True).start()
+def black_scholes(S, K, T, r, sigma):
+    if T <= 0 or sigma == 0: return max(0, S - K), max(0, K - S), 1.0 if S > K else 0.0
+    d1 = (math.log(S / K) + (r + 0.5 * sigma ** 2) * T) / (sigma * math.sqrt(T))
+    d2 = d1 - sigma * math.sqrt(T)
+    call_prem = S * norm.cdf(d1) - K * math.exp(-r * T) * norm.cdf(d2)
+    return round(call_prem, 2)
 
-# --- HELPER 1: DYNAMIC NIFTY 500 FETCH ENGINE ---
-@st.cache_data(ttl=14400) # Caches list for 4 hours
-def get_nifty500_tickers():
-    url = "https://archives.nseindia.com/content/indices/ind_nifty500list.csv"
-    headers = {'User-Agent': 'Mozilla/5.0'}
+def generate_quant_option(price, t1, t2, t3, df_h, df_l, df_c):
+    dte = 15 
+    step = 100 if price > 5000 else (50 if price > 2000 else (20 if price > 1000 else (10 if price > 500 else 5)))
+    atm = int(round(price / step) * step)
     try:
-        response = requests.get(url, headers=headers, timeout=10)
-        df = pd.read_csv(io.StringIO(response.text))
-        return [f"{symbol}.NS" for symbol in df['Symbol'].tolist()]
-    except Exception:
-        fallback = [
-            'TVSMOTOR', 'COFORGE', 'HAL', 'BEL', 'DIXON', 'TRENT', 'MCX', 'PERSISTENT',
-            'BHARTIARTL', 'RELIANCE', 'SBIN', 'ICICIBANK', 'HDFCBANK', 'TATAMOTORS',
-            'INFY', 'TCS', 'LT', 'MARUTI', 'AXISBANK', 'M&M', 'SUNPHARMA', 'TITAN',
-            'KALYANKJIL', 'SAREGAMA', 'JYOTICNC', 'FEDERALBNK', 'IEX', 'BHARTIHEXA',
-            'LALPATHLAB', 'DIVISLAB', 'PARADEEP', 'PCBL', 'FSL', 'SONATSOFTW', 'RADICO'
-        ]
-        return [f"{s}.NS" for s in fallback]
-
-# --- HELPER 2: OPTIONS CONTRACT RECOMMENDATION ENGINE ---
-def generate_option_idea(symbol, price):
-    """Calculates ATM Call option strike and target for top breakout candidates."""
-    if price > 5000:
-        step = 100
-    elif price > 2000:
-        step = 50
-    elif price > 1000:
-        step = 20
-    elif price > 500:
-        step = 10
-    else:
-        step = 5
-
-    atm_strike = int(round(price / step) * step)
-    option_contract = f"BUY {symbol} {atm_strike} CE"
-    target_spot = f"₹{round(price * 1.03, 1)}"
-    sl_spot = f"₹{round(price * 0.985, 1)}"
-    return option_contract, target_spot, sl_spot
-
-# --- HELPER 3: MARKDOWN SUMMARY GENERATOR ---
-def generate_breakout_markdown(df_results):
-    md_content = "# 📊 ISTS Pro — Pre-Breakout & BTST Readiness Report\n\n"
-    md_content += "> **Universe:** Dynamic Top 500 NSE Stocks | **Filter:** Stage-2 Uptrend + RS Edge\n\n"
+        vol = math.sqrt((1.0 / (4.0 * math.log(2.0))) * ((np.log(df_h/df_l)**2).tail(10).mean())) * math.sqrt(252)
+        if math.isnan(vol) or vol == 0: vol = np.log(df_c/df_c.shift(1)).tail(10).std() * math.sqrt(252)
+        if math.isnan(vol) or vol == 0: vol = 0.2
+    except: vol = 0.2
     
-    # 1. TOP 10 HIGH CONVICTION SETUPS (EQUITY + OPTIONS)
-    top_10 = df_results.head(10)
-    md_content += "## ⚡ Top 10 High-Conviction Setups (Equity & Call Options)\n\n"
-    md_content += "| Rank | Stock | Price (₹) | Score | Equity SL (₹) | Equity Target (₹) | Call Option Strategy | Action |\n"
-    md_content += "| :---: | :--- | :---: | :---: | :---: | :---: | :--- | :---: |\n"
+    c_prem = black_scholes(price, atm, dte/365.0, 0.07, vol)
+    pt1 = black_scholes(t1, atm, dte/365.0, 0.07, vol)
+    pt2 = black_scholes(t2, atm, dte/365.0, 0.07, vol)
+    pt3 = black_scholes(t3, atm, dte/365.0, 0.07, vol)
     
-    for _, r in top_10.iterrows():
-        sl = round(r['Price'] - (1.5 * r['ATR']), 1)
-        target = round(r['Price'] + (3.0 * r['ATR']), 1)
-        badge = f"🔥 {r['Score /10']}/10" if r['Score /10'] >= 7 else f"{r['Score /10']}/10"
-        action = "BUY NOW (BTST)" if r['Score /10'] >= 5 else "BUY (Breakout)"
-        
-        md_content += (
-            f"| {r['Rank']} | **{r['Stock']}** | ₹{r['Price']} | {badge} | "
-            f"₹{sl} | ₹{target} | **{r['Option Contract']}** | **{action}** |\n"
-        )
+    return f"{atm} CE [Monthly]", c_prem, round(pt1, 1), round(pt2, 1), round(pt3, 1)
 
-    # 2. FULL TOP 20 LEADERBOARD
-    md_content += "\n---\n\n## 🏆 Full Top 20 Momentum Leaderboard\n\n"
-    md_content += "| Rank | Stock | Price (₹) | Score | Composite /100 | Close Pos % | Vol vs 50d | Base Range % | RS Edge % | Resistance Clearance % |\n"
-    md_content += "| :---: | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |\n"
-    
-    for _, r in df_results.iterrows():
-        badge = f"🔥 {r['Score /10']}/10" if r['Score /10'] >= 7 else f"{r['Score /10']}/10"
-        md_content += (
-            f"| {r['Rank']} | **{r['Stock']}** | ₹{r['Price']} | {badge} | "
-            f"{r['Composite /100']} | {r['Close Position %']}% | {r['Vol vs 50d Avg']}x | "
-            f"{r['Base Range %']}% | {r['RS Edge %']}% | {r['Resistance Clearance %']}% |\n"
-        )
-
-    return md_content
-
-# --- BENCHMARK & SCAN ENGINE ---
 @st.cache_data(ttl=1800)
-def get_nifty_benchmark_return():
-    try:
-        nifty = yf.download('^NSEI', period="6m", interval="1d", progress=False)['Close']
-        if isinstance(nifty, pd.DataFrame): nifty = nifty.iloc[:, 0]
-        return ((nifty.iloc[-1] / nifty.iloc[-63]) - 1) * 100
-    except Exception:
-        return 0.0
+def run_quant_scan():
+    tickers = [f"{s}.NS" for s in STATIC_FNO]
+    data = yf.download(tickers, period="3mo", interval="1d", progress=False, threads=True)
+    if data.empty: return pd.DataFrame()
+    
+    closes, highs, lows, volumes = data['Close'], data['High'], data['Low'], data['Volume']
+    ema_50_all = closes.ewm(span=50).mean()
+    vol_50d_avg_all = volumes.rolling(50).mean()
+    
+    delta = closes.diff()
+    gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
+    loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
+    rsi_all = 100 - (100 / (1 + (gain / loss)))
 
-def run_btst_breakout_scan():
-    tickers = get_nifty500_tickers()
-    results = []
-    nifty_3m_return = get_nifty_benchmark_return()
+    exp1 = closes.ewm(span=12, adjust=False).mean()
+    exp2 = closes.ewm(span=26, adjust=False).mean()
+    macd_all = exp1 - exp2
+    macd_signal_all = macd_all.ewm(span=9, adjust=False).mean()
+    
+    hl = highs - lows
+    hc = (highs - closes.shift(1)).abs()
+    lc = (lows - closes.shift(1)).abs()
+    tr = pd.DataFrame(np.maximum(hl.values, np.maximum(hc.values, lc.values)), index=hl.index, columns=hl.columns)
+    atr_all = tr.ewm(alpha=1/14).mean()
 
-    data = yf.download(tickers, period="1y", interval="1d", group_by='ticker', progress=False)
+    last_close = closes.iloc[-1]
+    last_high = highs.iloc[-1]
+    last_low = lows.iloc[-1]
+    last_vol = volumes.iloc[-1]
+    last_vol_50 = vol_50d_avg_all.iloc[-1]
+    last_rsi = rsi_all.iloc[-1]
+    last_macd = macd_all.iloc[-1]
+    last_macd_signal = macd_signal_all.iloc[-1]
+    last_ema_50 = ema_50_all.iloc[-1]
+    last_atr = atr_all.iloc[-1]
 
-    for ticker in tickers:
-        symbol = ticker.replace(".NS", "")
+    sess_type = get_session_info()
+    valid_setups = []
+
+    for ticker in closes.columns:
         try:
-            df = data[ticker].dropna() if len(tickers) > 1 else data.dropna()
-            if len(df) < 200: continue
+            close_p = float(last_close[ticker])
+            high_p = float(last_high[ticker])
+            low_p = float(last_low[ticker])
+            vol_today = float(last_vol[ticker])
+            
+            if pd.isna(close_p) or close_p <= 0 or vol_today < 1000: continue
+            vol_50_avg = float(last_vol_50[ticker])
+            if pd.isna(vol_50_avg) or vol_50_avg <= 0: continue
+            
+            rsi_val = float(last_rsi[ticker])
+            if pd.isna(rsi_val) or rsi_val > 72.0: continue
+            
+            macd_val = float(last_macd[ticker])
+            macd_sig = float(last_macd_signal[ticker])
+            if macd_val < macd_sig: continue
+            
+            ema_50 = float(last_ema_50[ticker])
+            passes_ema = close_p >= ema_50
+            atr = float(last_atr[ticker])
 
-            close_p = df['Close'].iloc[-1]
-            high_p = df['High'].iloc[-1]
-            low_p = df['Low'].iloc[-1]
-            vol_today = df['Volume'].iloc[-1]
+            pos = round(((close_p - low_p) / (high_p - low_p)) * 100, 1)
+            if pos < 55.0: continue 
 
-            ema_50 = df['Close'].ewm(span=50, adjust=False).mean().iloc[-1]
-            ema_200 = df['Close'].ewm(span=200, adjust=False).mean().iloc[-1]
+            vol_vs = round(vol_today / vol_50_avg, 2)
+            if sess_type == "Intraday": hor = "Intraday" if vol_vs >= 1.3 else "Swing"
+            else: hor = "BTST" if vol_vs >= 1.2 else "Swing"
 
-            # Stage-2 Uptrend Filter
-            if not (close_p > ema_50 and ema_50 > ema_200):
-                continue
+            base_score = (2 if 55 <= rsi_val <= 68 else 0) + (2 if vol_vs>=1.5 else 0)
+            
+            t1 = round(close_p + 1.5 * atr, 1)
+            t2 = round(close_p + 3.0 * atr, 1)
+            t3 = round(close_p + 4.5 * atr, 1)
+            t4 = round(close_p + 6.0 * atr, 1)
+            t5 = round(close_p + 7.5 * atr, 1)
 
-            stock_3m_return = ((close_p / df['Close'].iloc[-63]) - 1) * 100
-            rs_edge_pct = round(stock_3m_return - nifty_3m_return, 1)
+            symbol = ticker.replace(".NS", "")
+            df_h, df_l, df_c = highs[ticker].dropna(), lows[ticker].dropna(), closes[ticker].dropna()
+            opt, prem, pt1, pt2, pt3 = generate_quant_option(close_p, t1, t2, t3, df_h, df_l, df_c)
+            
+            # Save chart data for UI
+            df_chart = pd.DataFrame({'Open': data['Open'][ticker], 'High': highs[ticker], 'Low': lows[ticker], 'Close': closes[ticker]})
+            df_chart['EMA_20'] = df_chart['Close'].ewm(span=20, adjust=False).mean()
+            df_chart['EMA_50'] = ema_50_all[ticker]
+            df_chart['EMA_200'] = df_chart['Close'].ewm(span=200, adjust=False).mean()
 
-            if rs_edge_pct < 0:
-                continue
+            record = {
+                'Stock': symbol, 'Horizon': hor, 'Entry': round(close_p, 2), 'RSI': round(rsi_val,1), 'Vol vs 50d': vol_vs,
+                'EqSL': round(close_p-1.5*atr,1), 'EqT1': t1, 'EqT2': t2, 'EqT3': t3, 'EqT4': t4, 'EqT5': t5,
+                'Opt': opt, 'Prem': prem, 'PT1': pt1, 'PT2': pt2, 'PT3': pt3, 'Score': base_score, 'Data': df_chart.dropna()
+            }
 
-            close_pos = round(((close_p - low_p) / (high_p - low_p)) * 100, 1) if high_p != low_p else 50.0
-            vol_50d_avg = df['Volume'].rolling(50).mean().iloc[-1]
-            vol_vs_50d = round(vol_today / vol_50d_avg, 2) if vol_50d_avg > 0 else 1.0
+            if passes_ema and base_score >= 2:
+                valid_setups.append(record)
+        except: continue
 
-            high_50d = df['High'].rolling(50).max().iloc[-1]
-            low_50d = df['Low'].rolling(50).min().iloc[-1]
-            base_range_pct = round(((high_50d - low_50d) / low_50d) * 100, 1)
-            resistance_clearance = round(((high_50d - close_p) / close_p) * 100, 1) if high_50d > close_p else 0.0
-
-            score = 0
-            if close_pos >= 80: score += 2
-            elif close_pos >= 65: score += 1
-
-            if vol_vs_50d >= 2.0: score += 2
-            elif vol_vs_50d >= 1.3: score += 1
-
-            if base_range_pct <= 15: score += 2
-            elif base_range_pct <= 25: score += 1
-
-            if rs_edge_pct >= 15: score += 2
-            elif rs_edge_pct >= 5: score += 1
-
-            if resistance_clearance == 0: score += 2
-            elif resistance_clearance <= 2.0: score += 1
-
-            composite = round(
-                (close_pos * 0.25) + 
-                (min(vol_vs_50d * 15, 30)) + 
-                (max(0, 25 - base_range_pct * 0.5)) + 
-                (min(max(0, rs_edge_pct), 20)), 
-                1
-            )
-
-            df['EMA_20'] = df['Close'].ewm(span=20, adjust=False).mean()
-            df['EMA_50'] = df['Close'].ewm(span=50, adjust=False).mean()
-            df['EMA_200'] = df['Close'].ewm(span=200, adjust=False).mean()
-
-            high_low = df['High'] - df['Low']
-            high_close = np.abs(df['High'] - df['Close'].shift())
-            low_close = np.abs(df['Low'] - df['Close'].shift())
-            tr = pd.concat([high_low, high_close, low_close], axis=1).max(axis=1)
-            atr = tr.ewm(alpha=1/14, adjust=False).mean().iloc[-1]
-
-            # Always generate option contract for qualified setups
-            opt_contract, opt_target, opt_sl = generate_option_idea(symbol, close_p)
-
-            if enable_alerts and score >= 4:
-                is_budget_stock = close_p <= 500
-                send_telegram_alert_async(
-                    symbol, round(close_p, 2), score, composite, 
-                    opt_contract, bot_token, chat_id, is_budget=is_budget_stock
-                )
-
-            results.append({
-                'Stock': symbol,
-                'Price': round(close_p, 2),
-                'Score /10': score,
-                'Composite /100': composite,
-                'Close Position %': close_pos,
-                'Vol vs 50d Avg': vol_vs_50d,
-                'Base Range %': base_range_pct,
-                'RS Edge %': rs_edge_pct,
-                'Resistance Clearance %': resistance_clearance,
-                'Option Contract': opt_contract,
-                'Spot Target': opt_target,
-                'Spot SL': opt_sl,
-                'ATR': round(atr, 2),
-                'Data': df
-            })
-        except Exception:
-            continue
-
-    df_results = pd.DataFrame(results)
-    if not df_results.empty:
-        df_results = df_results.sort_values(by=['Score /10', 'Composite /100'], ascending=[False, False]).head(20)
-        df_results['Rank'] = range(1, len(df_results) + 1)
-    return df_results
+    if valid_setups:
+        df_all = pd.DataFrame(valid_setups).drop_duplicates(subset=['Stock']).sort_values(by=['Score', 'RSI'], ascending=[False, False])
+        return df_all
+    return pd.DataFrame()
 
 # --- VIEW: DASHBOARD ---
 if page == "Dashboard":
-    st.title("Institutional Swing Trading System (ISTS Pro)")
-    st.markdown("Live Market Top-Down Momentum & Pre-Breakout Terminal")
+    st.title("Institutional Quant Trading System (ISTS Pro)")
+    st.markdown("Live Market Top-Down Momentum & Options Engine")
 
     col1, col2, col3, col4 = st.columns(4)
     col1.metric("Market Status", "OPEN", "NSE Live Feed")
-    col2.metric("Scan Universe", "Top 500 NSE Stocks", "Dynamic")
-    col3.metric("Alert Engine", "ACTIVE", "Telegram Bot")
-    col4.metric("Strategy", "BTST / Swing / Options", "0-10 Composite")
+    col2.metric("Scan Universe", "NSE F&O Liquid", "Firewall-Proof")
+    col3.metric("Math Engine", "Black-Scholes", "Options Data")
+    col4.metric("Strategy", "5-Target Vector", "ATR/Lorentzian")
 
 # --- VIEW: SCAN MARKET ---
 elif page == "Scan Market":
-    st.title("🚀 Institutional Pre-Breakout & Options Scanner")
-    st.markdown("Scans top 500 liquid stocks for accumulation, Stage-2 uptrend, ATR contraction, and Call option strike triggers.")
+    st.title("🚀 Master Quant Scanner")
+    st.markdown("Scans F&O Universe for precise EMA/RSI momentum and runs Black-Scholes premium targets.")
 
-    if st.button("Run Live Pre-Breakout Scan", type="primary"):
-        with st.spinner("Scanning Nifty 500 universe & ranking top momentum setups..."):
-            df_res = run_btst_breakout_scan()
-            st.session_state['btst_results'] = df_res
-            st.success("Scan complete! Extracted top momentum setups.")
+    if st.button("Run Live Quant Scan", type="primary"):
+        with st.spinner("Crunching indicator matrix and pricing options..."):
+            df_res = run_quant_scan()
+            st.session_state['quant_results'] = df_res
+            st.success("Quant Scan complete!")
 
-    if 'btst_results' in st.session_state and not st.session_state['btst_results'].empty:
-        df_results = st.session_state['btst_results']
+    if 'quant_results' in st.session_state and not st.session_state['quant_results'].empty:
+        df_results = st.session_state['quant_results']
         
-        # 1. Combined Top 10 High-Conviction Equity & Options Table
-        st.subheader("⚡ Top 10 High-Conviction Setups (Equity Levels + Call Options)")
-        top_10_combined = df_results.head(10).copy()
-        top_10_combined['Equity SL (₹)'] = (top_10_combined['Price'] - (1.5 * top_10_combined['ATR'])).round(1)
-        top_10_combined['Equity Target (₹)'] = (top_10_combined['Price'] + (3.0 * top_10_combined['ATR'])).round(1)
-        top_10_combined['Suggested Action'] = top_10_combined['Score /10'].apply(
-            lambda s: "🔥 BUY NOW (BTST)" if s >= 5 else "BUY (Breakout)"
-        )
-
-        eq_display = top_10_combined[[
-            'Rank', 'Stock', 'Price', 'Score /10', 'Equity SL (₹)', 'Equity Target (₹)', 'Option Contract', 'Suggested Action'
-        ]]
-        st.dataframe(eq_display, use_container_width=True, hide_index=True)
+        # 1. NEW: HIGH CONVICTION DASHBOARD
+        st.markdown("---")
+        st.subheader("🌟 Top 5 High Conviction Setups")
+        st.markdown("The absolute highest probability setups mathematically ranked by Base Score and RSI momentum.")
+        high_conviction = df_results.head(5).copy()
+        high_conviction['Option Tgt 1/2'] = high_conviction['PT1'].astype(str) + " / " + high_conviction['PT2'].astype(str)
+        high_conviction_display = high_conviction[['Stock', 'Horizon', 'Entry', 'EqSL', 'EqT1', 'EqT2', 'Opt', 'Prem', 'Option Tgt 1/2']]
+        st.dataframe(high_conviction_display, use_container_width=True, hide_index=True)
 
         st.markdown("---")
-
-        # 2. Main Full Top 20 Leaderboard
-        st.subheader("🏆 Full Top 20 Momentum Leaderboard")
-        df_display = df_results[[
-            'Rank', 'Stock', 'Price', 'Score /10', 'Composite /100', 
-            'Close Position %', 'Vol vs 50d Avg', 'Base Range %', 'RS Edge %', 'Resistance Clearance %'
-        ]]
-        st.dataframe(df_display, use_container_width=True, hide_index=True)
-
-        # 3. Export Summary & Download Button
-        markdown_data = generate_breakout_markdown(df_results)
-
-        st.markdown("---")
-        st.subheader("📄 Export Breakout Summary")
         
-        col1, col2 = st.columns([1, 3])
-        with col1:
-            st.download_button(
-                label="📥 Download breakoutsummary.md",
-                data=markdown_data,
-                file_name="breakoutsummary.md",
-                mime="text/markdown",
-                type="primary"
-            )
-            
-        with st.expander("👁️ Preview breakoutsummary.md Content"):
-            st.markdown(markdown_data)
+        # 2. CATEGORIZED TABS
+        st.subheader("📊 Full Market Scan by Horizon")
+        tab1, tab2, tab3 = st.tabs(["⚡ Intraday", "🌙 BTST", "📈 Swing"])
+        
+        cols_to_show = ['Stock', 'RSI', 'Vol vs 50d', 'Entry', 'EqSL', 'EqT1', 'EqT2', 'EqT3', 'Opt', 'Prem', 'PT1', 'PT2']
+        
+        with tab1:
+            df_intra = df_results[df_results['Horizon'] == 'Intraday']
+            if not df_intra.empty: st.dataframe(df_intra[cols_to_show], use_container_width=True, hide_index=True)
+            else: st.info("No Intraday setups found right now.")
+                
+        with tab2:
+            df_btst = df_results[df_results['Horizon'] == 'BTST']
+            if not df_btst.empty: st.dataframe(df_btst[cols_to_show], use_container_width=True, hide_index=True)
+            else: st.info("No BTST setups found right now.")
+                
+        with tab3:
+            df_swing = df_results[df_results['Horizon'] == 'Swing']
+            if not df_swing.empty: st.dataframe(df_swing[cols_to_show], use_container_width=True, hide_index=True)
+            else: st.info("No Swing setups found right now.")
 
-        # 4. Technical Charting
+        # 3. INTERACTIVE CHARTING
         st.markdown("---")
         st.subheader("🔍 Interactive Technical Chart Analysis")
-        selected_stock = st.selectbox("Select stock to analyze chart:", df_display['Stock'].tolist())
+        selected_stock = st.selectbox("Select stock to analyze chart:", df_results['Stock'].tolist())
         stock_row = df_results[df_results['Stock'] == selected_stock].iloc[0]
         chart_df = stock_row['Data'].tail(120)
 
@@ -325,84 +231,68 @@ elif page == "Scan Market":
         fig.update_layout(template="plotly_dark", xaxis_rangeslider_visible=False, height=450, title=f"{selected_stock} Daily Chart")
         st.plotly_chart(fig, use_container_width=True)
 
-        # 5. Risk & Position Calculator
+        # 4. POSITION CALCULATOR
         st.markdown("---")
         st.subheader(f"🧮 Position Size & Risk Calculator: {selected_stock}")
         c1, c2, c3 = st.columns(3)
         capital = c1.number_input("Account Capital (₹)", min_value=10000, value=500000, step=25000)
         risk_pct = c2.number_input("Risk Limit per Trade (%)", min_value=0.25, max_value=5.0, value=1.0, step=0.25)
         
-        entry_p = stock_row['Price']
-        suggested_sl = round(entry_p - (1.5 * stock_row['ATR']), 2)
-        sl_p = c3.number_input("Stop Loss Price (₹) [Default: 1.5x ATR]", min_value=1.0, value=float(suggested_sl), step=1.0)
+        entry_p = stock_row['Entry']
+        sl_p = c3.number_input("Stop Loss Price (₹) [Default: 1.5x ATR]", min_value=1.0, value=float(stock_row['EqSL']), step=1.0)
         
         risk_per_share = entry_p - sl_p
         if risk_per_share > 0:
             max_risk = (capital * risk_pct) / 100.0
             qty = int(max_risk / risk_per_share)
-            target_p = round(entry_p + (3.0 * risk_per_share), 2)
             
             m1, m2, m3, m4 = st.columns(4)
             m1.metric("Quantity to Buy", f"{qty} shares")
             m2.metric("Total Investment", f"₹{(qty * entry_p):,.2f}")
             m3.metric("Max Capital at Risk", f"₹{max_risk:,.2f}")
-            m4.metric("Risk / Reward Ratio", f"1 : {round((target_p - entry_p) / risk_per_share, 2)}")
+            m4.metric("Target 2 Profit", f"₹{(qty * (stock_row['EqT2'] - entry_p)):,.2f}")
 
 # --- VIEW: BUDGET SCANNER (< ₹500) ---
 elif page == "Budget Scanner (< ₹500)":
-    st.title("💡 Sub-₹500 Momentum & Budget Scanner")
-    st.markdown("Scans liquid Nifty 500 stocks specifically priced under ₹500 in Stage-2 uptrends with high breakout readiness.")
+    st.title("💡 Sub-₹500 Budget Quant Scanner")
+    st.markdown("Scans the F&O Universe specifically for mathematically confirmed setups priced under ₹500.")
 
-    c1, c2 = st.columns([2, 1])
-    budget_limit = c1.number_input("Max Stock Price (₹)", min_value=50, max_value=1000, value=500, step=50)
-    min_score = c2.slider("Min Readiness Score", min_value=1, max_value=10, value=3)
+    budget_limit = st.number_input("Max Stock Price (₹)", min_value=50, max_value=1000, value=500, step=50)
 
     if st.button("Run Budget Market Scan", type="primary"):
-        with st.spinner(f"Scanning Nifty 500 for stocks under ₹{budget_limit}..."):
-            full_res = run_btst_breakout_scan()
+        with st.spinner(f"Scanning for setups under ₹{budget_limit}..."):
+            full_res = run_quant_scan()
             if not full_res.empty:
-                budget_res = full_res[
-                    (full_res['Price'] <= budget_limit) & 
-                    (full_res['Score /10'] >= min_score)
-                ].copy()
-                
+                budget_res = full_res[full_res['Entry'] <= budget_limit].copy()
                 if not budget_res.empty:
-                    budget_res['Rank'] = range(1, len(budget_res) + 1)
                     st.session_state['budget_results'] = budget_res
-                    st.success(f"Found {len(budget_res)} momentum setups under ₹{budget_limit}!")
+                    st.success(f"Found {len(budget_res)} quant setups under ₹{budget_limit}!")
                 else:
                     st.session_state['budget_results'] = pd.DataFrame()
-                    st.warning(f"No setups found under ₹{budget_limit} matching score ≥ {min_score}.")
+                    st.warning(f"No setups found under ₹{budget_limit} today.")
 
     if 'budget_results' in st.session_state and not st.session_state['budget_results'].empty:
         df_budget = st.session_state['budget_results']
 
-        st.subheader(f"🏆 Top Budget Equity & Option Setups Under ₹{budget_limit}")
-        df_display = df_budget[[
-            'Rank', 'Stock', 'Price', 'Score /10', 'Composite /100', 
-            'Close Position %', 'Vol vs 50d Avg', 'RS Edge %', 'Option Contract', 'Spot Target', 'Spot SL'
-        ]]
-        st.dataframe(df_display, use_container_width=True, hide_index=True)
+        st.subheader(f"🏆 Top Budget Quant Setups Under ₹{budget_limit}")
+        cols_to_show = ['Stock', 'Horizon', 'Entry', 'EqSL', 'EqT1', 'EqT2', 'Opt', 'Prem', 'PT1']
+        st.dataframe(df_budget[cols_to_show], use_container_width=True, hide_index=True)
 
         st.markdown("---")
         st.subheader("🔍 Budget Position & Share Quantity Calculator")
-        selected_stock = st.selectbox("Select stock to evaluate:", df_display['Stock'].tolist())
+        selected_stock = st.selectbox("Select stock to evaluate:", df_budget['Stock'].tolist())
         stock_row = df_budget[df_budget['Stock'] == selected_stock].iloc[0]
 
         col1, col2 = st.columns(2)
         with col1:
             st.markdown(f"**Stock:** `{selected_stock}`")
-            st.markdown(f"**Last Price:** ₹{stock_row['Price']}")
-            st.markdown(f"**Readiness Score:** {stock_row['Score /10']}/10")
-            st.markdown(f"**Option Recommendation:** `{stock_row['Option Contract']}`")
+            st.markdown(f"**Entry Price:** ₹{stock_row['Entry']}")
+            st.markdown(f"**Base Quant Score:** {stock_row['Score']}")
+            st.markdown(f"**Option Recommendation:** `{stock_row['Opt']}` at ₹{stock_row['Prem']}")
         
         with col2:
             trade_capital = st.number_input("Allocated Capital for this Trade (₹)", min_value=5000, value=50000, step=5000)
-            shares_qty = int(trade_capital // stock_row['Price'])
-            actual_inv = round(shares_qty * stock_row['Price'], 2)
+            shares_qty = int(trade_capital // stock_row['Entry'])
+            actual_inv = round(shares_qty * stock_row['Entry'], 2)
             st.metric("Affordable Shares", f"{shares_qty} shares")
             st.metric("Total Investment Required", f"₹{actual_inv:,.2f}")
-
-else:
-    st.title(f"{page} Module")
-    st.info(f"The {page} module is active.")
