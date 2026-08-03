@@ -1,8 +1,8 @@
 import streamlit as st
+import streamlit.components.v1 as components
 import yfinance as yf
 import pandas as pd
 import numpy as np
-import plotly.graph_objects as go
 import requests
 import datetime
 import math
@@ -137,16 +137,11 @@ def run_quant_scan():
             df_h, df_l, df_c = highs[ticker].dropna(), lows[ticker].dropna(), closes[ticker].dropna()
             opt, prem, pt1, pt2, pt3 = generate_quant_option(close_p, t1, t2, t3, df_h, df_l, df_c)
             
-            # Save chart data for UI
-            df_chart = pd.DataFrame({'Open': data['Open'][ticker], 'High': highs[ticker], 'Low': lows[ticker], 'Close': closes[ticker]})
-            df_chart['EMA_20'] = df_chart['Close'].ewm(span=20, adjust=False).mean()
-            df_chart['EMA_50'] = ema_50_all[ticker]
-            df_chart['EMA_200'] = df_chart['Close'].ewm(span=200, adjust=False).mean()
-
             record = {
                 'Stock': symbol, 'Horizon': hor, 'Entry': round(close_p, 2), 'RSI': round(rsi_val,1), 'Vol vs 50d': vol_vs,
                 'EqSL': round(close_p-1.5*atr,1), 'EqT1': t1, 'EqT2': t2, 'EqT3': t3, 'EqT4': t4, 'EqT5': t5,
-                'Opt': opt, 'Prem': prem, 'PT1': pt1, 'PT2': pt2, 'PT3': pt3, 'Score': base_score, 'Data': df_chart.dropna()
+                'Opt': opt, 'Prem': prem, 'PT1': pt1, 'PT2': pt2, 'PT3': pt3, 'Score': base_score,
+                'TV_Link': f"https://in.tradingview.com/chart/?symbol=NSE:{symbol}"
             }
 
             if passes_ema and base_score >= 2:
@@ -183,14 +178,20 @@ elif page == "Scan Market":
     if 'quant_results' in st.session_state and not st.session_state['quant_results'].empty:
         df_results = st.session_state['quant_results']
         
-        # 1. NEW: HIGH CONVICTION DASHBOARD
+        # 1. HIGH CONVICTION DASHBOARD
         st.markdown("---")
         st.subheader("🌟 Top 5 High Conviction Setups")
         st.markdown("The absolute highest probability setups mathematically ranked by Base Score and RSI momentum.")
         high_conviction = df_results.head(5).copy()
         high_conviction['Option Tgt 1/2'] = high_conviction['PT1'].astype(str) + " / " + high_conviction['PT2'].astype(str)
-        high_conviction_display = high_conviction[['Stock', 'Horizon', 'Entry', 'EqSL', 'EqT1', 'EqT2', 'Opt', 'Prem', 'Option Tgt 1/2']]
-        st.dataframe(high_conviction_display, use_container_width=True, hide_index=True)
+        high_conviction_display = high_conviction[['Stock', 'Horizon', 'Entry', 'EqSL', 'EqT1', 'EqT2', 'Opt', 'Prem', 'Option Tgt 1/2', 'TV_Link']]
+        
+        st.dataframe(
+            high_conviction_display, 
+            use_container_width=True, 
+            hide_index=True,
+            column_config={"TV_Link": st.column_config.LinkColumn("Live Chart", display_text="📊 View in TV")}
+        )
 
         st.markdown("---")
         
@@ -198,41 +199,61 @@ elif page == "Scan Market":
         st.subheader("📊 Full Market Scan by Horizon")
         tab1, tab2, tab3 = st.tabs(["⚡ Intraday", "🌙 BTST", "📈 Swing"])
         
-        cols_to_show = ['Stock', 'RSI', 'Vol vs 50d', 'Entry', 'EqSL', 'EqT1', 'EqT2', 'EqT3', 'Opt', 'Prem', 'PT1', 'PT2']
+        cols_to_show = ['Stock', 'RSI', 'Vol vs 50d', 'Entry', 'EqSL', 'EqT1', 'EqT2', 'EqT3', 'Opt', 'Prem', 'PT1', 'PT2', 'TV_Link']
         
         with tab1:
             df_intra = df_results[df_results['Horizon'] == 'Intraday']
-            if not df_intra.empty: st.dataframe(df_intra[cols_to_show], use_container_width=True, hide_index=True)
+            if not df_intra.empty: 
+                st.dataframe(df_intra[cols_to_show], use_container_width=True, hide_index=True, column_config={"TV_Link": st.column_config.LinkColumn("Live Chart", display_text="📊 View in TV")})
             else: st.info("No Intraday setups found right now.")
                 
         with tab2:
             df_btst = df_results[df_results['Horizon'] == 'BTST']
-            if not df_btst.empty: st.dataframe(df_btst[cols_to_show], use_container_width=True, hide_index=True)
+            if not df_btst.empty: 
+                st.dataframe(df_btst[cols_to_show], use_container_width=True, hide_index=True, column_config={"TV_Link": st.column_config.LinkColumn("Live Chart", display_text="📊 View in TV")})
             else: st.info("No BTST setups found right now.")
                 
         with tab3:
             df_swing = df_results[df_results['Horizon'] == 'Swing']
-            if not df_swing.empty: st.dataframe(df_swing[cols_to_show], use_container_width=True, hide_index=True)
+            if not df_swing.empty: 
+                st.dataframe(df_swing[cols_to_show], use_container_width=True, hide_index=True, column_config={"TV_Link": st.column_config.LinkColumn("Live Chart", display_text="📊 View in TV")})
             else: st.info("No Swing setups found right now.")
 
-        # 3. INTERACTIVE CHARTING
+        # 3. INTERACTIVE TRADINGVIEW CHARTING
         st.markdown("---")
-        st.subheader("🔍 Interactive Technical Chart Analysis")
-        selected_stock = st.selectbox("Select stock to analyze chart:", df_results['Stock'].tolist())
-        stock_row = df_results[df_results['Stock'] == selected_stock].iloc[0]
-        chart_df = stock_row['Data'].tail(120)
-
-        fig = go.Figure(data=[
-            go.Candlestick(x=chart_df.index, open=chart_df['Open'], high=chart_df['High'], low=chart_df['Low'], close=chart_df['Close'], name="Price"),
-            go.Scatter(x=chart_df.index, y=chart_df['EMA_20'], line=dict(color='blue', width=1), name="EMA 20"),
-            go.Scatter(x=chart_df.index, y=chart_df['EMA_50'], line=dict(color='orange', width=1), name="EMA 50"),
-            go.Scatter(x=chart_df.index, y=chart_df['EMA_200'], line=dict(color='red', width=1.5), name="EMA 200")
-        ])
-        fig.update_layout(template="plotly_dark", xaxis_rangeslider_visible=False, height=450, title=f"{selected_stock} Daily Chart")
-        st.plotly_chart(fig, use_container_width=True)
+        st.subheader("🔍 Live TradingView Analysis")
+        selected_stock = st.selectbox("Select stock to load live chart:", df_results['Stock'].tolist())
+        
+        tv_widget = f"""
+        <!-- TradingView Widget BEGIN -->
+        <div class="tradingview-widget-container">
+          <div id="tradingview_widget"></div>
+          <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+          <script type="text/javascript">
+          new TradingView.widget(
+          {{
+          "width": "100%",
+          "height": 600,
+          "symbol": "NSE:{selected_stock}",
+          "interval": "D",
+          "timezone": "Asia/Kolkata",
+          "theme": "dark",
+          "style": "1",
+          "locale": "in",
+          "enable_publishing": false,
+          "allow_symbol_change": true,
+          "container_id": "tradingview_widget"
+        }}
+          );
+          </script>
+        </div>
+        <!-- TradingView Widget END -->
+        """
+        components.html(tv_widget, height=600)
 
         # 4. POSITION CALCULATOR
         st.markdown("---")
+        stock_row = df_results[df_results['Stock'] == selected_stock].iloc[0]
         st.subheader(f"🧮 Position Size & Risk Calculator: {selected_stock}")
         c1, c2, c3 = st.columns(3)
         capital = c1.number_input("Account Capital (₹)", min_value=10000, value=500000, step=25000)
@@ -275,8 +296,13 @@ elif page == "Budget Scanner (< ₹500)":
         df_budget = st.session_state['budget_results']
 
         st.subheader(f"🏆 Top Budget Quant Setups Under ₹{budget_limit}")
-        cols_to_show = ['Stock', 'Horizon', 'Entry', 'EqSL', 'EqT1', 'EqT2', 'Opt', 'Prem', 'PT1']
-        st.dataframe(df_budget[cols_to_show], use_container_width=True, hide_index=True)
+        cols_to_show = ['Stock', 'Horizon', 'Entry', 'EqSL', 'EqT1', 'EqT2', 'Opt', 'Prem', 'PT1', 'TV_Link']
+        st.dataframe(
+            df_budget[cols_to_show], 
+            use_container_width=True, 
+            hide_index=True,
+            column_config={"TV_Link": st.column_config.LinkColumn("Live Chart", display_text="📊 View in TV")}
+        )
 
         st.markdown("---")
         st.subheader("🔍 Budget Position & Share Quantity Calculator")
