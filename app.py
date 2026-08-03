@@ -137,7 +137,6 @@ def run_quant_scan():
             df_h, df_l, df_c = highs[ticker].dropna(), lows[ticker].dropna(), closes[ticker].dropna()
             opt, prem, pt1, pt2, pt3 = generate_quant_option(close_p, t1, t2, t3, df_h, df_l, df_c)
             
-            # Clean TV symbol format
             tv_clean_sym = symbol.replace("&", "_").replace("-", "_")
             
             record = {
@@ -179,7 +178,13 @@ elif page == "Scan Market":
             st.success("Quant Scan complete!")
 
     if 'quant_results' in st.session_state and not st.session_state['quant_results'].empty:
-        df_results = st.session_state['quant_results']
+        df_results = st.session_state['quant_results'].copy()
+        
+        # SAFETY CHECK: Automatically generate TV_Link if missing from old cache
+        if 'TV_Link' not in df_results.columns:
+            df_results['TV_Link'] = df_results['Stock'].apply(
+                lambda s: f"https://in.tradingview.com/chart/?symbol=NSE:{str(s).replace('&', '_').replace('-', '_')}"
+            )
         
         # 1. HIGH CONVICTION DASHBOARD
         st.markdown("---")
@@ -227,7 +232,6 @@ elif page == "Scan Market":
         st.subheader("🔍 Live TradingView Analysis")
         selected_stock = st.selectbox("Select stock to load live chart:", df_results['Stock'].tolist())
         
-        # Sanitize symbol for TradingView format
         tv_symbol = selected_stock.replace("&", "_").replace("-", "_")
         
         tv_widget = f"""
@@ -254,7 +258,7 @@ elif page == "Scan Market":
         </div>
         <!-- TradingView Widget END -->
         """
-        components.html(tv_widget, height=610, key=f"tv_chart_{tv_symbol}")
+        components.html(tv_widget, height=610)
 
         # 4. POSITION CALCULATOR
         st.markdown("---")
@@ -298,7 +302,12 @@ elif page == "Budget Scanner (< ₹500)":
                     st.warning(f"No setups found under ₹{budget_limit} today.")
 
     if 'budget_results' in st.session_state and not st.session_state['budget_results'].empty:
-        df_budget = st.session_state['budget_results']
+        df_budget = st.session_state['budget_results'].copy()
+        
+        if 'TV_Link' not in df_budget.columns:
+            df_budget['TV_Link'] = df_budget['Stock'].apply(
+                lambda s: f"https://in.tradingview.com/chart/?symbol=NSE:{str(s).replace('&', '_').replace('-', '_')}"
+            )
 
         st.subheader(f"🏆 Top Budget Quant Setups Under ₹{budget_limit}")
         cols_to_show = ['Stock', 'Horizon', 'Entry', 'EqSL', 'EqT1', 'EqT2', 'Opt', 'Prem', 'PT1', 'TV_Link']
