@@ -120,8 +120,8 @@ def run_quant_scan():
         except: continue
 
     if valid_setups:
+        # Sort values but DO NOT add the # column here yet
         df_all = pd.DataFrame(valid_setups).drop_duplicates(subset=['Stock']).sort_values(by=['Score', 'RSI'], ascending=[False, False])
-        df_all.insert(0, '#', range(1, len(df_all) + 1))
         return df_all
     return pd.DataFrame()
 
@@ -152,8 +152,12 @@ elif page == "Scan Market":
         st.markdown("---")
         st.subheader("🌟 Top 5 High Conviction Setups")
         
+        # High Conviction List (Fresh Numbers)
+        df_hc = df_results.head(5).copy()
+        df_hc.insert(0, '#', range(1, len(df_hc) + 1))
+        
         hc_cols = ['#', 'Stock', 'Horizon', 'Entry', 'EqSL', 'Eq Tgts (1-5)', 'Opt', 'Prem', 'Prem Tgts (1-3)', 'TV_Link']
-        st.dataframe(df_results.head(5)[hc_cols], use_container_width=True, hide_index=True, column_config={"TV_Link": st.column_config.LinkColumn("Live Chart", display_text="📊 View in TV")})
+        st.dataframe(df_hc[hc_cols], use_container_width=True, hide_index=True, column_config={"TV_Link": st.column_config.LinkColumn("Live Chart", display_text="📊 View in TV")})
         
         st.markdown("---")
         st.subheader("📊 Full Market Scan by Horizon")
@@ -162,18 +166,24 @@ elif page == "Scan Market":
         full_cols = ['#', 'Stock', 'RSI', 'Vol vs 50d', 'Entry', 'EqSL', 'Eq Tgts (1-5)', 'Opt', 'Prem', 'Prem Tgts (1-3)', 'TV_Link']
         
         with tab1:
-            df_intra = df_results[df_results['Horizon'] == 'Intraday']
-            if not df_intra.empty: st.dataframe(df_intra[full_cols], use_container_width=True, hide_index=True, column_config={"TV_Link": st.column_config.LinkColumn("Live Chart", display_text="📊 View")})
+            df_intra = df_results[df_results['Horizon'] == 'Intraday'].copy()
+            if not df_intra.empty: 
+                df_intra.insert(0, '#', range(1, len(df_intra) + 1)) # Fresh numbers for Intraday
+                st.dataframe(df_intra[full_cols], use_container_width=True, hide_index=True, column_config={"TV_Link": st.column_config.LinkColumn("Live Chart", display_text="📊 View")})
             else: st.info("No Intraday setups found.")
                 
         with tab2:
-            df_btst = df_results[df_results['Horizon'] == 'BTST']
-            if not df_btst.empty: st.dataframe(df_btst[full_cols], use_container_width=True, hide_index=True, column_config={"TV_Link": st.column_config.LinkColumn("Live Chart", display_text="📊 View")})
+            df_btst = df_results[df_results['Horizon'] == 'BTST'].copy()
+            if not df_btst.empty: 
+                df_btst.insert(0, '#', range(1, len(df_btst) + 1)) # Fresh numbers for BTST
+                st.dataframe(df_btst[full_cols], use_container_width=True, hide_index=True, column_config={"TV_Link": st.column_config.LinkColumn("Live Chart", display_text="📊 View")})
             else: st.info("No BTST setups found.")
                 
         with tab3:
-            df_swing = df_results[df_results['Horizon'] == 'Swing']
-            if not df_swing.empty: st.dataframe(df_swing[full_cols], use_container_width=True, hide_index=True, column_config={"TV_Link": st.column_config.LinkColumn("Live Chart", display_text="📊 View")})
+            df_swing = df_results[df_results['Horizon'] == 'Swing'].copy()
+            if not df_swing.empty: 
+                df_swing.insert(0, '#', range(1, len(df_swing) + 1)) # Fresh numbers for Swing
+                st.dataframe(df_swing[full_cols], use_container_width=True, hide_index=True, column_config={"TV_Link": st.column_config.LinkColumn("Live Chart", display_text="📊 View")})
             else: st.info("No Swing setups found.")
 
         st.markdown("---")
@@ -227,7 +237,7 @@ elif page == "Budget Scanner (< ₹500)":
             if not full_res.empty:
                 budget_res = full_res[full_res['Entry'] <= budget_limit].copy()
                 if not budget_res.empty:
-                    budget_res['#'] = range(1, len(budget_res) + 1)
+                    budget_res.insert(0, '#', range(1, len(budget_res) + 1)) # Fresh numbers for Budget
                     st.session_state['budget_results'] = budget_res
                     st.success(f"Found {len(budget_res)} quant setups under ₹{budget_limit}!")
                 else:
