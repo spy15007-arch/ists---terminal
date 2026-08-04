@@ -144,19 +144,20 @@ def generate_tabular_markdown(df_stocks, df_index, title, filename, include_inde
                 f.write(f"| **{r['Stock']}** | ₹{r['Entry']} | {badge} | ₹{r['EqSL']} | {eq_tgts} | **{r['Opt']}** | ₹{r['Prem']} | {prem_tgts} |\n")
 
 def generate_telegram_cards(df_stocks, df_index, title, filename, include_index=False):
-    """Generates Telegram text files with an automatic Market-Close Guard."""
+    """Generates Telegram text files with an automatic Market-Close Guard for Intraday/BTST."""
     now_ist = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=5, minutes=30)
     hour, minute = now_ist.hour, now_ist.minute
     
     is_weekend = now_ist.weekday() >= 5
     is_post_market = (hour > 15) or (hour == 15 and minute >= 30) or (hour < 9)
     
-    with open(filename, "w", encoding="utf-8") as f:
-        # Market-close guard: keep output blank outside active trading hours to prevent late spam
-        if is_weekend or is_post_market:
+    # NEW LOGIC: Block if post-market/weekend, UNLESS the word "Swing" is in the title
+    if (is_weekend or is_post_market) and "Swing" not in title:
+        with open(filename, "w", encoding="utf-8") as f:
             f.write("")
-            return
+        return
 
+    with open(filename, "w", encoding="utf-8") as f:
         if df_stocks.empty and df_index.empty:
             f.write(f"🚨 {title} 🚨\n\nNo algorithmic setups triggered for this timeframe in the current scan.")
             return
