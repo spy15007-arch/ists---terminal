@@ -1,4 +1,4 @@
-# 🌙 BTST Carry-Forward Report — 04 Aug 2026 | 12:02 PM (Afternoon BTST)
+# 🌙 BTST Carry-Forward Report — 04 Aug 2026 | 12:25 PM (Afternoon BTST)
 
 > **System:** Quant Breakout Strategy | **Targets:** 5x ATR Vector & Black-Scholes Premiums
 
