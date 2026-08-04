@@ -1,4 +1,4 @@
-# ⚡ Intraday Report — 04 Aug 2026 | 10:10 AM (Morning Intraday)
+# ⚡ Intraday Report — 04 Aug 2026 | 11:44 AM (Morning Intraday)
 
 > **System:** Quant Breakout Strategy | **Targets:** 5x ATR Vector & Black-Scholes Premiums
 
@@ -6,11 +6,13 @@
 
 | Index | Price | Base Score | Eq SL | Eq T1/T2/T3/T4/T5 | Option | Prem | Prem T1/T2/T3 |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **NIFTY 50** | ₹24611.2 | 🔥 10/10 | ₹24282.1 | 24940.3/25269.4/25598.5/25927.6/26256.7 | **24600 CE [Current Wk]** | ₹55.37 | 349.8/678.8/1007.9 |
-| **BANK NIFTY** | ₹57866.2 | 🔥 10/10 | ₹56854.7 | 58877.7/59889.1/60900.6/61912.1/62923.5 | **57900 CE [Current Wk]** | ₹95.62 | 988.8/2000.2/3011.7 |
+| **NIFTY 50** | ₹24559.5 | 🔥 10/10 | ₹24230.4 | 24888.6/25217.7/25546.8/25875.9/26205.0 | **24600 CE [Current Wk]** | ₹31.23 | 298.2/627.1/956.2 |
+| **BANK NIFTY** | ₹57582.7 | 🔥 10/10 | ₹56571.2 | 58594.2/59605.6/60617.1/61628.6/62640.0 | **57600 CE [Current Wk]** | ₹104.54 | 1005.2/2016.6/3028.2 |
 
 ---
 
 ## 📊 F&O High-Momentum Scans
 
-*No setups met the strict mathematical criteria in this session.*
+| Stock | Price | Base Score | Eq SL | Eq T1/T2/T3/T4/T5 | Option | Prem | Prem T1/T2/T3 |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **BALRAMCHIN** | ₹654.0 | 🔥 4/10 | ₹620.9 | 687.1/720.2/753.4/786.5/819.6 | **650 CE [Monthly]** | ₹26.08 | 48.3/76.2/107.2 |
