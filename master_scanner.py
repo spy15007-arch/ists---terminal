@@ -11,13 +11,16 @@ warnings.filterwarnings('ignore')
 STATIC_FNO = ["AARTIIND", "ABB", "ABBOTINDIA", "ABCAPITAL", "ABFRL", "ACC", "ADANIENT", "ADANIPORTS", "ALKEM", "AMBUJACEM", "APOLLOHOSP", "APOLLOTYRE", "ASHOKLEY", "ASIANPAINT", "ASTRAL", "ATUL", "AUBANK", "AUROPHARMA", "AXISBANK", "BAJAJ-AUTO", "BAJAJFINSV", "BAJFINANCE", "BALKRISIND", "BALRAMCHIN", "BANDHANBNK", "BANKBARODA", "BATAINDIA", "BEL", "BERGEPAINT", "BHARATFORG", "BHARTIARTL", "BHEL", "BIOCON", "BOSCHLTD", "BPCL", "BRITANNIA", "CANBK", "CANFINHOME", "CHAMBLFERT", "CHOLAFIN", "CIPLA", "COALINDIA", "COFORGE", "COLPAL", "CONCOR", "COROMANDEL", "CROMPTON", "CUB", "CUMMINSIND", "DABUR", "DALBHARAT", "DEEPAKNTR", "DIVISLAB", "DIXON", "DLF", "DRREDDY", "EICHERMOT", "ESCORTS", "EXIDEIND", "FEDERALBNK", "GAIL", "GLENMARK", "GMRINFRA", "GNFC", "GODREJCP", "GODREJPROP", "GRANULES", "GRASIM", "GUJGASLTD", "HAL", "HAVELLS", "HCLTECH", "HDFCAMC", "HDFCBANK", "HDFCLIFE", "HEROMOTOCO", "HINDALCO", "HINDCOPPER", "HINDPETRO", "HINDUNILVR", "ICICIBANK", "ICICIGI", "ICICIPRULI", "IDEA", "IDFCFIRSTB", "IEX", "IGL", "INDHOTEL", "INDIACEM", "INDIAMART", "INDIGO", "INDUSINDBK", "INFY", "IOC", "IPCALAB", "IRCTC", "ITC", "JINDALSTEL", "JSWSTEEL", "JUBLFOOD", "KOTAKBANK", "LALPATHLAB", "LAURUSLABS", "LICHSGFIN", "LT", "LTIM", "LTTS", "LUPIN", "M&M", "M&MFIN", "MANAPPURAM", "MARICO", "MARUTI", "MCDOWELL-N", "MCX", "METROPOLIS", "MFSL", "MGL", "MOTHERSON", "MPHASIS", "MRF", "MUTHOOTFIN", "NATIONALUM", "NAUKRI", "NAVINFLUOR", "NESTLEIND", "NMDC", "NTPC", "OBEROIRLTY", "OFSS", "ONGC", "PAGEIND", "PEL", "PETRONET", "PFC", "PIDILITIND", "PIIND", "PNB", "POLYCAB", "POWERGRID", "PVRINOX", "RAMCOCEM", "RBLBANK", "RECLTD", "RELIANCE", "SAIL", "SBICARD", "SBILIFE", "SBIN", "SHREECEM", "SHRIRAMFIN", "SIEMENS", "SRF", "SUNPHARMA", "SUNTV", "SYNGENE", "TATACHEM", "TATACOMM", "TATACONSUM", "TATAMOTORS", "TATAPOWER", "TATASTEEL", "TCS", "TECHM", "TITAN", "TORNTPHARM", "TRENT", "TVSMOTOR", "UBL", "ULTRACEMCO", "UPL", "VEDL", "VOLTAS", "WIPRO", "ZEEL", "ZYDUSLIFE"]
 
 def get_session_info():
-    """Determine if running Morning Intraday scan or Afternoon BTST scan."""
+    """Determines session: Intraday (before 2:30 PM IST) vs BTST (2:30 PM IST onwards)."""
     now_ist = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=5, minutes=30)
     hour = now_ist.hour
-    if hour < 12:
-        return now_ist.strftime("%d %b %Y | %I:%M %p (Morning Intraday)"), "Intraday"
+    minute = now_ist.minute
+    
+    # Intraday mode runs up to 2:30 PM IST (14:30)
+    if hour < 14 or (hour == 14 and minute < 30):
+        return now_ist.strftime("%d %b %Y | %I:%M %p (Intraday)"), "Intraday"
     else:
-        return now_ist.strftime("%d %b %Y | %I:%M %p (Afternoon BTST)"), "BTST"
+        return now_ist.strftime("%d %b %Y | %I:%M %p (BTST Carry-Forward)"), "BTST"
 
 def black_scholes(S, K, T, r, sigma):
     if T <= 0 or sigma == 0: return max(0, S - K), max(0, K - S), 1.0 if S > K else 0.0
@@ -44,7 +47,7 @@ def generate_quant_option(price, t1, t2, t3, df_h, df_l, df_c):
     return f"{atm} CE", c_prem, round(pt1, 1), round(pt2, 1), round(pt3, 1)
 
 def get_index_options_ideas():
-    """Calculates Option Targets specifically for Nifty & BankNifty."""
+    """Calculates Option Targets for Nifty & BankNifty."""
     indices = {'NIFTY 50': '^NSEI', 'BANK NIFTY': '^NSEBANK'}
     results = []
     
@@ -87,7 +90,11 @@ def get_index_options_ideas():
     return pd.DataFrame(results)
 
 def generate_tabular_markdown(df_stocks, df_index, title, filename, include_index=False):
-    """Generates the clean Markdown reports for GitHub."""
+    """Generates clean Markdown reports for GitHub without wiping old data if empty."""
+    if df_stocks.empty and df_index.empty:
+        print(f"⚠️ No setups found for {filename}. Keeping previous file intact to avoid blank reports.")
+        return
+
     with open(filename, "w", encoding="utf-8") as f:
         f.write(f"# {title}\n\n")
         f.write("> **System:** Quant Breakout Strategy | **Targets:** 5x ATR Vector & Black-Scholes Premiums\n\n")
@@ -103,10 +110,6 @@ def generate_tabular_markdown(df_stocks, df_index, title, filename, include_inde
             f.write("\n---\n\n")
 
         f.write("## 📊 F&O High-Momentum Scans\n\n")
-        if df_stocks.empty:
-            f.write("*No setups met the strict mathematical criteria in this session.*\n")
-            return
-
         f.write("| Stock | Price | Base Score | Eq SL | Eq T1/T2/T3/T4/T5 | Option | Prem | Prem T1/T2/T3 |\n")
         f.write("| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |\n")
         
@@ -117,7 +120,10 @@ def generate_tabular_markdown(df_stocks, df_index, title, filename, include_inde
             f.write(f"| **{r['Stock']}** | ₹{r['Entry']} | {badge} | ₹{r['EqSL']} | {eq_tgts} | **{r['Opt']}** | ₹{r['Prem']} | {prem_tgts} |\n")
 
 def generate_telegram_cards(df_stocks, df_index, title, filename, include_index=False):
-    """Generates tight text files meant for Telegram broadcast limits."""
+    """Generates tight text files for Telegram broadcast."""
+    if df_stocks.empty and df_index.empty:
+        return
+
     with open(filename, "w", encoding="utf-8") as f:
         f.write(f"🚨 {title} 🚨\n\n")
         
@@ -126,38 +132,34 @@ def generate_telegram_cards(df_stocks, df_index, title, filename, include_index=
             for _, r in df_index.iterrows():
                 f.write(f"• {r['Stock']} @ ₹{r['Entry']}\n  {r['Opt']} @ ₹{r['Prem']}\n  Tgts: {r['PT1']}/{r['PT2']}/{r['PT3']}\n\n")
         
-        f.write("📊 TOP QUANT SETUPS\n")
-        for _, r in df_stocks.head(7).iterrows():
-            f.write(f"• {r['Stock']} @ ₹{r['Entry']}\n  Eq Tgts: {r['EqT1']}/{r['EqT2']}/{r['EqT3']}\n")
-            if str(r['Opt']) != "N/A (Cash)":
-                f.write(f"  {r['Opt']} @ ₹{r['Prem']}\n")
-            f.write("\n")
+        if not df_stocks.empty:
+            f.write("📊 TOP QUANT SETUPS\n")
+            for _, r in df_stocks.head(7).iterrows():
+                f.write(f"• {r['Stock']} @ ₹{r['Entry']}\n  Eq Tgts: {r['EqT1']}/{r['EqT2']}/{r['EqT3']}\n")
+                if str(r['Opt']) != "N/A (Cash)":
+                    f.write(f"  {r['Opt']} @ ₹{r['Prem']}\n")
+                f.write("\n")
 
 def run():
     print("🚀 Starting Automated Master Quant Scanner...")
     sess_title, sess_type = get_session_info()
     print(f"🕒 Timeframe Registered: {sess_title}")
     
-    # ----------------------------------------------------
-    # STRICT INDEX FILTER: NIFTY/BANKNIFTY ONLY IN MORNING
-    # ----------------------------------------------------
     if sess_type == "Intraday":
         print("📈 Fetching Index Options for Intraday (NIFTY & BANKNIFTY)...")
         df_index = get_index_options_ideas()
     else:
         print("⏭️ Skipping Index Options for BTST to avoid overnight gap risk...")
-        df_index = pd.DataFrame()  # STRICTLY EMPTY FOR BTST
+        df_index = pd.DataFrame()
     
     tickers = [f"{s}.NS" for s in STATIC_FNO]
     
-    print(f"📥 Downloading live market data for {len(tickers)} F&O stocks... (Please wait ~10 seconds)")
+    print(f"📥 Downloading live market data for {len(tickers)} F&O stocks...")
     data = yf.download(tickers, period="3mo", interval="1d", progress=False, threads=True)
     
     if data.empty: 
         print("❌ CRITICAL ERROR: Could not fetch stock data from Yahoo Finance.")
         return
-    
-    print("✅ Data Downloaded Successfully! Initiating Matrix Vectorization Math...")
     
     closes, highs, lows, volumes = data['Close'], data['High'], data['Low'], data['Volume']
     ema_50_all = closes.ewm(span=50).mean()
@@ -191,8 +193,6 @@ def run():
     last_atr = atr_all.iloc[-1]
 
     valid_setups = []
-    
-    print("🔍 Scanning matrix against strict Momentum & Options Criteria...")
 
     for ticker in closes.columns:
         try:
@@ -250,36 +250,23 @@ def run():
                 valid_setups.append(record)
         except: continue
 
-    print(f"🎯 Total Valid Breakout Setups Found: {len(valid_setups)}")
-    
     df_all = pd.DataFrame(valid_setups).drop_duplicates(subset=['Stock']).sort_values(by=['Score', 'RSI'], ascending=[False, False]) if valid_setups else pd.DataFrame()
 
     df_intra = df_all[df_all['Horizon'] == 'Intraday'].head(20) if not df_all.empty else pd.DataFrame()
     df_btst = df_all[df_all['Horizon'] == 'BTST'].head(20) if not df_all.empty else pd.DataFrame()
     df_swing = df_all[df_all['Horizon'] == 'Swing'].head(20) if not df_all.empty else pd.DataFrame()
 
-    print("💾 Saving Markdown Files for GitHub Repository...")
+    print("💾 Updating Markdown Reports...")
     if sess_type == "Intraday":
         generate_tabular_markdown(df_intra, df_index, f"⚡ Intraday Report — {sess_title}", "intraday_report.md", include_index=True)
         generate_tabular_markdown(df_swing, pd.DataFrame(), f"📈 Swing Trade Report — {sess_title}", "swing_report.md", include_index=False)
-        open("btst_report.md", "w").close() 
+        generate_telegram_cards(df_intra, df_index, f"⚡ Intraday Report — {sess_title}", "intraday_tg.txt", include_index=True)
     else:
-        # STRICTLY PASSING EMPTY DATAFRAME FOR df_index AND False FOR include_index FOR BTST
         generate_tabular_markdown(df_btst, pd.DataFrame(), f"🌙 BTST Carry-Forward Report — {sess_title}", "btst_report.md", include_index=False)
         generate_tabular_markdown(df_swing, pd.DataFrame(), f"📈 Swing Trade Report — {sess_title}", "swing_report.md", include_index=False)
-        open("intraday_report.md", "w").close() 
-
-    print("📱 Generating specialized mobile text cards for Telegram Bot...")
-    if sess_type == "Intraday":
-        generate_telegram_cards(df_intra, df_index, f"⚡ Intraday Report — {sess_title}", "intraday_tg.txt", include_index=True)
-        generate_telegram_cards(df_swing, pd.DataFrame(), f"📈 Swing Trade Report — {sess_title}", "swing_tg.txt", include_index=False)
-        open("btst_tg.txt", "w").close()
-    else:
         generate_telegram_cards(df_btst, pd.DataFrame(), f"🌙 BTST Carry-Forward Report — {sess_title}", "btst_tg.txt", include_index=False)
-        generate_telegram_cards(df_swing, pd.DataFrame(), f"📈 Swing Trade Report — {sess_title}", "swing_tg.txt", include_index=False)
-        open("intraday_tg.txt", "w").close()
 
-    print("🎉 Master Scanner Cycle Complete! Passing data to Telegram Push script.")
+    print("🎉 Master Scanner Cycle Complete!")
 
 if __name__ == "__main__":
     run()
