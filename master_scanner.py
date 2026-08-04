@@ -11,7 +11,7 @@ warnings.filterwarnings('ignore')
 STATIC_FNO = ["AARTIIND", "ABB", "ABBOTINDIA", "ABCAPITAL", "ABFRL", "ACC", "ADANIENT", "ADANIPORTS", "ALKEM", "AMBUJACEM", "APOLLOHOSP", "APOLLOTYRE", "ASHOKLEY", "ASIANPAINT", "ASTRAL", "ATUL", "AUBANK", "AUROPHARMA", "AXISBANK", "BAJAJ-AUTO", "BAJAJFINSV", "BAJFINANCE", "BALKRISIND", "BALRAMCHIN", "BANDHANBNK", "BANKBARODA", "BATAINDIA", "BEL", "BERGEPAINT", "BHARATFORG", "BHARTIARTL", "BHEL", "BIOCON", "BOSCHLTD", "BPCL", "BRITANNIA", "CANBK", "CANFINHOME", "CHAMBLFERT", "CHOLAFIN", "CIPLA", "COALINDIA", "COFORGE", "COLPAL", "CONCOR", "COROMANDEL", "CROMPTON", "CUB", "CUMMINSIND", "DABUR", "DALBHARAT", "DEEPAKNTR", "DIVISLAB", "DIXON", "DLF", "DRREDDY", "EICHERMOT", "ESCORTS", "EXIDEIND", "FEDERALBNK", "GAIL", "GLENMARK", "GMRINFRA", "GNFC", "GODREJCP", "GODREJPROP", "GRANULES", "GRASIM", "GUJGASLTD", "HAL", "HAVELLS", "HCLTECH", "HDFCAMC", "HDFCBANK", "HDFCLIFE", "HEROMOTOCO", "HINDALCO", "HINDCOPPER", "HINDPETRO", "HINDUNILVR", "ICICIBANK", "ICICIGI", "ICICIPRULI", "IDEA", "IDFCFIRSTB", "IEX", "IGL", "INDHOTEL", "INDIACEM", "INDIAMART", "INDIGO", "INDUSINDBK", "INFY", "IOC", "IPCALAB", "IRCTC", "ITC", "JINDALSTEL", "JSWSTEEL", "JUBLFOOD", "KOTAKBANK", "LALPATHLAB", "LAURUSLABS", "LICHSGFIN", "LT", "LTIM", "LTTS", "LUPIN", "M&M", "M&MFIN", "MANAPPURAM", "MARICO", "MARUTI", "MCDOWELL-N", "MCX", "METROPOLIS", "MFSL", "MGL", "MOTHERSON", "MPHASIS", "MRF", "MUTHOOTFIN", "NATIONALUM", "NAUKRI", "NAVINFLUOR", "NESTLEIND", "NMDC", "NTPC", "OBEROIRLTY", "OFSS", "ONGC", "PAGEIND", "PEL", "PETRONET", "PFC", "PIDILITIND", "PIIND", "PNB", "POLYCAB", "POWERGRID", "PVRINOX", "RAMCOCEM", "RBLBANK", "RECLTD", "RELIANCE", "SAIL", "SBICARD", "SBILIFE", "SBIN", "SHREECEM", "SHRIRAMFIN", "SIEMENS", "SRF", "SUNPHARMA", "SUNTV", "SYNGENE", "TATACHEM", "TATACOMM", "TATACONSUM", "TATAMOTORS", "TATAPOWER", "TATASTEEL", "TCS", "TECHM", "TITAN", "TORNTPHARM", "TRENT", "TVSMOTOR", "UBL", "ULTRACEMCO", "UPL", "VEDL", "VOLTAS", "WIPRO", "ZEEL", "ZYDUSLIFE"]
 
 def get_session_info():
-    """Determines session: Intraday (before 2:30 PM IST) vs BTST (2:30 PM IST onwards)."""
+    """Determines session: Intraday (before 2:30 PM IST) vs Afternoon (2:30 PM IST onwards)."""
     now_ist = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=5, minutes=30)
     hour = now_ist.hour
     minute = now_ist.minute
@@ -22,6 +22,7 @@ def get_session_info():
         return now_ist.strftime("%d %b %Y | %I:%M %p (Afternoon)"), "Afternoon"
 
 def black_scholes(S, K, T, r, sigma, opt_type="CE"):
+    """Calculates Option Premiums for Call (CE) and Put (PE) options."""
     if T <= 0 or sigma == 0: 
         if opt_type == "CE": return max(0, S - K)
         else: return max(0, K - S)
@@ -96,7 +97,7 @@ def get_index_options_ideas():
                 t1, t2, t3, t4, t5 = [round(close_p - m * atr, 1) for m in (0.4, 0.8, 1.2, 1.6, 2.0)]
                 eq_sl = round(close_p + 0.8 * atr, 1)
             else:
-                continue # Weekly and Daily are fighting, avoid the trade
+                continue # Skip trade when Weekly and Daily trends conflict
             
             opt, prem, pt1, pt2, pt3 = generate_quant_option(
                 close_p, t1, t2, t3, data['High'], data['Low'], data['Close'], direction.split(" ")[0]
@@ -113,6 +114,7 @@ def get_index_options_ideas():
     return pd.DataFrame(results)
 
 def generate_tabular_markdown(df_stocks, df_index, title, filename, include_index=False):
+    """Generates formatted Markdown reports for GitHub."""
     with open(filename, "w", encoding="utf-8") as f:
         f.write(f"# {title}\n\n")
         f.write("> **System:** MTF Aligned Quant Breakout | **Targets:** Scaled ATR Vector & Black-Scholes Premiums\n\n")
@@ -142,13 +144,25 @@ def generate_tabular_markdown(df_stocks, df_index, title, filename, include_inde
                 f.write(f"| **{r['Stock']}** | ₹{r['Entry']} | {badge} | ₹{r['EqSL']} | {eq_tgts} | **{r['Opt']}** | ₹{r['Prem']} | {prem_tgts} |\n")
 
 def generate_telegram_cards(df_stocks, df_index, title, filename, include_index=False):
+    """Generates Telegram text files with an automatic Market-Close Guard."""
+    now_ist = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=5, minutes=30)
+    hour, minute = now_ist.hour, now_ist.minute
+    
+    is_weekend = now_ist.weekday() >= 5
+    is_post_market = (hour > 15) or (hour == 15 and minute >= 30) or (hour < 9)
+    
     with open(filename, "w", encoding="utf-8") as f:
-        f.write(f"🚨 {title} 🚨\n\n")
-        
+        # Market-close guard: keep output blank outside active trading hours to prevent late spam
+        if is_weekend or is_post_market:
+            f.write("")
+            return
+
         if df_stocks.empty and df_index.empty:
-            f.write("No algorithmic setups triggered for this timeframe (MTF alignment failed or low momentum).\n")
+            f.write(f"🚨 {title} 🚨\n\nNo algorithmic setups triggered for this timeframe in the current scan.")
             return
             
+        f.write(f"🚨 {title} 🚨\n\n")
+        
         if include_index and not df_index.empty:
             f.write("👑 INDEX ALERTS\n")
             for _, r in df_index.iterrows():
@@ -261,14 +275,14 @@ def run():
                 sl_m = 1.5
 
             # --- TOP-DOWN MTF FILTERING ---
-            # Bullish requires Daily AND Weekly > EMA
+            # Bullish: Daily AND Weekly > 50 EMA
             if close_p > d_ema and close_p > w_ema and macd_val > macd_sig and (55 <= rsi_val <= 75):
                 direction = "Bullish"
                 t1, t2, t3, t4, t5 = [round(close_p + m * atr, 1) for m in (m1, m2, m3, m4, m5)]
                 eq_sl = round(close_p - sl_m * atr, 1)
                 base_score = 2 + (2 if vol_vs >= 1.5 else 0)
                 
-            # Bearish requires Daily AND Weekly < EMA
+            # Bearish: Daily AND Weekly < 50 EMA
             elif close_p < d_ema and close_p < w_ema and macd_val < macd_sig and (25 <= rsi_val <= 45):
                 direction = "Bearish"
                 t1, t2, t3, t4, t5 = [round(close_p - m * atr, 1) for m in (m1, m2, m3, m4, m5)]
