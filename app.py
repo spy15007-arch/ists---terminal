@@ -5,32 +5,37 @@ import pandas as pd
 import numpy as np
 import requests
 import datetime
+import calendar
 import math
 from scipy.stats import norm
 
-# --- PAGE CONFIGURATION ---
-st.set_page_config(
-    page_title="ISTS Pro Dashboard",
-    page_icon="📈",
-    layout="wide"
-)
+st.set_page_config(page_title="ISTS Pro Dashboard", page_icon="📈", layout="wide")
 
-# --- FIREWALL-PROOF F&O UNIVERSE ---
 STATIC_FNO = ["AARTIIND", "ABB", "ABBOTINDIA", "ABCAPITAL", "ABFRL", "ACC", "ADANIENT", "ADANIPORTS", "ALKEM", "AMBUJACEM", "APOLLOHOSP", "APOLLOTYRE", "ASHOKLEY", "ASIANPAINT", "ASTRAL", "ATUL", "AUBANK", "AUROPHARMA", "AXISBANK", "BAJAJ-AUTO", "BAJAJFINSV", "BAJFINANCE", "BALKRISIND", "BALRAMCHIN", "BANDHANBNK", "BANKBARODA", "BATAINDIA", "BEL", "BERGEPAINT", "BHARATFORG", "BHARTIARTL", "BHEL", "BIOCON", "BOSCHLTD", "BPCL", "BRITANNIA", "CANBK", "CANFINHOME", "CHAMBLFERT", "CHOLAFIN", "CIPLA", "COALINDIA", "COFORGE", "COLPAL", "CONCOR", "COROMANDEL", "CROMPTON", "CUB", "CUMMINSIND", "DABUR", "DALBHARAT", "DEEPAKNTR", "DIVISLAB", "DIXON", "DLF", "DRREDDY", "EICHERMOT", "ESCORTS", "EXIDEIND", "FEDERALBNK", "GAIL", "GLENMARK", "GMRINFRA", "GNFC", "GODREJCP", "GODREJPROP", "GRANULES", "GRASIM", "GUJGASLTD", "HAL", "HAVELLS", "HCLTECH", "HDFCAMC", "HDFCBANK", "HDFCLIFE", "HEROMOTOCO", "HINDALCO", "HINDCOPPER", "HINDPETRO", "HINDUNILVR", "ICICIBANK", "ICICIGI", "ICICIPRULI", "IDEA", "IDFCFIRSTB", "IEX", "IGL", "INDHOTEL", "INDIACEM", "INDIAMART", "INDIGO", "INDUSINDBK", "INFY", "IOC", "IPCALAB", "IRCTC", "ITC", "JINDALSTEL", "JSWSTEEL", "JUBLFOOD", "KOTAKBANK", "LALPATHLAB", "LAURUSLABS", "LICHSGFIN", "LT", "LTIM", "LTTS", "LUPIN", "M&M", "M&MFIN", "MANAPPURAM", "MARICO", "MARUTI", "MCDOWELL-N", "MCX", "METROPOLIS", "MFSL", "MGL", "MOTHERSON", "MPHASIS", "MRF", "MUTHOOTFIN", "NATIONALUM", "NAUKRI", "NAVINFLUOR", "NESTLEIND", "NMDC", "NTPC", "OBEROIRLTY", "OFSS", "ONGC", "PAGEIND", "PEL", "PETRONET", "PFC", "PIDILITIND", "PIIND", "PNB", "POLYCAB", "POWERGRID", "PVRINOX", "RAMCOCEM", "RBLBANK", "RECLTD", "RELIANCE", "SAIL", "SBICARD", "SBILIFE", "SBIN", "SHREECEM", "SHRIRAMFIN", "SIEMENS", "SRF", "SUNPHARMA", "SUNTV", "SYNGENE", "TATACHEM", "TATACOMM", "TATACONSUM", "TATAMOTORS", "TATAPOWER", "TATASTEEL", "TCS", "TECHM", "TITAN", "TORNTPHARM", "TRENT", "TVSMOTOR", "UBL", "ULTRACEMCO", "UPL", "VEDL", "VOLTAS", "WIPRO", "ZEEL", "ZYDUSLIFE"]
 
-# --- SIDEBAR SETUP ---
 st.sidebar.title("ISTS Pro Terminal")
 st.sidebar.caption("Institutional Quant Trading System")
+page = st.sidebar.radio("Navigation", ["Dashboard", "Scan Market", "Budget Scanner (< ₹500)"])
 
-page = st.sidebar.radio(
-    "Navigation", 
-    ["Dashboard", "Scan Market", "Budget Scanner (< ₹500)"]
-)
-
-# --- TIME & MATH HELPERS ---
 def get_session_info():
     hour = (datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=5, minutes=30)).hour
     return "Intraday" if hour < 12 else "BTST"
+
+def get_expiry_dte():
+    now = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=5, minutes=30)
+    today = now.date()
+    c = calendar.Calendar(firstweekday=calendar.MONDAY)
+    monthcal = c.monthdatescalendar(today.year, today.month)
+    last_thursday = [d for week in monthcal for d in week if d.weekday() == 3 and d.month == today.month][-1]
+    
+    if today > last_thursday or (today == last_thursday and now.hour >= 15):
+        next_month = today.month + 1 if today.month < 12 else 1
+        next_year = today.year if today.month < 12 else today.year + 1
+        monthcal = c.monthdatescalendar(next_year, next_month)
+        last_thursday = [d for week in monthcal for d in week if d.weekday() == 3 and d.month == next_month][-1]
+    
+    dte = (last_thursday - today).days
+    return max(1, dte), "Monthly"
 
 def black_scholes(S, K, T, r, sigma):
     if T <= 0 or sigma == 0: return max(0, S - K), max(0, K - S), 1.0 if S > K else 0.0
@@ -39,8 +44,7 @@ def black_scholes(S, K, T, r, sigma):
     call_prem = S * norm.cdf(d1) - K * math.exp(-r * T) * norm.cdf(d2)
     return round(call_prem, 2)
 
-def generate_quant_option(price, t1, t2, t3, df_h, df_l, df_c):
-    dte = 15 
+def generate_quant_option(price, t1, t2, t3, df_h, df_l, df_c, dte, label):
     step = 100 if price > 5000 else (50 if price > 2000 else (20 if price > 1000 else (10 if price > 500 else 5)))
     atm = int(round(price / step) * step)
     try:
@@ -54,7 +58,7 @@ def generate_quant_option(price, t1, t2, t3, df_h, df_l, df_c):
     pt2 = black_scholes(t2, atm, dte/365.0, 0.07, vol)
     pt3 = black_scholes(t3, atm, dte/365.0, 0.07, vol)
     
-    return f"{atm} CE [Monthly]", c_prem, round(pt1, 1), round(pt2, 1), round(pt3, 1)
+    return f"{atm} CE [{label}]", c_prem, round(pt1, 1), round(pt2, 1), round(pt3, 1)
 
 @st.cache_data(ttl=1800)
 def run_quant_scan():
@@ -95,6 +99,8 @@ def run_quant_scan():
 
     sess_type = get_session_info()
     valid_setups = []
+    
+    stock_dte, stock_label = get_expiry_dte()
 
     for ticker in closes.columns:
         try:
@@ -135,7 +141,8 @@ def run_quant_scan():
 
             symbol = ticker.replace(".NS", "")
             df_h, df_l, df_c = highs[ticker].dropna(), lows[ticker].dropna(), closes[ticker].dropna()
-            opt, prem, pt1, pt2, pt3 = generate_quant_option(close_p, t1, t2, t3, df_h, df_l, df_c)
+            
+            opt, prem, pt1, pt2, pt3 = generate_quant_option(close_p, t1, t2, t3, df_h, df_l, df_c, stock_dte, stock_label)
             
             tv_clean_sym = symbol.replace("&", "_").replace("-", "_")
             
@@ -185,14 +192,11 @@ elif page == "Scan Market":
                 lambda s: f"https://in.tradingview.com/chart/?symbol=NSE:{str(s).replace('&', '_').replace('-', '_')}"
             )
 
-        # Compile Targets into Compact Strings to save horizontal space
         df_results['Eq Tgts (1-5)'] = df_results['EqT1'].astype(str) + "/" + df_results['EqT2'].astype(str) + "/" + df_results['EqT3'].astype(str) + "/" + df_results['EqT4'].astype(str) + "/" + df_results['EqT5'].astype(str)
         df_results['Prem Tgts (1-3)'] = df_results['PT1'].astype(str) + "/" + df_results['PT2'].astype(str) + "/" + df_results['PT3'].astype(str)
         
-        # 1. HIGH CONVICTION DASHBOARD
         st.markdown("---")
         st.subheader("🌟 Top 5 High Conviction Setups")
-        st.markdown("The absolute highest probability setups mathematically ranked by Base Score and RSI momentum.")
         
         hc_cols = ['Stock', 'Horizon', 'Entry', 'EqSL', 'Eq Tgts (1-5)', 'Opt', 'Prem', 'Prem Tgts (1-3)', 'TV_Link']
         st.dataframe(
@@ -203,8 +207,6 @@ elif page == "Scan Market":
         )
 
         st.markdown("---")
-        
-        # 2. CATEGORIZED TABS
         st.subheader("📊 Full Market Scan by Horizon")
         tab1, tab2, tab3 = st.tabs(["⚡ Intraday", "🌙 BTST", "📈 Swing"])
         
@@ -212,23 +214,19 @@ elif page == "Scan Market":
         
         with tab1:
             df_intra = df_results[df_results['Horizon'] == 'Intraday']
-            if not df_intra.empty: 
-                st.dataframe(df_intra[full_cols], use_container_width=True, hide_index=True, column_config={"TV_Link": st.column_config.LinkColumn("Live Chart", display_text="📊 View in TV")})
+            if not df_intra.empty: st.dataframe(df_intra[full_cols], use_container_width=True, hide_index=True, column_config={"TV_Link": st.column_config.LinkColumn("Live Chart", display_text="📊 View in TV")})
             else: st.info("No Intraday setups found right now.")
                 
         with tab2:
             df_btst = df_results[df_results['Horizon'] == 'BTST']
-            if not df_btst.empty: 
-                st.dataframe(df_btst[full_cols], use_container_width=True, hide_index=True, column_config={"TV_Link": st.column_config.LinkColumn("Live Chart", display_text="📊 View in TV")})
+            if not df_btst.empty: st.dataframe(df_btst[full_cols], use_container_width=True, hide_index=True, column_config={"TV_Link": st.column_config.LinkColumn("Live Chart", display_text="📊 View in TV")})
             else: st.info("No BTST setups found right now.")
                 
         with tab3:
             df_swing = df_results[df_results['Horizon'] == 'Swing']
-            if not df_swing.empty: 
-                st.dataframe(df_swing[full_cols], use_container_width=True, hide_index=True, column_config={"TV_Link": st.column_config.LinkColumn("Live Chart", display_text="📊 View in TV")})
+            if not df_swing.empty: st.dataframe(df_swing[full_cols], use_container_width=True, hide_index=True, column_config={"TV_Link": st.column_config.LinkColumn("Live Chart", display_text="📊 View in TV")})
             else: st.info("No Swing setups found right now.")
 
-        # 3. INTERACTIVE TRADINGVIEW CHARTING & EXECUTION
         st.markdown("---")
         st.subheader("🔍 Live TradingView Analysis & Execution")
         selected_stock = st.selectbox("Select stock to load live chart:", df_results['Stock'].tolist())
@@ -236,13 +234,11 @@ elif page == "Scan Market":
         tv_symbol = selected_stock.replace("&", "_").replace("-", "_")
         
         tv_widget = f"""
-        <!-- TradingView Widget BEGIN -->
         <div class="tradingview-widget-container" style="height:600px;width:100%;">
           <div id="tradingview_widget_{tv_symbol}" style="height:600px;width:100%;"></div>
           <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
           <script type="text/javascript">
-          new TradingView.widget(
-          {{
+          new TradingView.widget({{
           "autosize": true,
           "symbol": "BSE:{tv_symbol}",
           "interval": "D",
@@ -253,24 +249,18 @@ elif page == "Scan Market":
           "enable_publishing": false,
           "allow_symbol_change": true,
           "container_id": "tradingview_widget_{tv_symbol}"
-        }}
-          );
+        }});
           </script>
         </div>
-        <!-- TradingView Widget END -->
         """
         components.html(tv_widget, height=610)
 
         st.markdown("### ⚡ Execute Trade")
         b1, b2, b3 = st.columns(3)
-        with b1:
-            st.link_button("🟠 Trade on Dhan", "https://web.dhan.co/", use_container_width=True)
-        with b2:
-            st.link_button("🔵 Trade on Angel One", "https://trade.angelone.in/", use_container_width=True)
-        with b3:
-            st.link_button("📈 Open Full Chart", f"https://in.tradingview.com/chart/?symbol=NSE:{tv_symbol}", use_container_width=True)
+        with b1: st.link_button("🟠 Trade on Dhan", "https://web.dhan.co/", use_container_width=True)
+        with b2: st.link_button("🔵 Trade on Angel One", "https://trade.angelone.in/", use_container_width=True)
+        with b3: st.link_button("📈 Open Full Chart", f"https://in.tradingview.com/chart/?symbol=NSE:{tv_symbol}", use_container_width=True)
 
-        # 4. POSITION CALCULATOR
         st.markdown("---")
         stock_row = df_results[df_results['Stock'] == selected_stock].iloc[0]
         st.subheader(f"🧮 Position Size & Risk Calculator: {selected_stock}")
@@ -285,7 +275,6 @@ elif page == "Scan Market":
         if risk_per_share > 0:
             max_risk = (capital * risk_pct) / 100.0
             qty = int(max_risk / risk_per_share)
-            
             m1, m2, m3, m4 = st.columns(4)
             m1.metric("Quantity to Buy", f"{qty} shares")
             m2.metric("Total Investment", f"₹{(qty * entry_p):,.2f}")
@@ -295,7 +284,6 @@ elif page == "Scan Market":
 # --- VIEW: BUDGET SCANNER (< ₹500) ---
 elif page == "Budget Scanner (< ₹500)":
     st.title("💡 Sub-₹500 Budget Quant Scanner")
-    st.markdown("Scans the F&O Universe specifically for mathematically confirmed setups priced under ₹500.")
 
     budget_limit = st.number_input("Max Stock Price (₹)", min_value=50, max_value=1000, value=500, step=50)
 
@@ -332,7 +320,7 @@ elif page == "Budget Scanner (< ₹500)":
         )
 
         st.markdown("---")
-        st.subheader("🔍 Budget Position & Share Quantity Calculator")
+        st.subheader("🔍 Budget Position Calculator")
         selected_stock = st.selectbox("Select stock to evaluate:", df_budget['Stock'].tolist())
         stock_row = df_budget[df_budget['Stock'] == selected_stock].iloc[0]
 
