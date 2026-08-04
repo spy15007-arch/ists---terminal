@@ -16,7 +16,6 @@ def get_session_info():
     hour = now_ist.hour
     minute = now_ist.minute
     
-    # Intraday mode runs up to 2:30 PM IST (14:30)
     if hour < 14 or (hour == 14 and minute < 30):
         return now_ist.strftime("%d %b %Y | %I:%M %p (Intraday)"), "Intraday"
     else:
@@ -90,12 +89,12 @@ def get_index_options_ideas():
     return pd.DataFrame(results)
 
 def generate_tabular_markdown(df_stocks, df_index, title, filename, include_index=False):
-    """Generates clean Markdown reports for GitHub without wiping old data if empty."""
-    if df_stocks.empty and df_index.empty:
-        print(f"⚠️ No setups found for {filename}. Keeping previous file intact to avoid blank reports.")
-        return
-
+    """Generates clean Markdown reports for GitHub."""
     with open(filename, "w", encoding="utf-8") as f:
+        if df_stocks.empty and df_index.empty:
+            f.write(f"# {title}\n\n*No setups met the strict mathematical criteria in this session.*\n")
+            return
+
         f.write(f"# {title}\n\n")
         f.write("> **System:** Quant Breakout Strategy | **Targets:** 5x ATR Vector & Black-Scholes Premiums\n\n")
         
@@ -120,11 +119,12 @@ def generate_tabular_markdown(df_stocks, df_index, title, filename, include_inde
             f.write(f"| **{r['Stock']}** | ₹{r['Entry']} | {badge} | ₹{r['EqSL']} | {eq_tgts} | **{r['Opt']}** | ₹{r['Prem']} | {prem_tgts} |\n")
 
 def generate_telegram_cards(df_stocks, df_index, title, filename, include_index=False):
-    """Generates tight text files for Telegram broadcast."""
-    if df_stocks.empty and df_index.empty:
-        return
-
+    """Generates tight text files for Telegram broadcast. Always creates the file to prevent Action crashes."""
     with open(filename, "w", encoding="utf-8") as f:
+        if df_stocks.empty and df_index.empty:
+            # File is created but intentionally left completely blank
+            return
+            
         f.write(f"🚨 {title} 🚨\n\n")
         
         if include_index and not df_index.empty:
@@ -256,15 +256,28 @@ def run():
     df_btst = df_all[df_all['Horizon'] == 'BTST'].head(20) if not df_all.empty else pd.DataFrame()
     df_swing = df_all[df_all['Horizon'] == 'Swing'].head(20) if not df_all.empty else pd.DataFrame()
 
-    print("💾 Updating Markdown Reports...")
+    print("💾 Updating Markdown & Telegram Reports...")
+    
     if sess_type == "Intraday":
+        # Generate populated files for Intraday and Swing
         generate_tabular_markdown(df_intra, df_index, f"⚡ Intraday Report — {sess_title}", "intraday_report.md", include_index=True)
-        generate_tabular_markdown(df_swing, pd.DataFrame(), f"📈 Swing Trade Report — {sess_title}", "swing_report.md", include_index=False)
         generate_telegram_cards(df_intra, df_index, f"⚡ Intraday Report — {sess_title}", "intraday_tg.txt", include_index=True)
-    else:
-        generate_tabular_markdown(df_btst, pd.DataFrame(), f"🌙 BTST Carry-Forward Report — {sess_title}", "btst_report.md", include_index=False)
+        
         generate_tabular_markdown(df_swing, pd.DataFrame(), f"📈 Swing Trade Report — {sess_title}", "swing_report.md", include_index=False)
+        generate_telegram_cards(df_swing, pd.DataFrame(), f"📈 Swing Trade Report — {sess_title}", "swing_tg.txt", include_index=False)
+        
+        # Ensure BTST files exist but remain untouched/blank so actions don't crash
+        open("btst_tg.txt", "a").close() 
+    else:
+        # Generate populated files for BTST and Swing
+        generate_tabular_markdown(df_btst, pd.DataFrame(), f"🌙 BTST Carry-Forward Report — {sess_title}", "btst_report.md", include_index=False)
         generate_telegram_cards(df_btst, pd.DataFrame(), f"🌙 BTST Carry-Forward Report — {sess_title}", "btst_tg.txt", include_index=False)
+        
+        generate_tabular_markdown(df_swing, pd.DataFrame(), f"📈 Swing Trade Report — {sess_title}", "swing_report.md", include_index=False)
+        generate_telegram_cards(df_swing, pd.DataFrame(), f"📈 Swing Trade Report — {sess_title}", "swing_tg.txt", include_index=False)
+        
+        # Ensure Intraday files exist but remain untouched/blank so actions don't crash
+        open("intraday_tg.txt", "a").close() 
 
     print("🎉 Master Scanner Cycle Complete!")
 
