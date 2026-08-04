@@ -1,7 +1,9 @@
-# 🌙 BTST Carry-Forward Report — 04 Aug 2026 | 12:25 PM (Afternoon BTST)
+# 🌙 BTST Report — 04 Aug 2026 | 02:23 PM (Intraday)
 
-> **System:** Quant Breakout Strategy | **Targets:** 5x ATR Vector & Black-Scholes Premiums
+> **System:** MTF Aligned Quant Breakout | **Targets:** Scaled ATR Vector & Black-Scholes Premiums
 
 ## 📊 F&O High-Momentum Scans
 
-*No setups met the strict mathematical criteria in this session.*
+| Stock | Price | Base Score | Eq SL | Eq T1/T2/T3/T4/T5 | Option | Prem | Prem T1/T2/T3 |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **NESTLEIND (↑)** | ₹1475.3 | 2/10 | ₹1438.4 | 1504.8/1534.3/1563.8/1593.3/1622.9 | **1480 CE** | ₹37.18 | 54.1/74.4/97.5 |
