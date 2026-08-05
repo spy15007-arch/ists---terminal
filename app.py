@@ -283,29 +283,35 @@ elif page == "Scan Market":
             stock_row = df_all_merged[df_all_merged['Stock'] == selected_stock].iloc[0]
             
             tv_symbol = str(stock_row['RawStock']).strip().replace("&", "_").replace("-", "_")
+            safe_html_id = "tv_chart_" + tv_symbol.replace("_", "")
             
-            # The Advanced Chart Widget - Bound dynamically to prevent caching
+            # The Advanced Chart Widget - Container ID is fully dynamic to bypass Apple caching
             tv_advanced_widget = f"""
             <div class="tradingview-widget-container" style="height:600px;width:100%;">
-              <div class="tradingview-widget-container__widget" style="height:100%;width:100%;"></div>
-              <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js" async>
+              <div id="{safe_html_id}" style="height:100%;width:100%;"></div>
+              <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+              <script type="text/javascript">
+              new TradingView.widget(
               {{
-              "autosize": true,
-              "symbol": "NSE:{tv_symbol}",
-              "interval": "15",
-              "timezone": "Asia/Kolkata",
-              "theme": "dark",
-              "style": "1",
-              "locale": "in",
-              "allow_symbol_change": true,
-              "calendar": false,
-              "support_host": "https://www.tradingview.com"
-              }}
+                "width": "100%",
+                "height": "600",
+                "symbol": "NSE:{tv_symbol}",
+                "interval": "15",
+                "timezone": "Asia/Kolkata",
+                "theme": "dark",
+                "style": "1",
+                "locale": "in",
+                "toolbar_bg": "#f1f3f6",
+                "enable_publishing": false,
+                "hide_top_toolbar": false,
+                "save_image": false,
+                "container_id": "{safe_html_id}"
+              }});
               </script>
             </div>
             """
-            # Passing 'key' forces Streamlit to rebuild the HTML completely, stopping Apple fallback!
-            components.html(tv_advanced_widget, height=600, key=selected_stock)
+            
+            components.html(tv_advanced_widget, height=620)
 
             st.markdown("### ⚡ Execute Broker Trade")
             b1, b2, b3 = st.columns(3)
