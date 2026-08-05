@@ -1,5 +1,4 @@
 import streamlit as st
-import streamlit.components.v1 as components
 import yfinance as yf
 import pandas as pd
 import numpy as np
@@ -42,7 +41,6 @@ def generate_quant_option(price, t1, t2, t3, df_h, df_l, df_c, direction="Bullis
 
 @st.cache_data(ttl=1800)
 def get_index_options_ideas():
-    """Isolated index fetching using .history() to prevent date cross-contamination."""
     indices_map = {'^NSEI': 'NIFTY 50', '^NSEBANK': 'BANK NIFTY'}
     results = []
     
@@ -260,49 +258,27 @@ elif page == "Scan Market":
                     st.dataframe(df_swing[full_cols], use_container_width=True, hide_index=True, column_config={"TV_Link": st.column_config.LinkColumn("Live Chart", display_text="📊 View")})
                 else: st.info("No Swing setups found.")
 
-        # --- Dynamic Live Execution Dashboard ---
+        # --- Clean Native Execution & Direct TradingView Hub ---
         st.markdown("---")
-        st.subheader("🔍 Live TradingView Analysis & Execution")
+        st.subheader("🔍 Live Asset Analysis & Execution Hub")
         
-        # Merge both indices and stocks for the dropdown menu
         df_all_merged = pd.concat([st.session_state.get('index_results', pd.DataFrame()), df_results]) if not df_results.empty else st.session_state.get('index_results', pd.DataFrame())
         
         if not df_all_merged.empty:
-            selected_stock = st.selectbox("Select asset to load live chart:", df_all_merged['Stock'].tolist())
+            selected_stock = st.selectbox("Select asset to configure trade:", df_all_merged['Stock'].tolist())
             stock_row = df_all_merged[df_all_merged['Stock'] == selected_stock].iloc[0]
             
-            # 1. Clean the symbol specifically for the TradingView API (NSE:RELIANCE)
             tv_symbol = str(stock_row['RawStock']).strip().replace("&", "_").replace("-", "_")
-            
-            # 2. Modern Async TradingView Widget (Iframe-proof)
-            tv_widget = f"""
-            <div class="tradingview-widget-container" style="height:600px;width:100%;">
-              <div class="tradingview-widget-container__widget" style="height:100%;width:100%;"></div>
-              <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js" async>
-              {{
-                "autosize": true,
-                "symbol": "NSE:{tv_symbol}",
-                "interval": "15",
-                "timezone": "Asia/Kolkata",
-                "theme": "dark",
-                "style": "1",
-                "locale": "in",
-                "enable_publishing": false,
-                "hide_top_toolbar": false,
-                "hide_legend": false,
-                "save_image": false,
-                "support_host": "https://www.tradingview.com"
-              }}
-              </script>
-            </div>
-            """
-            components.html(tv_widget, height=620)
+            chart_url = f"https://in.tradingview.com/chart/?symbol=NSE:{tv_symbol}"
 
-            st.markdown("### ⚡ Execute Trade")
-            b1, b2, b3 = st.columns(3)
+            st.markdown(f"### 📈 Quick Access Chart for `{selected_stock}`")
+            st.info(f"Click below to open the fully interactive, real-time live chart for **NSE:{tv_symbol}** directly on TradingView.")
+            st.link_button(f"🚀 Open Live Chart for {selected_stock} on TradingView", chart_url, use_container_width=True)
+
+            st.markdown("### ⚡ Execute Broker Trade")
+            b1, b2 = st.columns(2)
             with b1: st.link_button("🟠 Trade on Dhan", "https://web.dhan.co/", use_container_width=True)
             with b2: st.link_button("🔵 Trade on Angel One", "https://trade.angelone.in/", use_container_width=True)
-            with b3: st.link_button("📈 Open Full Chart", f"https://in.tradingview.com/chart/?symbol=NSE:{tv_symbol}", use_container_width=True)
 
             st.markdown("---")
             st.subheader(f"🧮 Position Size & Risk Calculator: {selected_stock}")
@@ -317,7 +293,6 @@ elif page == "Scan Market":
                 max_risk = (capital * risk_pct) / 100.0
                 qty = int(max_risk / risk_per_share)
                 
-                # Lot sizing logic for indices vs equities
                 if "NIFTY" in tv_symbol:
                     lot_size = 25 if "BANK" not in tv_symbol else 15
                     qty = max(lot_size, (qty // lot_size) * lot_size)
