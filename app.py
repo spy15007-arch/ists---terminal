@@ -91,15 +91,15 @@ def get_index_options_ideas():
             
             opt, prem, pt1, pt2, pt3 = generate_quant_option(close_p, t1, t2, t3, df_h, df_l, df_c, direction.split(" ")[0], "Intraday")
             
-            # Use standard SPOT index symbols for the chart
-            tv_sym = "NIFTY" if name == "NIFTY 50" else "BANKNIFTY"
+            # THE FIX: Restored the '1!' Continuous Futures symbols to bypass TradingView's Index wall
+            tv_sym = "NIFTY1!" if name == "NIFTY 50" else "BANKNIFTY1!"
             
             results.append({
                 'Stock': f"{name} {direction}", 'RawStock': tv_sym, 'Horizon': 'Intraday', 'Entry': round(close_p, 2),
                 'RSI': round(rsi_val, 1), 'Vol vs 50d': 'N/A', 'EqSL': eq_sl,
                 'EqT1': t1, 'EqT2': t2, 'EqT3': t3, 'EqT4': t4, 'EqT5': t5,
                 'Opt': opt, 'Prem': prem, 'PT1': pt1, 'PT2': pt2, 'PT3': pt3, 'Score': 10,
-                'TV_Link': f"https://in.tradingview.com/chart/?symbol=NSE:{tv_sym}"
+                'TV_Link': f"https://in.tradingview.com/chart/?symbol=NSE:{tv_sym.replace('1!', '')}"
             })
         except Exception as e: pass
         
@@ -284,18 +284,18 @@ elif page == "Scan Market":
             selected_stock = st.selectbox("Select asset to load live embedded chart:", df_all_merged['Stock'].tolist())
             stock_row = df_all_merged[df_all_merged['Stock'] == selected_stock].iloc[0]
             
-            tv_symbol = str(stock_row['RawStock']).strip().replace("&", "_").replace("-", "_").replace("1!", "")
+            tv_symbol = str(stock_row['RawStock']).strip().replace("&", "_").replace("-", "_")
             
-            # THE FIX: Generate a truly unique timestamp ID every time a stock is selected. 
-            # This completely destroys the old iframe cache and prevents the AAPL fallback!
-            unique_id = f"tv_chart_{tv_symbol}_{int(datetime.datetime.now().timestamp())}"
+            # THE FIX: Generate a hidden unique timestamp inside the HTML string.
+            # This completely destroys the old iframe cache and prevents the AAPL fallback,
+            # while allowing us to use the Modern Async Widget that supports Indian stocks!
+            cache_buster = str(datetime.datetime.now().timestamp()).replace(".", "")
             
             tv_advanced_widget = f"""
+            <!-- CACHE BUSTER: {cache_buster} -->
             <div class="tradingview-widget-container" style="height:600px;width:100%;">
-              <div id="{unique_id}" style="height:100%;width:100%;"></div>
-              <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
-              <script type="text/javascript">
-              new TradingView.widget(
+              <div class="tradingview-widget-container__widget" style="height:100%;width:100%;"></div>
+              <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js" async>
               {{
                 "autosize": true,
                 "symbol": "NSE:{tv_symbol}",
@@ -304,23 +304,25 @@ elif page == "Scan Market":
                 "theme": "dark",
                 "style": "1",
                 "locale": "in",
-                "toolbar_bg": "#f1f3f6",
-                "enable_publishing": false,
                 "hide_top_toolbar": false,
+                "hide_legend": false,
                 "save_image": false,
-                "container_id": "{unique_id}"
-              }});
+                "support_host": "https://www.tradingview.com"
+              }}
               </script>
             </div>
             """
             
             components.html(tv_advanced_widget, height=620)
 
+            # Strip the '1!' ONLY for the URL link so the full website chart loads correctly
+            tv_url_sym = tv_symbol.replace("1!", "")
+
             st.markdown("### ⚡ Execute Broker Trade")
             b1, b2, b3 = st.columns(3)
             with b1: st.link_button("🟠 Trade on Dhan", "https://web.dhan.co/", use_container_width=True)
             with b2: st.link_button("🔵 Trade on Angel One", "https://trade.angelone.in/", use_container_width=True)
-            with b3: st.link_button("📈 Open Full Chart on TV", f"https://in.tradingview.com/chart/?symbol=NSE:{tv_symbol}", use_container_width=True)
+            with b3: st.link_button("📈 Open Full Chart on TV", f"https://in.tradingview.com/chart/?symbol=NSE:{tv_url_sym}", use_container_width=True)
 
             st.markdown("---")
             st.subheader(f"🧮 Position Size & Risk Calculator: {selected_stock}")
