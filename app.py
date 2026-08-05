@@ -272,9 +272,9 @@ elif page == "Scan Market":
                     st.dataframe(df_swing[full_cols], use_container_width=True, hide_index=True, column_config={"TV_Link": st.column_config.LinkColumn("Live Chart", display_text="📊 View")})
                 else: st.info("No Swing setups found.")
 
-        # --- Native Embedded TradingView Advanced Chart Integration ---
+        # --- Native Embedded TradingView Advanced Chart Hub ---
         st.markdown("---")
-        st.subheader("🔍 Live TradingView Advanced Chart Integration")
+        st.subheader("🔍 Live TradingView Native Chart Analysis")
         
         df_all_merged = pd.concat([st.session_state.get('index_results', pd.DataFrame()), df_results]) if not df_results.empty else st.session_state.get('index_results', pd.DataFrame())
         
@@ -284,31 +284,28 @@ elif page == "Scan Market":
             
             tv_symbol = str(stock_row['RawStock']).strip().replace("&", "_").replace("-", "_")
             
+            # The Advanced Chart Widget - Bound dynamically to prevent caching
             tv_advanced_widget = f"""
             <div class="tradingview-widget-container" style="height:600px;width:100%;">
-              <div id="tradingview_advanced_chart" style="height:100%;width:100%;"></div>
-              <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
-              <script type="text/javascript">
-              new TradingView.widget(
+              <div class="tradingview-widget-container__widget" style="height:100%;width:100%;"></div>
+              <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js" async>
               {{
-                "width": "100%",
-                "height": "600",
-                "symbol": "NSE:{tv_symbol}",
-                "interval": "15",
-                "timezone": "Asia/Kolkata",
-                "theme": "dark",
-                "style": "1",
-                "locale": "in",
-                "toolbar_bg": "#f1f3f6",
-                "enable_publishing": false,
-                "hide_top_toolbar": false,
-                "save_image": false,
-                "container_id": "tradingview_advanced_chart"
-              }});
+              "autosize": true,
+              "symbol": "NSE:{tv_symbol}",
+              "interval": "15",
+              "timezone": "Asia/Kolkata",
+              "theme": "dark",
+              "style": "1",
+              "locale": "in",
+              "allow_symbol_change": true,
+              "calendar": false,
+              "support_host": "https://www.tradingview.com"
+              }}
               </script>
             </div>
             """
-            components.html(tv_advanced_widget, height=620)
+            # Passing 'key' forces Streamlit to rebuild the HTML completely, stopping Apple fallback!
+            components.html(tv_advanced_widget, height=600, key=selected_stock)
 
             st.markdown("### ⚡ Execute Broker Trade")
             b1, b2, b3 = st.columns(3)
