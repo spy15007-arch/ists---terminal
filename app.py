@@ -396,3 +396,9 @@ elif page == "Budget Scanner (< ₹500)":
             actual_inv = round(shares_qty * float(stock_row['Entry']), 2)
             st.metric("Affordable Shares", f"{shares_qty} shares")
             st.metric("Total Investment Required", f"₹{actual_inv:,.2f}")
+Step 3: Reboot Streamlit
+Go to your live app and click Manage app (bottom right).
+
+Click the three dots (⋮) in the top right menu and select Reboot app.
+
+Once it's back online, your new Native Plotly 15m chart will be fully loaded!
