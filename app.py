@@ -91,8 +91,8 @@ def get_index_options_ideas():
             
             opt, prem, pt1, pt2, pt3 = generate_quant_option(close_p, t1, t2, t3, df_h, df_l, df_c, direction.split(" ")[0], "Intraday")
             
-            # --- THE FIX: Using Continuous Futures (1!) for TradingView embedding ---
-            tv_sym = "NIFTY1!" if name == "NIFTY 50" else "BANKNIFTY1!"
+            # Use standard SPOT index symbols for the chart
+            tv_sym = "NIFTY" if name == "NIFTY 50" else "BANKNIFTY"
             
             results.append({
                 'Stock': f"{name} {direction}", 'RawStock': tv_sym, 'Horizon': 'Intraday', 'Entry': round(close_p, 2),
@@ -284,19 +284,20 @@ elif page == "Scan Market":
             selected_stock = st.selectbox("Select asset to load live embedded chart:", df_all_merged['Stock'].tolist())
             stock_row = df_all_merged[df_all_merged['Stock'] == selected_stock].iloc[0]
             
-            tv_symbol = str(stock_row['RawStock']).strip().replace("&", "_").replace("-", "_")
-            safe_html_id = "tv_chart_" + tv_symbol.replace("_", "").replace("!", "")
+            tv_symbol = str(stock_row['RawStock']).strip().replace("&", "_").replace("-", "_").replace("1!", "")
             
-            # The Advanced Chart Widget - Container ID is fully dynamic to bypass caching
+            # THE FIX: Generate a truly unique timestamp ID every time a stock is selected. 
+            # This completely destroys the old iframe cache and prevents the AAPL fallback!
+            unique_id = f"tv_chart_{tv_symbol}_{int(datetime.datetime.now().timestamp())}"
+            
             tv_advanced_widget = f"""
             <div class="tradingview-widget-container" style="height:600px;width:100%;">
-              <div id="{safe_html_id}" style="height:100%;width:100%;"></div>
+              <div id="{unique_id}" style="height:100%;width:100%;"></div>
               <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
               <script type="text/javascript">
               new TradingView.widget(
               {{
-                "width": "100%",
-                "height": "600",
+                "autosize": true,
                 "symbol": "NSE:{tv_symbol}",
                 "interval": "15",
                 "timezone": "Asia/Kolkata",
@@ -307,7 +308,7 @@ elif page == "Scan Market":
                 "enable_publishing": false,
                 "hide_top_toolbar": false,
                 "save_image": false,
-                "container_id": "{safe_html_id}"
+                "container_id": "{unique_id}"
               }});
               </script>
             </div>
@@ -318,7 +319,7 @@ elif page == "Scan Market":
             st.markdown("### ⚡ Execute Broker Trade")
             b1, b2, b3 = st.columns(3)
             with b1: st.link_button("🟠 Trade on Dhan", "https://web.dhan.co/", use_container_width=True)
-            with b2: st.link_button("🔵 Trade on Angel One", "url?id=12", use_container_width=True)
+            with b2: st.link_button("🔵 Trade on Angel One", "https://trade.angelone.in/", use_container_width=True)
             with b3: st.link_button("📈 Open Full Chart on TV", f"https://in.tradingview.com/chart/?symbol=NSE:{tv_symbol}", use_container_width=True)
 
             st.markdown("---")
