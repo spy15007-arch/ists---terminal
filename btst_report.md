@@ -1,5 +1,13 @@
-# 🌙 BTST Report — 05 Aug 2026 | 10:02 AM (Intraday)
+# 🌙 BTST Report — 05 Aug 2026 | 10:15 AM (Intraday)
 
 > **System:** MTF Aligned Quant Breakout | **Targets:** Scaled ATR Vector & Black-Scholes Premiums
 
-*Market conditions did not trigger any MTF-aligned quantitative setups for this timeframe.*
+## 📊 F&O High-Momentum Scans
+
+| # | Stock | Price | Base Score | Eq SL | Eq T1/T2/T3/T4/T5 | Option | Prem | Prem T1/T2/T3 |
+| :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| 1 | **ABCAPITAL (↑)** | ₹422.9 | 2/10 | ₹411.6 | 432.0/441.1/450.1/459.2/468.3 | **425 CE** | ₹9.02 | 14.2/20.7/28.1 |
+| 2 | **COFORGE (↑)** | ₹1763.1 | 2/10 | ₹1707.8 | 1807.3/1851.5/1895.7/1939.9/1984.1 | **1760 CE** | ₹55.88 | 82.6/114.7/151.0 |
+| 3 | **NATIONALUM (↑)** | ₹379.6 | 2/10 | ₹368.8 | 388.3/396.9/405.6/414.3/422.9 | **380 CE** | ₹8.65 | 13.9/20.4/27.8 |
+| 4 | **MOTHERSON (↑)** | ₹153.65 | 2/10 | ₹149.5 | 157.0/160.3/163.7/167.0/170.3 | **155 CE** | ₹3.22 | 5.0/7.3/10.0 |
+| 5 | **SAIL (↑)** | ₹173.56 | 2/10 | ₹168.4 | 177.7/181.9/186.0/190.2/194.4 | **175 CE** | ₹4.19 | 6.5/9.3/12.6 |
