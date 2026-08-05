@@ -135,8 +135,8 @@ def generate_telegram_cards(df_stocks, df_index, title, filename):
         
         if not df_stocks.empty:
             f.write("📊 TOP QUANT SETUPS\n")
-            # Currently limited to top 7 to prevent Telegram from crashing with long messages
-            for idx, r in df_stocks.head(7).reset_index().iterrows():
+            # Limit updated to top 15 highest scoring setups for deeper insights
+            for idx, r in df_stocks.head(15).reset_index().iterrows():
                 f.write(f"{idx+1}. {r['Stock']} @ ₹{r['Entry']}\n   Eq Tgts: {r['EqT1']}/{r['EqT2']}/{r['EqT3']}\n")
                 if str(r['Opt']) != "N/A (Cash)":
                     f.write(f"   {r['Opt']} @ ₹{r['Prem']}\n")
