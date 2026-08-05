@@ -167,15 +167,11 @@ def run_quant_scan():
             else:
                 hor, m1, m2, m3, m4, m5, sl_m = "Swing", 1.5, 3.0, 4.5, 6.0, 7.5, 1.5
 
+            # STRICT LONG-ONLY FILTER: Only take Bullish setups for equity cash buying
             if close_p > d_ema and close_p > w_ema and macd_val > macd_sig and (55 <= rsi_val <= 75):
                 direction = "Bullish"
                 t1, t2, t3, t4, t5 = [round(close_p + m * atr, 1) for m in (m1, m2, m3, m4, m5)]
                 eq_sl = round(close_p - sl_m * atr, 1)
-                base_score = 2 + (2 if vol_vs >= 1.5 else 0)
-            elif close_p < d_ema and close_p < w_ema and macd_val < macd_sig and (25 <= rsi_val <= 45):
-                direction = "Bearish"
-                t1, t2, t3, t4, t5 = [round(close_p - m * atr, 1) for m in (m1, m2, m3, m4, m5)]
-                eq_sl = round(close_p + sl_m * atr, 1)
                 base_score = 2 + (2 if vol_vs >= 1.5 else 0)
             else:
                 continue 
@@ -186,7 +182,7 @@ def run_quant_scan():
             tv_clean_sym = symbol.replace("&", "_").replace("-", "_")
             
             valid_setups.append({
-                'Stock': f"{symbol} (↓)" if direction=="Bearish" else f"{symbol} (↑)", 
+                'Stock': f"{symbol} (↑)", 
                 'RawStock': symbol,
                 'Horizon': hor, 'Entry': round(close_p, 2), 'RSI': round(rsi_val,1), 'Vol vs 50d': vol_vs,
                 'EqSL': eq_sl, 'EqT1': t1, 'EqT2': t2, 'EqT3': t3, 'EqT4': t4, 'EqT5': t5, 
@@ -206,12 +202,12 @@ if page == "Dashboard":
     col1, col2, col3, col4 = st.columns(4)
     col1.metric("Market Status", "MTF ALIGNED", "NSE Live Feed")
     col2.metric("Scan Universe", "NSE F&O Liquid", "Firewall-Proof")
-    col3.metric("Math Engine", "Black-Scholes", "Bi-Directional")
+    col3.metric("Math Engine", "Black-Scholes", "Long-Only Equities")
     col4.metric("Strategy", "Scaled ATR Vectors", "Scalp/Swing")
 
 elif page == "Scan Market":
     st.title("🚀 Master Quant Scanner")
-    st.markdown("Scans F&O Universe matching Daily & Weekly EMA alignment for CE/PE setups.")
+    st.markdown("Scans F&O Universe matching Daily & Weekly EMA alignment for high-conviction long setups.")
 
     if st.button("Run Live Quant Scan", type="primary"):
         with st.spinner("Crunching indicator matrix and pricing options..."):
@@ -227,17 +223,19 @@ elif page == "Scan Market":
             df_results['Prem Tgts (1-3)'] = df_results['PT1'].astype(str) + "/" + df_results['PT2'].astype(str) + "/" + df_results['PT3'].astype(str)
             
             st.markdown("---")
-            st.subheader("🌟 Top 5 High Conviction Setups")
+            # --- UPGRADED LIMIT: TOP 10 HIGH CONVICTION ---
+            st.subheader("🌟 Top 10 High Conviction Setups")
             
-            df_hc = df_results.head(5).copy()
-            df_hc.insert(0, '#', range(1, len(df_hc) + 1))
+            df_hc = df_results.head(10).copy()
+            if not df_hc.empty:
+                df_hc.insert(0, '#', range(1, len(df_hc) + 1))
             
             hc_cols = ['#', 'Stock', 'Horizon', 'Entry', 'EqSL', 'Eq Tgts (1-5)', 'Opt', 'Prem', 'Prem Tgts (1-3)', 'TV_Link']
             st.dataframe(df_hc[hc_cols], use_container_width=True, hide_index=True, column_config={"TV_Link": st.column_config.LinkColumn("Live Chart", display_text="📊 View in TV")})
         
         st.markdown("---")
         st.subheader("📊 Full Market Scan by Horizon")
-        tab1, tab2, tab3 = st.tabs(["⚡ Intraday", "🌙 BTST", "📈 Swing"])
+        tab1, tab2, tab3 = st.tabs(["⚡ Intraday", "🌙 BTST (Best 10-15)", "📈 Swing (Top 25)"])
         
         full_cols = ['#', 'Stock', 'RSI', 'Vol vs 50d', 'Entry', 'EqSL', 'Eq Tgts (1-5)', 'Opt', 'Prem', 'Prem Tgts (1-3)', 'TV_Link']
         
@@ -260,7 +258,8 @@ elif page == "Scan Market":
                 
         with tab2:
             if not df_results.empty:
-                df_btst = df_results[df_results['Horizon'] == 'BTST'].copy()
+                # --- UPGRADED LIMIT: BTST BEST 10 TO 15 ---
+                df_btst = df_results[df_results['Horizon'] == 'BTST'].head(15).copy()
                 if not df_btst.empty: 
                     df_btst.insert(0, '#', range(1, len(df_btst) + 1)) 
                     st.dataframe(df_btst[full_cols], use_container_width=True, hide_index=True, column_config={"TV_Link": st.column_config.LinkColumn("Live Chart", display_text="📊 View")})
@@ -268,7 +267,8 @@ elif page == "Scan Market":
                 
         with tab3:
             if not df_results.empty:
-                df_swing = df_results[df_results['Horizon'] == 'Swing'].copy()
+                # --- UPGRADED LIMIT: SWING TOP 25 ---
+                df_swing = df_results[df_results['Horizon'] == 'Swing'].head(25).copy()
                 if not df_swing.empty: 
                     df_swing.insert(0, '#', range(1, len(df_swing) + 1)) 
                     st.dataframe(df_swing[full_cols], use_container_width=True, hide_index=True, column_config={"TV_Link": st.column_config.LinkColumn("Live Chart", display_text="📊 View")})
@@ -297,7 +297,6 @@ elif page == "Scan Market":
                 st.write("")
                 auto_refresh = st.toggle("⏱️ Auto-Tick (30s)", value=False)
                 
-            # Set to 30000 milliseconds (30 seconds)
             if auto_refresh:
                 st_autorefresh(interval=30000, limit=None, key="live_chart_refresh")
 
