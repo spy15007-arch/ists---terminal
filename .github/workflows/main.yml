@@ -35,6 +35,34 @@ jobs:
       - name: Run Master Scanner
         run: python master_scanner.py
 
+      # --- NEW: TELEGRAM DELIVERY STEPS ---
+      
+      - name: Send Intraday Alerts to Telegram
+        uses: appleboy/telegram-action@master
+        with:
+          to: ${{ secrets.TELEGRAM_CHAT_ID }}
+          token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          message_file: intraday_tg.txt
+          disable_web_page_preview: true
+
+      - name: Send BTST Alerts to Telegram
+        uses: appleboy/telegram-action@master
+        with:
+          to: ${{ secrets.TELEGRAM_CHAT_ID }}
+          token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          message_file: btst_tg.txt
+          disable_web_page_preview: true
+
+      - name: Send Swing Alerts to Telegram
+        uses: appleboy/telegram-action@master
+        with:
+          to: ${{ secrets.TELEGRAM_CHAT_ID }}
+          token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          message_file: swing_tg.txt
+          disable_web_page_preview: true
+
+      # --- END TELEGRAM STEPS ---
+
       - name: Commit and Push Markdown Reports
         run: |
           git config --local user.email "action@github.com"
