@@ -5,6 +5,7 @@ import pandas as pd
 import numpy as np
 import datetime
 import math
+import uuid
 from scipy.stats import norm
 
 st.set_page_config(page_title="ISTS Pro Dashboard", page_icon="📈", layout="wide")
@@ -283,42 +284,33 @@ elif page == "Scan Market":
             selected_stock = st.selectbox("Select asset to load live embedded chart:", df_all_merged['Stock'].tolist())
             stock_row = df_all_merged[df_all_merged['Stock'] == selected_stock].iloc[0]
             
+            # Use the pure NSE symbol for everything (works for 15-min and doesn't get blocked!)
             raw_sym = str(stock_row['RawStock']).strip().replace("&", "_").replace("-", "_")
+            widget_sym = f"NSE:{raw_sym}"
             
-            # --- FIX: SMART ROUTING FOR 15-MINUTE CHARTS ---
-            # TradingView allows NSE Equities (Reliance, Bharti Airtel) on the 15m chart.
-            # It blocks NSE *Indices* (Nifty, BankNifty), so we use equivalents that allow 15m!
-            if raw_sym == "NIFTY": 
-                widget_sym = "OANDA:IN50INR"       # CFD that perfectly mirrors Nifty 50 and allows 15m
-            elif raw_sym == "BANKNIFTY": 
-                widget_sym = "NSE:BANKNIFTY1!"     # Futures allow 15m and bypass the Spot block
-            else: 
-                widget_sym = f"NSE:{raw_sym}"      # Regular stocks go straight to NSE (allows 15m)
-
-            link_sym = f"NSE:{raw_sym}"            # External buttons always use original NSE Spot
+            # Generate a 100% unique ID for the chart container EVERY time you switch stocks.
+            # This completely stops Streamlit from caching Apple (AAPL)!
+            unique_id = "tv_chart_" + str(uuid.uuid4().hex)
             
-            cache_buster = str(datetime.datetime.now().timestamp()).replace(".", "")
-            
-            # FIX: Explicit height/width in the JSON ensures the chart doesn't squeeze!
             tv_advanced_widget = f"""
-            <!-- CACHE BUSTER: {cache_buster} -->
             <div class="tradingview-widget-container" style="height:600px;width:100%;">
-              <div class="tradingview-widget-container__widget" style="height:600px;width:100%;"></div>
-              <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js" async>
+              <div id="{unique_id}" style="height:100%;width:100%;"></div>
+              <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+              <script type="text/javascript">
+              new TradingView.widget(
               {{
-                "width": "100%",
-                "height": "600",
+                "autosize": true,
                 "symbol": "{widget_sym}",
                 "interval": "15",
                 "timezone": "Asia/Kolkata",
                 "theme": "dark",
                 "style": "1",
                 "locale": "in",
+                "enable_publishing": false,
                 "hide_top_toolbar": false,
-                "hide_legend": false,
                 "save_image": false,
-                "support_host": "https://www.tradingview.com"
-              }}
+                "container_id": "{unique_id}"
+              }});
               </script>
             </div>
             """
@@ -327,9 +319,9 @@ elif page == "Scan Market":
 
             st.markdown("### ⚡ Execute Broker Trade")
             b1, b2, b3 = st.columns(3)
-            with b1: st.link_button("🟠 Trade on Dhan", "url?id=9", use_container_width=True)
-            with b2: st.link_button("🔵 Trade on Angel One", "https://ists---terminal-smucsrbbc9fzksdxzjkczb.streamlit.app/~/+/#top-5-high-conviction-setups0", use_container_width=True)
-            with b3: st.link_button("📈 Open Full Chart on TV", f"https://in.tradingview.com/chart/?symbol={link_sym}", use_container_width=True)
+            with b1: st.link_button("🟠 Trade on Dhan", "https://web.dhan.co/", use_container_width=True)
+            with b2: st.link_button("🔵 Trade on Angel One", "https://trade.angelone.in/", use_container_width=True)
+            with b3: st.link_button("📈 Open Full Chart on TV", f"https://in.tradingview.com/chart/?symbol={widget_sym}", use_container_width=True)
 
             st.markdown("---")
             st.subheader(f"🧮 Position Size & Risk Calculator: {selected_stock}")
