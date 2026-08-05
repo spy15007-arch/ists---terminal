@@ -91,7 +91,6 @@ def get_index_options_ideas():
             
             opt, prem, pt1, pt2, pt3 = generate_quant_option(close_p, t1, t2, t3, df_h, df_l, df_c, direction.split(" ")[0], "Intraday")
             
-            # Use strict Spot names in the database
             tv_sym = "NIFTY" if name == "NIFTY 50" else "BANKNIFTY"
             
             results.append({
@@ -286,24 +285,29 @@ elif page == "Scan Market":
             
             raw_sym = str(stock_row['RawStock']).strip().replace("&", "_").replace("-", "_")
             
-            # --- DUAL-ROUTING LOGIC ---
-            # 1. Bypass the NSE Embedded Widget Block by using BSE / CFD equivalents
-            if raw_sym == "NIFTY": widget_sym = "OANDA:IN50INR"  # Perfect mirror of Nifty 50
-            elif raw_sym == "BANKNIFTY": widget_sym = "BSE:BANKEX" # Bankex mirrors BankNifty closely
-            else: widget_sym = f"BSE:{raw_sym}" # All equities pull freely from BSE
+            # --- FIX: SMART ROUTING FOR 15-MINUTE CHARTS ---
+            # TradingView allows NSE Equities (Reliance, Bharti Airtel) on the 15m chart.
+            # It blocks NSE *Indices* (Nifty, BankNifty), so we use equivalents that allow 15m!
+            if raw_sym == "NIFTY": 
+                widget_sym = "OANDA:IN50INR"       # CFD that perfectly mirrors Nifty 50 and allows 15m
+            elif raw_sym == "BANKNIFTY": 
+                widget_sym = "NSE:BANKNIFTY1!"     # Futures allow 15m and bypass the Spot block
+            else: 
+                widget_sym = f"NSE:{raw_sym}"      # Regular stocks go straight to NSE (allows 15m)
 
-            # 2. Keep the External Buttons strict to the original NSE spot tickers
-            link_sym = f"NSE:{raw_sym}"
+            link_sym = f"NSE:{raw_sym}"            # External buttons always use original NSE Spot
             
             cache_buster = str(datetime.datetime.now().timestamp()).replace(".", "")
             
+            # FIX: Explicit height/width in the JSON ensures the chart doesn't squeeze!
             tv_advanced_widget = f"""
             <!-- CACHE BUSTER: {cache_buster} -->
             <div class="tradingview-widget-container" style="height:600px;width:100%;">
-              <div class="tradingview-widget-container__widget" style="height:100%;width:100%;"></div>
+              <div class="tradingview-widget-container__widget" style="height:600px;width:100%;"></div>
               <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js" async>
               {{
-                "autosize": true,
+                "width": "100%",
+                "height": "600",
                 "symbol": "{widget_sym}",
                 "interval": "15",
                 "timezone": "Asia/Kolkata",
@@ -323,10 +327,8 @@ elif page == "Scan Market":
 
             st.markdown("### ⚡ Execute Broker Trade")
             b1, b2, b3 = st.columns(3)
-            with b1: st.link_button("🟠 Trade on Dhan", "https://web.dhan.co/", use_container_width=True)
-            with b2: st.link_button("🔵 Trade on Angel One", "https://trade.angelone.in/", use_container_width=True)
-            
-            # This button will now definitively open NSE:NIFTY and NSE:MUTHOOTFIN Spot charts!
+            with b1: st.link_button("🟠 Trade on Dhan", "url?id=9", use_container_width=True)
+            with b2: st.link_button("🔵 Trade on Angel One", "https://ists---terminal-smucsrbbc9fzksdxzjkczb.streamlit.app/~/+/#top-5-high-conviction-setups0", use_container_width=True)
             with b3: st.link_button("📈 Open Full Chart on TV", f"https://in.tradingview.com/chart/?symbol={link_sym}", use_container_width=True)
 
             st.markdown("---")
