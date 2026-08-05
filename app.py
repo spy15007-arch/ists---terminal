@@ -284,15 +284,23 @@ elif page == "Scan Market":
             selected_stock = st.selectbox("Select asset to load live embedded chart:", df_all_merged['Stock'].tolist())
             stock_row = df_all_merged[df_all_merged['Stock'] == selected_stock].iloc[0]
             
-            # Use the pure NSE symbol for everything (works for 15-min and doesn't get blocked!)
+            # Use the pure NSE symbol
             raw_sym = str(stock_row['RawStock']).strip().replace("&", "_").replace("-", "_")
             widget_sym = f"NSE:{raw_sym}"
             
-            # Generate a 100% unique ID for the chart container EVERY time you switch stocks.
-            # This completely stops Streamlit from caching Apple (AAPL)!
+            # Ensure Streamlit sees this as a brand new component every click
             unique_id = "tv_chart_" + str(uuid.uuid4().hex)
             
+            # The Ultimate Cache-Busting HTML Block + Strict Daily Interval to bypass the firewall
             tv_advanced_widget = f"""
+            <!DOCTYPE html>
+            <html>
+            <head>
+            <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+            <meta http-equiv="Pragma" content="no-cache">
+            <meta http-equiv="Expires" content="0">
+            </head>
+            <body style="margin:0;padding:0;background-color:#0e1117;">
             <div class="tradingview-widget-container" style="height:600px;width:100%;">
               <div id="{unique_id}" style="height:100%;width:100%;"></div>
               <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
@@ -301,7 +309,7 @@ elif page == "Scan Market":
               {{
                 "autosize": true,
                 "symbol": "{widget_sym}",
-                "interval": "15",
+                "interval": "D",
                 "timezone": "Asia/Kolkata",
                 "theme": "dark",
                 "style": "1",
@@ -313,9 +321,12 @@ elif page == "Scan Market":
               }});
               </script>
             </div>
+            </body>
+            </html>
             """
             
-            components.html(tv_advanced_widget, height=620)
+            # Notice the height is set to 605. This slight change breaks Streamlit's layout cache!
+            components.html(tv_advanced_widget, height=605)
 
             st.markdown("### ⚡ Execute Broker Trade")
             b1, b2, b3 = st.columns(3)
