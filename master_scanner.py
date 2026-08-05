@@ -48,16 +48,15 @@ def generate_quant_option(price, t1, t2, t3, df_h, df_l, df_c, direction="Bullis
     return f"{atm} {opt_type}", c_prem, round(pt1, 1), round(pt2, 1), round(pt3, 1)
 
 def get_index_options_ideas():
+    """Unrestricted Index Scalper: Always generates CE/PE targets based on prevailing daily trend."""
     indices = {'NIFTY 50': '^NSEI', 'BANK NIFTY': '^NSEBANK'}
     results = []
     for name, ticker in indices.items():
         try:
-            data = yf.download(ticker, period="6mo", interval="1d", progress=False)
+            data = yf.download(ticker, period="1mo", interval="1d", progress=False)
             if data.empty: continue
             close_p = float(data['Close'].iloc[-1])
             ema_50 = data['Close'].ewm(span=50).mean().iloc[-1]
-            weekly_close = data['Close'].resample('W').last().dropna()
-            weekly_ema_50 = float(weekly_close.ewm(span=50).mean().iloc[-1])
             
             hl = data['High'] - data['Low']
             hc = (data['High'] - data['Close'].shift(1)).abs()
@@ -70,16 +69,15 @@ def get_index_options_ideas():
             loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
             rsi_val = float((100 - (100 / (1 + (gain / loss)))).iloc[-1])
             
-            if close_p > ema_50 and close_p > weekly_ema_50:
+            # Decoupled from Weekly MTF - Guarantees an output every session
+            if close_p > ema_50:
                 direction = "Bullish (Call)"
                 t1, t2, t3, t4, t5 = [round(close_p + m * atr, 1) for m in (0.4, 0.8, 1.2, 1.6, 2.0)]
                 eq_sl = round(close_p - 0.8 * atr, 1)
-            elif close_p < ema_50 and close_p < weekly_ema_50:
+            else:
                 direction = "Bearish (Put)"
                 t1, t2, t3, t4, t5 = [round(close_p - m * atr, 1) for m in (0.4, 0.8, 1.2, 1.6, 2.0)]
                 eq_sl = round(close_p + 0.8 * atr, 1)
-            else:
-                continue 
             
             opt, prem, pt1, pt2, pt3 = generate_quant_option(close_p, t1, t2, t3, data['High'], data['Low'], data['Close'], direction.split(" ")[0])
             results.append({
@@ -101,7 +99,7 @@ def generate_tabular_markdown(df_stocks, df_index, title, filename, include_inde
             return
 
         if include_index and not df_index.empty:
-            f.write("## 👑 Index Options (Intraday Scalps - MTF Aligned)\n\n")
+            f.write("## 👑 Index Options (Intraday Scalps)\n\n")
             f.write("| # | Index Direction | Price | Base Score | Eq SL | Eq T1/T2/T3/T4/T5 | Option | Prem | Prem T1/T2/T3 |\n")
             f.write("| :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |\n")
             for idx, r in df_index.reset_index().iterrows():
@@ -135,7 +133,6 @@ def generate_telegram_cards(df_stocks, df_index, title, filename):
         
         if not df_stocks.empty:
             f.write("📊 TOP QUANT SETUPS\n")
-            # Limit updated to top 15 highest scoring setups for deeper insights
             for idx, r in df_stocks.head(15).reset_index().iterrows():
                 f.write(f"{idx+1}. {r['Stock']} @ ₹{r['Entry']}\n   Eq Tgts: {r['EqT1']}/{r['EqT2']}/{r['EqT3']}\n")
                 if str(r['Opt']) != "N/A (Cash)":
@@ -150,7 +147,6 @@ def run():
     now_ist = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=5, minutes=30)
     market_open = now_ist.replace(hour=9, minute=15, second=0, microsecond=0)
     
-    # Calculate how many minutes the market has been open today (cap at 375 for full day)
     minutes_elapsed = max(1, (now_ist - market_open).total_seconds() / 60)
     minutes_elapsed = min(minutes_elapsed, 375)
     
@@ -213,8 +209,6 @@ def run():
             rsi_val, macd_val, macd_sig = float(last_rsi[ticker]), float(last_macd[ticker]), float(last_macd_signal[ticker])
             d_ema, w_ema, atr = float(last_ema_50[ticker]), float(last_ema_50_weekly[ticker]), float(last_atr[ticker])
             
-            # --- RVOL CALCULATION FIX ---
-            # Adjust the 50-day average volume based on how long the market has been open today!
             adjusted_vol_50 = vol_50_avg * (minutes_elapsed / 375.0)
             vol_vs = round(vol_today / adjusted_vol_50, 2)
             
