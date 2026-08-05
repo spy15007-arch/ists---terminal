@@ -284,23 +284,19 @@ elif page == "Scan Market":
             selected_stock = st.selectbox("Select asset to load live embedded chart:", df_all_merged['Stock'].tolist())
             stock_row = df_all_merged[df_all_merged['Stock'] == selected_stock].iloc[0]
             
-            # Use the pure NSE symbol
             raw_sym = str(stock_row['RawStock']).strip().replace("&", "_").replace("-", "_")
-            widget_sym = f"NSE:{raw_sym}"
             
-            # Ensure Streamlit sees this as a brand new component every click
+            # --- THE ULTIMATE FIREWALL BYPASS ---
+            # By appending '1!' we force TradingView to load the Continuous Futures Contract. 
+            # This completely bypasses the NSE Spot block AND restores your 15-minute timeframe!
+            widget_sym = f"NSE:{raw_sym}1!"
+            link_sym = f"NSE:{raw_sym}"
+            
+            st.info("🛡️ **Firewall Bypass Active:** The chart below is pulling the **Continuous Futures** feed to bypass the NSE data block and restore your 15-minute timeframe. *(Note: TradingView uses the legacy name 'S&P CNX Nifty' for Nifty 50 Futures. It is exactly the same index.)*")
+
             unique_id = "tv_chart_" + str(uuid.uuid4().hex)
             
-            # The Ultimate Cache-Busting HTML Block + Strict Daily Interval to bypass the firewall
             tv_advanced_widget = f"""
-            <!DOCTYPE html>
-            <html>
-            <head>
-            <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-            <meta http-equiv="Pragma" content="no-cache">
-            <meta http-equiv="Expires" content="0">
-            </head>
-            <body style="margin:0;padding:0;background-color:#0e1117;">
             <div class="tradingview-widget-container" style="height:600px;width:100%;">
               <div id="{unique_id}" style="height:100%;width:100%;"></div>
               <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
@@ -309,7 +305,7 @@ elif page == "Scan Market":
               {{
                 "autosize": true,
                 "symbol": "{widget_sym}",
-                "interval": "D",
+                "interval": "15",
                 "timezone": "Asia/Kolkata",
                 "theme": "dark",
                 "style": "1",
@@ -321,18 +317,15 @@ elif page == "Scan Market":
               }});
               </script>
             </div>
-            </body>
-            </html>
             """
             
-            # Notice the height is set to 605. This slight change breaks Streamlit's layout cache!
-            components.html(tv_advanced_widget, height=605)
+            components.html(tv_advanced_widget, height=620)
 
             st.markdown("### ⚡ Execute Broker Trade")
             b1, b2, b3 = st.columns(3)
             with b1: st.link_button("🟠 Trade on Dhan", "https://web.dhan.co/", use_container_width=True)
             with b2: st.link_button("🔵 Trade on Angel One", "https://trade.angelone.in/", use_container_width=True)
-            with b3: st.link_button("📈 Open Full Chart on TV", f"https://in.tradingview.com/chart/?symbol={widget_sym}", use_container_width=True)
+            with b3: st.link_button("📈 Open Full Chart on TV", f"https://in.tradingview.com/chart/?symbol={link_sym}", use_container_width=True)
 
             st.markdown("---")
             st.subheader(f"🧮 Position Size & Risk Calculator: {selected_stock}")
