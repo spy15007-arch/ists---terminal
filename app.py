@@ -6,6 +6,7 @@ import datetime
 import math
 import plotly.graph_objects as go
 from scipy.stats import norm
+from streamlit_autorefresh import st_autorefresh
 
 st.set_page_config(page_title="ISTS Pro Dashboard", page_icon="📈", layout="wide")
 
@@ -97,7 +98,7 @@ def get_index_options_ideas():
                 'Stock': f"{name} {direction}", 'RawStock': tv_sym, 'Horizon': 'Intraday', 'Entry': round(close_p, 2),
                 'RSI': round(rsi_val, 1), 'Vol vs 50d': 'N/A', 'EqSL': eq_sl,
                 'EqT1': t1, 'EqT2': t2, 'EqT3': t3, 'EqT4': t4, 'EqT5': t5,
-                'Opt': Opt, 'Prem': prem, 'PT1': pt1, 'PT2': pt2, 'PT3': pt3, 'Score': 10,
+                'Opt': opt, 'Prem': prem, 'PT1': pt1, 'PT2': pt2, 'PT3': pt3, 'Score': 10,
                 'TV_Link': f"https://in.tradingview.com/chart/?symbol=NSE:{tv_sym}"
             })
         except Exception as e: pass
@@ -281,8 +282,7 @@ elif page == "Scan Market":
         
         if not df_all_merged.empty:
             
-            # --- NEW: TIMEFRAME SELECTOR ---
-            c1, c2, c3 = st.columns([2, 1, 1])
+            c1, c2, c3, c4 = st.columns([2, 1, 1, 1])
             with c1:
                 selected_stock = st.selectbox("Select asset to load native chart:", df_all_merged['Stock'].tolist())
             with c2:
@@ -290,8 +290,16 @@ elif page == "Scan Market":
             with c3:
                 st.write("")
                 st.write("")
-                if st.button("🔄 Refresh Live Chart", use_container_width=True):
+                if st.button("🔄 Refresh Now", use_container_width=True):
                     pass 
+            with c4:
+                st.write("")
+                st.write("")
+                auto_refresh = st.toggle("⏱️ Auto-Tick (30s)", value=False)
+                
+            # Set to 30000 milliseconds (30 seconds)
+            if auto_refresh:
+                st_autorefresh(interval=30000, limit=None, key="live_chart_refresh")
 
             stock_row = df_all_merged[df_all_merged['Stock'] == selected_stock].iloc[0]
             raw_sym = str(stock_row['RawStock']).strip().replace("&", "_").replace("-", "_")
@@ -302,7 +310,6 @@ elif page == "Scan Market":
             
             tv_link_sym = f"NSE:{raw_sym}"
             
-            # Determine how much history to pull based on the selected timeframe
             if selected_tf == "1d":
                 fetch_period = "3mo"
             else:
@@ -322,10 +329,9 @@ elif page == "Scan Market":
                         decreasing_line_color='#ff0000'
                     )])
                     
-                    # Smart Gap Hiding: Only hide overnight gaps if we are looking at an Intraday chart!
-                    range_breaks = [dict(bounds=["sat", "mon"])] # Always hide weekends
+                    range_breaks = [dict(bounds=["sat", "mon"])]
                     if selected_tf != "1d":
-                        range_breaks.append(dict(bounds=[15.5, 9.25], pattern="hour")) # Hide 3:30 PM to 9:15 AM
+                        range_breaks.append(dict(bounds=[15.5, 9.25], pattern="hour")) 
                     
                     fig.update_xaxes(rangebreaks=range_breaks)
 
