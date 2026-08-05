@@ -90,7 +90,9 @@ def get_index_options_ideas():
                 eq_sl = round(close_p + 0.6 * atr, 1)
             
             opt, prem, pt1, pt2, pt3 = generate_quant_option(close_p, t1, t2, t3, df_h, df_l, df_c, direction.split(" ")[0], "Intraday")
-            tv_sym = "NIFTY" if name == "NIFTY 50" else "BANKNIFTY"
+            
+            # --- THE FIX: Using Continuous Futures (1!) for TradingView embedding ---
+            tv_sym = "NIFTY1!" if name == "NIFTY 50" else "BANKNIFTY1!"
             
             results.append({
                 'Stock': f"{name} {direction}", 'RawStock': tv_sym, 'Horizon': 'Intraday', 'Entry': round(close_p, 2),
@@ -283,9 +285,9 @@ elif page == "Scan Market":
             stock_row = df_all_merged[df_all_merged['Stock'] == selected_stock].iloc[0]
             
             tv_symbol = str(stock_row['RawStock']).strip().replace("&", "_").replace("-", "_")
-            safe_html_id = "tv_chart_" + tv_symbol.replace("_", "")
+            safe_html_id = "tv_chart_" + tv_symbol.replace("_", "").replace("!", "")
             
-            # The Advanced Chart Widget - Container ID is fully dynamic to bypass Apple caching
+            # The Advanced Chart Widget - Container ID is fully dynamic to bypass caching
             tv_advanced_widget = f"""
             <div class="tradingview-widget-container" style="height:600px;width:100%;">
               <div id="{safe_html_id}" style="height:100%;width:100%;"></div>
@@ -316,7 +318,7 @@ elif page == "Scan Market":
             st.markdown("### ⚡ Execute Broker Trade")
             b1, b2, b3 = st.columns(3)
             with b1: st.link_button("🟠 Trade on Dhan", "https://web.dhan.co/", use_container_width=True)
-            with b2: st.link_button("🔵 Trade on Angel One", "https://trade.angelone.in/", use_container_width=True)
+            with b2: st.link_button("🔵 Trade on Angel One", "url?id=12", use_container_width=True)
             with b3: st.link_button("📈 Open Full Chart on TV", f"https://in.tradingview.com/chart/?symbol=NSE:{tv_symbol}", use_container_width=True)
 
             st.markdown("---")
