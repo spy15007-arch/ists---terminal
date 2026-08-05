@@ -125,7 +125,7 @@ def generate_tabular_markdown(df_stocks, df_index, title, filename, include_inde
             f.write("\n---\n\n")
 
         if not df_stocks.empty:
-            f.write("## 📊 F&O High-Momentum Scans\n\n")
+            f.write("## 📊 F&O High-Momentum Scans (Long-Only)\n\n")
             f.write("| # | Stock | Price | Base Score | Eq SL | Eq T1/T2/T3/T4/T5 | Option | Prem | Prem T1/T2/T3 |\n")
             f.write("| :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |\n")
             for idx, r in df_stocks.reset_index().iterrows():
@@ -156,7 +156,7 @@ def generate_telegram_cards(df_stocks, df_index, title, filename):
                 f.write("\n")
 
 def run():
-    print("🚀 Starting Automated Master Quant Scanner (MTF Edition)...")
+    print("🚀 Starting Automated Master Quant Scanner (Long-Only MTF Edition)...")
     sess_title, sess_type = get_session_info()
     print(f"🕒 Timeframe Registered: {sess_title}")
     
@@ -235,15 +235,11 @@ def run():
             else:
                 hor, m1, m2, m3, m4, m5, sl_m = "Swing", 1.5, 3.0, 4.5, 6.0, 7.5, 1.5
 
+            # STRICT LONG-ONLY FILTER (Removed Bearish branch completely)
             if close_p > d_ema and close_p > w_ema and macd_val > macd_sig and (55 <= rsi_val <= 75):
                 direction = "Bullish"
                 t1, t2, t3, t4, t5 = [round(close_p + m * atr, 1) for m in (m1, m2, m3, m4, m5)]
                 eq_sl = round(close_p - sl_m * atr, 1)
-                base_score = 2 + (2 if vol_vs >= 1.5 else 0)
-            elif close_p < d_ema and close_p < w_ema and macd_val < macd_sig and (25 <= rsi_val <= 45):
-                direction = "Bearish"
-                t1, t2, t3, t4, t5 = [round(close_p - m * atr, 1) for m in (m1, m2, m3, m4, m5)]
-                eq_sl = round(close_p + sl_m * atr, 1)
                 base_score = 2 + (2 if vol_vs >= 1.5 else 0)
             else:
                 continue 
@@ -253,7 +249,7 @@ def run():
             opt, prem, pt1, pt2, pt3 = generate_quant_option(close_p, t1, t2, t3, df_h, df_l, df_c, direction)
             
             valid_setups.append({
-                'Stock': f"{symbol} (↓)" if direction=="Bearish" else f"{symbol} (↑)", 'Horizon': hor, 'Entry': round(close_p, 2), 
+                'Stock': f"{symbol} (↑)", 'Horizon': hor, 'Entry': round(close_p, 2), 
                 'RSI': round(rsi_val,1), 'EqSL': eq_sl, 'EqT1': t1, 'EqT2': t2, 'EqT3': t3, 'EqT4': t4, 'EqT5': t5, 
                 'Opt': opt, 'Prem': prem, 'PT1': pt1, 'PT2': pt2, 'PT3': pt3, 'Score': base_score
             })
@@ -261,9 +257,10 @@ def run():
 
     df_all = pd.DataFrame(valid_setups).drop_duplicates(subset=['Stock']).sort_values(by=['Score'], ascending=False) if valid_setups else pd.DataFrame()
 
-    df_intra = df_all[df_all['Horizon'] == 'Intraday'].head(20) if not df_all.empty else pd.DataFrame()
-    df_btst = df_all[df_all['Horizon'] == 'BTST'].head(20) if not df_all.empty else pd.DataFrame()
-    df_swing = df_all[df_all['Horizon'] == 'Swing'].head(20) if not df_all.empty else pd.DataFrame()
+    # --- UPGRADED OUTPUT LIMITS ---
+    df_intra = df_all[df_all['Horizon'] == 'Intraday'].head(10) if not df_all.empty else pd.DataFrame()
+    df_btst = df_all[df_all['Horizon'] == 'BTST'].head(15) if not df_all.empty else pd.DataFrame()
+    df_swing = df_all[df_all['Horizon'] == 'Swing'].head(25) if not df_all.empty else pd.DataFrame()
 
     generate_tabular_markdown(df_intra, df_index, f"⚡ Intraday Report — {sess_title}", "intraday_report.md", include_index=True)
     generate_telegram_cards(df_intra, df_index, f"⚡ Intraday Report — {sess_title}", "intraday_tg.txt")
