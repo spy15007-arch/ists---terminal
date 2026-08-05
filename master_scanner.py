@@ -1,3 +1,4 @@
+import os
 import yfinance as yf
 import pandas as pd
 import numpy as np
@@ -13,7 +14,15 @@ STATIC_FNO = ["AARTIIND", "ABB", "ABBOTINDIA", "ABCAPITAL", "ABFRL", "ACC", "ADA
 def get_session_info():
     now_ist = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=5, minutes=30)
     hour, minute = now_ist.hour, now_ist.minute
-    if hour < 14 or (hour == 14 and minute < 30):
+    
+    # Check if run locally OR triggered manually via GitHub button
+    is_github_action = os.environ.get("GITHUB_ACTIONS") == "true"
+    is_manual_dispatch = os.environ.get("GITHUB_EVENT_NAME") == "workflow_dispatch"
+    is_manual = (not is_github_action) or is_manual_dispatch
+
+    if is_manual:
+        return now_ist.strftime("%d %b %Y | %I:%M %p (Manual Override)"), "Manual"
+    elif hour < 14 or (hour == 14 and minute < 30):
         return now_ist.strftime("%d %b %Y | %I:%M %p (Intraday)"), "Intraday"
     else:
         return now_ist.strftime("%d %b %Y | %I:%M %p (Afternoon/EOD)"), "Afternoon"
@@ -54,7 +63,6 @@ def get_index_options_ideas():
     results = []
     
     try:
-        # Batch download handles the yfinance multi-index formatting correctly
         data = yf.download(tickers, period="6mo", interval="1d", progress=False, threads=True)
         if data.empty: return pd.DataFrame()
         
@@ -63,12 +71,9 @@ def get_index_options_ideas():
         for ticker in tickers:
             try:
                 name = indices_map[ticker]
-                
-                # Extract clean 1D Series for the specific index
                 df_c = closes[ticker].dropna()
                 df_h = highs[ticker].dropna()
                 df_l = lows[ticker].dropna()
-                
                 if df_c.empty: continue
                 
                 close_p = float(df_c.iloc[-1])
@@ -102,10 +107,8 @@ def get_index_options_ideas():
                     'EqT1': t1, 'EqT2': t2, 'EqT3': t3, 'EqT4': t4, 'EqT5': t5,
                     'Opt': opt, 'Prem': prem, 'PT1': pt1, 'PT2': pt2, 'PT3': pt3, 'Score': 10
                 })
-            except Exception as e:
-                pass # Skip if math fails for a single index
-    except Exception as e:
-        pass # Skip if bulk download fails
+            except Exception as e: pass
+    except Exception as e: pass
         
     return pd.DataFrame(results)
 
@@ -170,7 +173,8 @@ def run():
     minutes_elapsed = max(1, (now_ist - market_open).total_seconds() / 60)
     minutes_elapsed = min(minutes_elapsed, 375)
     
-    if sess_type == "Intraday":
+    # If run is Intraday OR Manual Override, force the index options to generate!
+    if sess_type in ["Intraday", "Manual"]:
         df_index = get_index_options_ideas()
     else:
         df_index = pd.DataFrame()
