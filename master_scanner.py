@@ -15,7 +15,6 @@ def get_session_info():
     now_ist = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=5, minutes=30)
     hour, minute = now_ist.hour, now_ist.minute
     
-    # Check if run locally OR triggered manually via GitHub button
     is_github_action = os.environ.get("GITHUB_ACTIONS") == "true"
     is_manual_dispatch = os.environ.get("GITHUB_EVENT_NAME") == "workflow_dispatch"
     is_manual = (not is_github_action) or is_manual_dispatch
@@ -57,58 +56,52 @@ def generate_quant_option(price, t1, t2, t3, df_h, df_l, df_c, direction="Bullis
     return f"{atm} {opt_type}", c_prem, round(pt1, 1), round(pt2, 1), round(pt3, 1)
 
 def get_index_options_ideas():
-    """Batch downloads indices to prevent yfinance shape errors and generates CE/PE targets."""
-    indices_map = {'^NSEI': 'NIFTY 50', '^NSEBANK': 'BANK NIFTY'}
-    tickers = list(indices_map.keys())
+    """Isolated index fetching using .history() to prevent date cross-contamination."""
+    indices = {'^NSEI': 'NIFTY 50', '^NSEBANK': 'BANK NIFTY'}
     results = []
     
-    try:
-        data = yf.download(tickers, period="6mo", interval="1d", progress=False, threads=True)
-        if data.empty: return pd.DataFrame()
-        
-        closes, highs, lows = data['Close'], data['High'], data['Low']
-        
-        for ticker in tickers:
-            try:
-                name = indices_map[ticker]
-                df_c = closes[ticker].dropna()
-                df_h = highs[ticker].dropna()
-                df_l = lows[ticker].dropna()
-                if df_c.empty: continue
-                
-                close_p = float(df_c.iloc[-1])
-                ema_50 = float(df_c.ewm(span=50).mean().iloc[-1])
-                
-                hl = df_h - df_l
-                hc = (df_h - df_c.shift(1)).abs()
-                lc = (df_l - df_c.shift(1)).abs()
-                tr = pd.concat([hl, hc, lc], axis=1).max(axis=1)
-                atr = float(tr.ewm(alpha=1/14).mean().iloc[-1])
-                
-                delta = df_c.diff()
-                gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
-                loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
-                rsi_val = float((100 - (100 / (1 + (gain / loss)))).iloc[-1])
-                
-                if close_p > ema_50:
-                    direction = "Bullish (Call)"
-                    t1, t2, t3, t4, t5 = [round(close_p + m * atr, 1) for m in (0.4, 0.8, 1.2, 1.6, 2.0)]
-                    eq_sl = round(close_p - 0.8 * atr, 1)
-                else:
-                    direction = "Bearish (Put)"
-                    t1, t2, t3, t4, t5 = [round(close_p - m * atr, 1) for m in (0.4, 0.8, 1.2, 1.6, 2.0)]
-                    eq_sl = round(close_p + 0.8 * atr, 1)
-                
-                opt, prem, pt1, pt2, pt3 = generate_quant_option(close_p, t1, t2, t3, df_h, df_l, df_c, direction.split(" ")[0])
-                
-                results.append({
-                    'Stock': f"{name} {direction}", 'Horizon': 'Intraday', 'Entry': round(close_p, 2),
-                    'RSI': round(rsi_val, 1), 'EqSL': eq_sl,
-                    'EqT1': t1, 'EqT2': t2, 'EqT3': t3, 'EqT4': t4, 'EqT5': t5,
-                    'Opt': opt, 'Prem': prem, 'PT1': pt1, 'PT2': pt2, 'PT3': pt3, 'Score': 10
-                })
-            except Exception as e: pass
-    except Exception as e: pass
+    for ticker, name in indices.items():
+        try:
+            data = yf.Ticker(ticker).history(period="6mo")
+            if data.empty: continue
+            
+            df_c = data['Close'].dropna()
+            df_h = data['High'].dropna()
+            df_l = data['Low'].dropna()
+            if df_c.empty: continue
+            
+            close_p = float(df_c.iloc[-1])
+            ema_50 = float(df_c.ewm(span=50).mean().iloc[-1])
+            
+            hl = df_h - df_l
+            hc = (df_h - df_c.shift(1)).abs()
+            lc = (df_l - df_c.shift(1)).abs()
+            tr = pd.concat([hl, hc, lc], axis=1).max(axis=1)
+            atr = float(tr.ewm(alpha=1/14).mean().iloc[-1])
+            
+            delta = df_c.diff()
+            gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
+            loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
+            rsi_val = float((100 - (100 / (1 + (gain / loss)))).iloc[-1])
+            
+            if close_p > ema_50:
+                direction = "Bullish (Call)"
+                t1, t2, t3, t4, t5 = [round(close_p + m * atr, 1) for m in (0.4, 0.8, 1.2, 1.6, 2.0)]
+                eq_sl = round(close_p - 0.8 * atr, 1)
+            else:
+                direction = "Bearish (Put)"
+                t1, t2, t3, t4, t5 = [round(close_p - m * atr, 1) for m in (0.4, 0.8, 1.2, 1.6, 2.0)]
+                eq_sl = round(close_p + 0.8 * atr, 1)
+            
+            opt, prem, pt1, pt2, pt3 = generate_quant_option(close_p, t1, t2, t3, df_h, df_l, df_c, direction.split(" ")[0])
+            
+            results.append({
+                'Stock': f"{name} {direction}", 'Horizon': 'Intraday', 'Entry': round(close_p, 2),
+                'RSI': round(rsi_val, 1), 'EqSL': eq_sl,
+                'EqT1': t1, 'EqT2': t2, 'EqT3': t3, 'EqT4': t4, 'EqT5': t5,
+                'Opt': opt, 'Prem': prem, 'PT1': pt1, 'PT2': pt2, 'PT3': pt3, 'Score': 10
+            })
+        except Exception as e: pass
         
     return pd.DataFrame(results)
 
@@ -173,7 +166,6 @@ def run():
     minutes_elapsed = max(1, (now_ist - market_open).total_seconds() / 60)
     minutes_elapsed = min(minutes_elapsed, 375)
     
-    # If run is Intraday OR Manual Override, force the index options to generate!
     if sess_type in ["Intraday", "Manual"]:
         df_index = get_index_options_ideas()
     else:
