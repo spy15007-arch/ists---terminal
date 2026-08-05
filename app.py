@@ -40,12 +40,10 @@ def generate_quant_option(price, t1, t2, t3, df_h, df_l, df_c, direction="Bullis
     
     c_prem = black_scholes(price, atm, dte/365.0, 0.07, vol, opt_type)
     
-    # Practical Intraday Option Target Scaling (Compact & Achievable)
     if horizon == "Intraday":
-        # Scaled closer to current price for realistic intraday option scalps
         ot1 = price + (t1 - price) * 0.4 if direction == "Bullish" else price - (price - t1) * 0.4
         ot2 = price + (t2 - price) * 0.7 if direction == "Bullish" else price - (price - t2) * 0.7
-        ot3 = t1  # Map target 3 to original target 1 for safe intraday booking
+        ot3 = t1
     else:
         ot1, ot2, ot3 = t1, t2, t3
 
@@ -274,63 +272,22 @@ elif page == "Scan Market":
                     st.dataframe(df_swing[full_cols], use_container_width=True, hide_index=True, column_config={"TV_Link": st.column_config.LinkColumn("Live Chart", display_text="📊 View")})
                 else: st.info("No Swing setups found.")
 
-        # --- Native Embedded TradingView Symbol Overview Widget ---
+        # --- Bulletproof Direct TradingView Iframe Chart Embedding ---
         st.markdown("---")
-        st.subheader("🔍 Live TradingView Native Chart Analysis")
+        st.subheader("🔍 Live TradingView Chart Integration")
         
         df_all_merged = pd.concat([st.session_state.get('index_results', pd.DataFrame()), df_results]) if not df_results.empty else st.session_state.get('index_results', pd.DataFrame())
         
         if not df_all_merged.empty:
-            selected_stock = st.selectbox("Select asset to load native chart:", df_all_merged['Stock'].tolist())
+            selected_stock = st.selectbox("Select asset to load live embedded chart:", df_all_merged['Stock'].tolist())
             stock_row = df_all_merged[df_all_merged['Stock'] == selected_stock].iloc[0]
             
             tv_symbol = str(stock_row['RawStock']).strip().replace("&", "_").replace("-", "_")
             
-            # Official TradingView Symbol Overview Widget (Clean, responsive, locks onto NSE without bugs)
-            tv_overview_widget = f"""
-            <div class="tradingview-widget-container">
-              <div class="tradingview-widget-container__widget"></div>
-              <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-symbol-overview.js" async>
-              {{
-                "symbols": [
-                  ["NSE:{tv_symbol}|1D"]
-                ],
-                "chartOnly": false,
-                "width": "100%",
-                "height": "550",
-                "locale": "in",
-                "colorTheme": "dark",
-                "autosize": true,
-                "showVolume": true,
-                "showMA": false,
-                "hideDateRanges": false,
-                "hideMarketStatus": false,
-                "hideSymbolLogo": false,
-                "scalePosition": "right",
-                "scaleMode": "Normal",
-                "fontFamily": "-apple-system, BlinkMacSystemFont, Trebuchet MS, Roboto, Ubuntu, sans-serif",
-                "fontSize": "10",
-                "noTimeScale": false,
-                "valuesTracking": "1",
-                "changeMode": "price-and-percent",
-                "chartType": "area",
-                "maLineColor": "#2962FF",
-                "maLineWidth": 1,
-                "maLength": 9,
-                "gridLineColor": "rgba(240, 243, 250, 0.06)",
-                "backgroundColor": "#0f172a",
-                "widgetFontColor": "rgba(209, 213, 219, 1)",
-                "dateRanges": [
-                  "1d|1",
-                  "1m|30",
-                  "3m|60",
-                  "12m|1D"
-                ]
-              }}
-              </script>
-            </div>
-            """
-            components.html(tv_overview_widget, height=570)
+            # Direct Iframe embed guarantees 100% adherence to the requested NSE symbol without Apple fallbacks
+            embed_url = f"https://s.tradingview.com/widgetembed/?symbol=NSE%3A{tv_symbol}&interval=15&hidetoolbar=0&symboledit=1&saveimage=1&toolbarbg=f1f3f6&studies=[]&theme=dark&style=1&timezone=Asia%2FKolkata&locale=in"
+            
+            components.iframe(embed_url, height=600, scrolling=False)
 
             st.markdown("### ⚡ Execute Broker Trade")
             b1, b2, b3 = st.columns(3)
@@ -383,7 +340,7 @@ elif page == "Budget Scanner (< ₹500)":
         df_budget = st.session_state['budget_results'].copy()
         
         df_budget['Eq Tgts (1-5)'] = df_budget['EqT1'].astype(str) + "/" + df_budget['EqT2'].astype(str) + "/" + df_budget['EqT3'].astype(str) + "/" + df_budget['EqT4'].astype(str) + "/" + df_budget['EqT5'].astype(str)
-        df_budget['Prem Tgts (1-3)'] = df_budget['PT1'].astype(str) + "/" + df_budget['PT2'].astype(str) + "/" + df_budget['PT3'].astype(str)
+        df_budget['Prem Tgts (1-3)'] = df_budget['PremTgts'] if 'PremTgts' in df_budget else df_budget['PT1'].astype(str) + "/" + df_budget['PT2'].astype(str) + "/" + df_budget['PT3'].astype(str)
 
         st.subheader(f"🏆 Top Budget Quant Setups Under ₹{budget_limit}")
         b_cols = ['#', 'Stock', 'Horizon', 'Entry', 'EqSL', 'Eq Tgts (1-5)', 'Opt', 'Prem', 'Prem Tgts (1-3)', 'TV_Link']
