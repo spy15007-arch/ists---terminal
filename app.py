@@ -91,15 +91,15 @@ def get_index_options_ideas():
             
             opt, prem, pt1, pt2, pt3 = generate_quant_option(close_p, t1, t2, t3, df_h, df_l, df_c, direction.split(" ")[0], "Intraday")
             
-            # THE FIX: Restored the '1!' Continuous Futures symbols to bypass TradingView's Index wall
-            tv_sym = "NIFTY1!" if name == "NIFTY 50" else "BANKNIFTY1!"
+            # Use strict Spot names in the database
+            tv_sym = "NIFTY" if name == "NIFTY 50" else "BANKNIFTY"
             
             results.append({
                 'Stock': f"{name} {direction}", 'RawStock': tv_sym, 'Horizon': 'Intraday', 'Entry': round(close_p, 2),
                 'RSI': round(rsi_val, 1), 'Vol vs 50d': 'N/A', 'EqSL': eq_sl,
                 'EqT1': t1, 'EqT2': t2, 'EqT3': t3, 'EqT4': t4, 'EqT5': t5,
                 'Opt': opt, 'Prem': prem, 'PT1': pt1, 'PT2': pt2, 'PT3': pt3, 'Score': 10,
-                'TV_Link': f"https://in.tradingview.com/chart/?symbol=NSE:{tv_sym.replace('1!', '')}"
+                'TV_Link': f"https://in.tradingview.com/chart/?symbol=NSE:{tv_sym}"
             })
         except Exception as e: pass
         
@@ -284,11 +284,17 @@ elif page == "Scan Market":
             selected_stock = st.selectbox("Select asset to load live embedded chart:", df_all_merged['Stock'].tolist())
             stock_row = df_all_merged[df_all_merged['Stock'] == selected_stock].iloc[0]
             
-            tv_symbol = str(stock_row['RawStock']).strip().replace("&", "_").replace("-", "_")
+            raw_sym = str(stock_row['RawStock']).strip().replace("&", "_").replace("-", "_")
             
-            # THE FIX: Generate a hidden unique timestamp inside the HTML string.
-            # This completely destroys the old iframe cache and prevents the AAPL fallback,
-            # while allowing us to use the Modern Async Widget that supports Indian stocks!
+            # --- DUAL-ROUTING LOGIC ---
+            # 1. Bypass the NSE Embedded Widget Block by using BSE / CFD equivalents
+            if raw_sym == "NIFTY": widget_sym = "OANDA:IN50INR"  # Perfect mirror of Nifty 50
+            elif raw_sym == "BANKNIFTY": widget_sym = "BSE:BANKEX" # Bankex mirrors BankNifty closely
+            else: widget_sym = f"BSE:{raw_sym}" # All equities pull freely from BSE
+
+            # 2. Keep the External Buttons strict to the original NSE spot tickers
+            link_sym = f"NSE:{raw_sym}"
+            
             cache_buster = str(datetime.datetime.now().timestamp()).replace(".", "")
             
             tv_advanced_widget = f"""
@@ -298,7 +304,7 @@ elif page == "Scan Market":
               <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js" async>
               {{
                 "autosize": true,
-                "symbol": "NSE:{tv_symbol}",
+                "symbol": "{widget_sym}",
                 "interval": "15",
                 "timezone": "Asia/Kolkata",
                 "theme": "dark",
@@ -315,14 +321,13 @@ elif page == "Scan Market":
             
             components.html(tv_advanced_widget, height=620)
 
-            # Strip the '1!' ONLY for the URL link so the full website chart loads correctly
-            tv_url_sym = tv_symbol.replace("1!", "")
-
             st.markdown("### ⚡ Execute Broker Trade")
             b1, b2, b3 = st.columns(3)
             with b1: st.link_button("🟠 Trade on Dhan", "https://web.dhan.co/", use_container_width=True)
             with b2: st.link_button("🔵 Trade on Angel One", "https://trade.angelone.in/", use_container_width=True)
-            with b3: st.link_button("📈 Open Full Chart on TV", f"https://in.tradingview.com/chart/?symbol=NSE:{tv_url_sym}", use_container_width=True)
+            
+            # This button will now definitively open NSE:NIFTY and NSE:MUTHOOTFIN Spot charts!
+            with b3: st.link_button("📈 Open Full Chart on TV", f"https://in.tradingview.com/chart/?symbol={link_sym}", use_container_width=True)
 
             st.markdown("---")
             st.subheader(f"🧮 Position Size & Risk Calculator: {selected_stock}")
@@ -337,8 +342,8 @@ elif page == "Scan Market":
                 max_risk = (capital * risk_pct) / 100.0
                 qty = int(max_risk / risk_per_share)
                 
-                if "NIFTY" in tv_symbol:
-                    lot_size = 25 if "BANK" not in tv_symbol else 15
+                if "NIFTY" in raw_sym:
+                    lot_size = 25 if "BANK" not in raw_sym else 15
                     qty = max(lot_size, (qty // lot_size) * lot_size)
                     st.info(f"💡 Index detected. Adjusted to nearest lot size ({lot_size} qty).")
 
@@ -379,6 +384,8 @@ elif page == "Budget Scanner (< ₹500)":
         st.subheader("🔍 Budget Position & Share Quantity Calculator")
         selected_stock = st.selectbox("Select stock to evaluate:", df_budget['Stock'].tolist())
         stock_row = df_budget[df_budget['Stock'] == selected_stock].iloc[0]
+        
+        raw_sym = str(stock_row['RawStock']).strip().replace("&", "_").replace("-", "_")
 
         col1, col2 = st.columns(2)
         with col1:
