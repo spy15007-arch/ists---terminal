@@ -145,14 +145,16 @@ def generate_telegram_cards(df_stocks, df_index, title, filename):
         if not df_index.empty:
             f.write("👑 INDEX ALERTS\n")
             for _, r in df_index.iterrows():
-                f.write(f"• {r['Stock']} @ ₹{r['Entry']}\n  {r['Opt']} @ ₹{r['Prem']}\n  Tgts: {r['PT1']}/{r['PT2']}/{r['PT3']}\n\n")
+                f.write(f"• {r['Stock']} @ ₹{r['Entry']}\n  {r['Opt']} @ ₹{r['Prem']}\n  Option Targets: {r['PT1']}/{r['PT2']}/{r['PT3']}\n\n")
         
         if not df_stocks.empty:
-            f.write("📊 TOP QUANT SETUPS\n")
+            f.write("📊 TOP QUANT SETUPS (Long-Only)\n")
             for idx, r in df_stocks.head(15).reset_index().iterrows():
-                f.write(f"{idx+1}. {r['Stock']} @ ₹{r['Entry']}\n   Eq Tgts: {r['EqT1']}/{r['EqT2']}/{r['EqT3']}\n")
+                f.write(f"{idx+1}. {r['Stock']} @ ₹{r['Entry']}\n")
+                f.write(f"   Eq Targets: {r['EqT1']}/{r['EqT2']}/{r['EqT3']}\n")
                 if str(r['Opt']) != "N/A (Cash)":
-                    f.write(f"   {r['Opt']} @ ₹{r['Prem']}\n")
+                    f.write(f"   Option: {r['Opt']} @ ₹{r['Prem']}\n")
+                    f.write(f"   Option Targets: {r['PT1']}/{r['PT2']}/{r['PT3']}\n")
                 f.write("\n")
 
 def run():
@@ -235,7 +237,7 @@ def run():
             else:
                 hor, m1, m2, m3, m4, m5, sl_m = "Swing", 1.5, 3.0, 4.5, 6.0, 7.5, 1.5
 
-            # STRICT LONG-ONLY FILTER (Removed Bearish branch completely)
+            # STRICT LONG-ONLY FILTER
             if close_p > d_ema and close_p > w_ema and macd_val > macd_sig and (55 <= rsi_val <= 75):
                 direction = "Bullish"
                 t1, t2, t3, t4, t5 = [round(close_p + m * atr, 1) for m in (m1, m2, m3, m4, m5)]
