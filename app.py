@@ -97,7 +97,7 @@ def get_index_options_ideas():
                 'Stock': f"{name} {direction}", 'RawStock': tv_sym, 'Horizon': 'Intraday', 'Entry': round(close_p, 2),
                 'RSI': round(rsi_val, 1), 'Vol vs 50d': 'N/A', 'EqSL': eq_sl,
                 'EqT1': t1, 'EqT2': t2, 'EqT3': t3, 'EqT4': t4, 'EqT5': t5,
-                'Opt': opt, 'Prem': prem, 'PT1': pt1, 'PT2': pt2, 'PT3': pt3, 'Score': 10,
+                'Opt': Opt, 'Prem': prem, 'PT1': pt1, 'PT2': pt2, 'PT3': pt3, 'Score': 10,
                 'TV_Link': f"https://in.tradingview.com/chart/?symbol=NSE:{tv_sym}"
             })
         except Exception as e: pass
@@ -281,28 +281,35 @@ elif page == "Scan Market":
         
         if not df_all_merged.empty:
             
-            c1, c2 = st.columns([3, 1])
+            # --- NEW: TIMEFRAME SELECTOR ---
+            c1, c2, c3 = st.columns([2, 1, 1])
             with c1:
                 selected_stock = st.selectbox("Select asset to load native chart:", df_all_merged['Stock'].tolist())
             with c2:
+                selected_tf = st.selectbox("Timeframe:", ["5m", "15m", "30m", "1h", "1d"], index=1)
+            with c3:
                 st.write("")
                 st.write("")
-                # Added a manual refresh button to instantly pull the newest live tick without rescanning the whole market
-                if st.button("🔄 Refresh Live Chart Data", use_container_width=True):
-                    pass # Clicking it reruns the script instantly and safely fetches the newest plot
+                if st.button("🔄 Refresh Live Chart", use_container_width=True):
+                    pass 
 
             stock_row = df_all_merged[df_all_merged['Stock'] == selected_stock].iloc[0]
             raw_sym = str(stock_row['RawStock']).strip().replace("&", "_").replace("-", "_")
             
-            # Map symbol cleanly for Yahoo Finance to fetch our 15m data
             if raw_sym == "NIFTY": yf_sym = "^NSEI"
             elif raw_sym == "BANKNIFTY": yf_sym = "^NSEBANK"
             else: yf_sym = f"{raw_sym}.NS"
             
             tv_link_sym = f"NSE:{raw_sym}"
             
-            with st.spinner("Fetching live 15m candlestick data..."):
-                chart_data = yf.Ticker(yf_sym).history(period="5d", interval="15m")
+            # Determine how much history to pull based on the selected timeframe
+            if selected_tf == "1d":
+                fetch_period = "3mo"
+            else:
+                fetch_period = "5d"
+            
+            with st.spinner(f"Fetching live {selected_tf} candlestick data..."):
+                chart_data = yf.Ticker(yf_sym).history(period=fetch_period, interval=selected_tf)
                 
                 if not chart_data.empty:
                     fig = go.Figure(data=[go.Candlestick(
@@ -315,16 +322,15 @@ elif page == "Scan Market":
                         decreasing_line_color='#ff0000'
                     )])
                     
-                    # Fix the "gaps" in the chart by telling Plotly to hide non-trading hours and weekends
-                    fig.update_xaxes(
-                        rangebreaks=[
-                            dict(bounds=["sat", "mon"]), # Hide weekends
-                            dict(bounds=[15.5, 9.25], pattern="hour") # Hide overnight gaps (3:30 PM to 9:15 AM)
-                        ]
-                    )
+                    # Smart Gap Hiding: Only hide overnight gaps if we are looking at an Intraday chart!
+                    range_breaks = [dict(bounds=["sat", "mon"])] # Always hide weekends
+                    if selected_tf != "1d":
+                        range_breaks.append(dict(bounds=[15.5, 9.25], pattern="hour")) # Hide 3:30 PM to 9:15 AM
+                    
+                    fig.update_xaxes(rangebreaks=range_breaks)
 
                     fig.update_layout(
-                        title=f"{selected_stock} - Native 15m Chart",
+                        title=f"{selected_stock} - Native {selected_tf} Chart",
                         yaxis_title="Price (₹)",
                         template="plotly_dark",
                         height=550,
