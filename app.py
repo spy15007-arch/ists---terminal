@@ -42,56 +42,53 @@ def generate_quant_option(price, t1, t2, t3, df_h, df_l, df_c, direction="Bullis
 
 @st.cache_data(ttl=1800)
 def get_index_options_ideas():
+    """Isolated index fetching using .history() to prevent date cross-contamination."""
     indices_map = {'^NSEI': 'NIFTY 50', '^NSEBANK': 'BANK NIFTY'}
-    tickers = list(indices_map.keys())
     results = []
     
-    try:
-        data = yf.download(tickers, period="6mo", interval="1d", progress=False, threads=True)
-        if data.empty: return pd.DataFrame()
+    for ticker, name in indices_map.items():
+        try:
+            data = yf.Ticker(ticker).history(period="6mo")
+            if data.empty: continue
+            
+            df_c = data['Close'].dropna()
+            df_h = data['High'].dropna()
+            df_l = data['Low'].dropna()
+            if df_c.empty: continue
+            
+            close_p = float(df_c.iloc[-1])
+            ema_50 = float(df_c.ewm(span=50).mean().iloc[-1])
+            
+            hl = df_h - df_l
+            hc = (df_h - df_c.shift(1)).abs()
+            lc = (df_l - df_c.shift(1)).abs()
+            tr = pd.concat([hl, hc, lc], axis=1).max(axis=1)
+            atr = float(tr.ewm(alpha=1/14).mean().iloc[-1])
+            
+            delta = df_c.diff()
+            gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
+            loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
+            rsi_val = float((100 - (100 / (1 + (gain / loss)))).iloc[-1])
+            
+            if close_p > ema_50:
+                direction, t1, t2, t3, t4, t5 = "Bullish (Call)", *[round(close_p + m * atr, 1) for m in (0.4, 0.8, 1.2, 1.6, 2.0)]
+                eq_sl = round(close_p - 0.8 * atr, 1)
+            else:
+                direction, t1, t2, t3, t4, t5 = "Bearish (Put)", *[round(close_p - m * atr, 1) for m in (0.4, 0.8, 1.2, 1.6, 2.0)]
+                eq_sl = round(close_p + 0.8 * atr, 1)
+            
+            opt, prem, pt1, pt2, pt3 = generate_quant_option(close_p, t1, t2, t3, df_h, df_l, df_c, direction.split(" ")[0])
+            tv_sym = "NIFTY" if name == "NIFTY 50" else "BANKNIFTY"
+            
+            results.append({
+                'Stock': f"{name} {direction}", 'RawStock': tv_sym, 'Horizon': 'Intraday', 'Entry': round(close_p, 2),
+                'RSI': round(rsi_val, 1), 'Vol vs 50d': 'N/A', 'EqSL': eq_sl,
+                'EqT1': t1, 'EqT2': t2, 'EqT3': t3, 'EqT4': t4, 'EqT5': t5,
+                'Opt': opt, 'Prem': prem, 'PT1': pt1, 'PT2': pt2, 'PT3': pt3, 'Score': 10,
+                'TV_Link': f"https://in.tradingview.com/chart/?symbol=NSE:{tv_sym}"
+            })
+        except Exception as e: pass
         
-        closes, highs, lows = data['Close'], data['High'], data['Low']
-        
-        for ticker in tickers:
-            try:
-                name = indices_map[ticker]
-                df_c, df_h, df_l = closes[ticker].dropna(), highs[ticker].dropna(), lows[ticker].dropna()
-                if df_c.empty: continue
-                
-                close_p = float(df_c.iloc[-1])
-                ema_50 = float(df_c.ewm(span=50).mean().iloc[-1])
-                
-                hl = df_h - df_l
-                hc = (df_h - df_c.shift(1)).abs()
-                lc = (df_l - df_c.shift(1)).abs()
-                tr = pd.concat([hl, hc, lc], axis=1).max(axis=1)
-                atr = float(tr.ewm(alpha=1/14).mean().iloc[-1])
-                
-                delta = df_c.diff()
-                gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
-                loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
-                rsi_val = float((100 - (100 / (1 + (gain / loss)))).iloc[-1])
-                
-                if close_p > ema_50:
-                    direction, t1, t2, t3, t4, t5 = "Bullish (Call)", *[round(close_p + m * atr, 1) for m in (0.4, 0.8, 1.2, 1.6, 2.0)]
-                    eq_sl = round(close_p - 0.8 * atr, 1)
-                else:
-                    direction, t1, t2, t3, t4, t5 = "Bearish (Put)", *[round(close_p - m * atr, 1) for m in (0.4, 0.8, 1.2, 1.6, 2.0)]
-                    eq_sl = round(close_p + 0.8 * atr, 1)
-                
-                opt, prem, pt1, pt2, pt3 = generate_quant_option(close_p, t1, t2, t3, df_h, df_l, df_c, direction.split(" ")[0])
-                tv_sym = "NIFTY" if name == "NIFTY 50" else "BANKNIFTY"
-                
-                results.append({
-                    'Stock': f"{name} {direction}", 'RawStock': tv_sym, 'Horizon': 'Intraday', 'Entry': round(close_p, 2),
-                    'RSI': round(rsi_val, 1), 'Vol vs 50d': 'N/A', 'EqSL': eq_sl,
-                    'EqT1': t1, 'EqT2': t2, 'EqT3': t3, 'EqT4': t4, 'EqT5': t5,
-                    'Opt': opt, 'Prem': prem, 'PT1': pt1, 'PT2': pt2, 'PT3': pt3, 'Score': 10,
-                    'TV_Link': f"https://in.tradingview.com/chart/?symbol=NSE:{tv_sym}"
-                })
-            except Exception as e: pass
-    except: pass
-    
     df = pd.DataFrame(results)
     if not df.empty:
         df.insert(0, '#', range(1, len(df) + 1))
@@ -274,10 +271,10 @@ elif page == "Scan Market":
             selected_stock = st.selectbox("Select asset to load live chart:", df_all_merged['Stock'].tolist())
             stock_row = df_all_merged[df_all_merged['Stock'] == selected_stock].iloc[0]
             
-            # 1. Clean the symbol specifically for the TradingView API (NSE:RELIANCE)
+            # Clean the symbol specifically for the TradingView API (NSE:RELIANCE)
             tv_symbol = str(stock_row['RawStock']).strip().replace("&", "_").replace("-", "_")
             
-            # 2. Create a 100% safe, purely alphabetical ID for the HTML container
+            # Create a 100% safe, purely alphabetical ID for the HTML container
             safe_html_id = "tv_chart_" + tv_symbol.replace("_", "")
             
             tv_widget = f"""
