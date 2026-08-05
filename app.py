@@ -271,35 +271,32 @@ elif page == "Scan Market":
             selected_stock = st.selectbox("Select asset to load live chart:", df_all_merged['Stock'].tolist())
             stock_row = df_all_merged[df_all_merged['Stock'] == selected_stock].iloc[0]
             
-            # Clean the symbol specifically for the TradingView API (NSE:RELIANCE)
+            # 1. Clean the symbol specifically for the TradingView API (NSE:RELIANCE)
             tv_symbol = str(stock_row['RawStock']).strip().replace("&", "_").replace("-", "_")
             
-            # Create a 100% safe, purely alphabetical ID for the HTML container
-            safe_html_id = "tv_chart_" + tv_symbol.replace("_", "")
-            
+            # 2. Modern Async TradingView Widget (Iframe-proof)
             tv_widget = f"""
             <div class="tradingview-widget-container" style="height:600px;width:100%;">
-              <div id="{safe_html_id}" style="height:600px;width:100%;"></div>
-              <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
-              <script type="text/javascript">
-              new TradingView.widget(
+              <div class="tradingview-widget-container__widget" style="height:100%;width:100%;"></div>
+              <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js" async>
               {{
-                "autosize": true, 
-                "symbol": "NSE:{tv_symbol}", 
-                "interval": "15", 
-                "timezone": "Asia/Kolkata", 
-                "theme": "dark", 
-                "style": "1", 
-                "locale": "in", 
+                "autosize": true,
+                "symbol": "NSE:{tv_symbol}",
+                "interval": "15",
+                "timezone": "Asia/Kolkata",
+                "theme": "dark",
+                "style": "1",
+                "locale": "in",
                 "enable_publishing": false,
                 "hide_top_toolbar": false,
+                "hide_legend": false,
                 "save_image": false,
-                "container_id": "{safe_html_id}"
+                "support_host": "https://www.tradingview.com"
               }}
-              );
               </script>
-            </div>"""
-            components.html(tv_widget, height=610)
+            </div>
+            """
+            components.html(tv_widget, height=620)
 
             st.markdown("### ⚡ Execute Trade")
             b1, b2, b3 = st.columns(3)
