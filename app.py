@@ -1,4 +1,5 @@
 import streamlit as st
+import streamlit.components.v1 as components
 import yfinance as yf
 import pandas as pd
 import numpy as np
@@ -25,18 +26,33 @@ def black_scholes(S, K, T, r, sigma, opt_type="CE"):
     if opt_type == "CE": return round(S * norm.cdf(d1) - K * math.exp(-r * T) * norm.cdf(d2), 2)
     else: return round(K * math.exp(-r * T) * norm.cdf(-d2) - S * norm.cdf(-d1), 2)
 
-def generate_quant_option(price, t1, t2, t3, df_h, df_l, df_c, direction="Bullish"):
-    dte = 15 
+def generate_quant_option(price, t1, t2, t3, df_h, df_l, df_c, direction="Bullish", horizon="Intraday"):
+    dte = 5 if horizon == "Intraday" else 15 
     step = 100 if price > 5000 else (50 if price > 2000 else (20 if price > 1000 else (10 if price > 500 else 5)))
     atm = int(round(price / step) * step)
     opt_type = "CE" if direction == "Bullish" else "PE"
+    
     try:
         vol = math.sqrt((1.0 / (4.0 * math.log(2.0))) * ((np.log(df_h/df_l)**2).tail(10).mean())) * math.sqrt(252)
         if math.isnan(vol) or vol == 0: vol = np.log(df_c/df_c.shift(1)).tail(10).std() * math.sqrt(252)
         if math.isnan(vol) or vol == 0: vol = 0.2
     except: vol = 0.2
+    
     c_prem = black_scholes(price, atm, dte/365.0, 0.07, vol, opt_type)
-    pt1, pt2, pt3 = [black_scholes(t, atm, dte/365.0, 0.07, vol, opt_type) for t in (t1, t2, t3)]
+    
+    # Practical Intraday Option Target Scaling (Compact & Achievable)
+    if horizon == "Intraday":
+        # Scaled closer to current price for realistic intraday option scalps
+        ot1 = price + (t1 - price) * 0.4 if direction == "Bullish" else price - (price - t1) * 0.4
+        ot2 = price + (t2 - price) * 0.7 if direction == "Bullish" else price - (price - t2) * 0.7
+        ot3 = t1  # Map target 3 to original target 1 for safe intraday booking
+    else:
+        ot1, ot2, ot3 = t1, t2, t3
+
+    pt1 = black_scholes(ot1, atm, dte/365.0, 0.07, vol, opt_type)
+    pt2 = black_scholes(ot2, atm, dte/365.0, 0.07, vol, opt_type)
+    pt3 = black_scholes(ot3, atm, dte/365.0, 0.07, vol, opt_type)
+    
     return f"{atm} {opt_type}", c_prem, round(pt1, 1), round(pt2, 1), round(pt3, 1)
 
 @st.cache_data(ttl=1800)
@@ -69,13 +85,13 @@ def get_index_options_ideas():
             rsi_val = float((100 - (100 / (1 + (gain / loss)))).iloc[-1])
             
             if close_p > ema_50:
-                direction, t1, t2, t3, t4, t5 = "Bullish (Call)", *[round(close_p + m * atr, 1) for m in (0.4, 0.8, 1.2, 1.6, 2.0)]
-                eq_sl = round(close_p - 0.8 * atr, 1)
+                direction, t1, t2, t3, t4, t5 = "Bullish (Call)", *[round(close_p + m * atr, 1) for m in (0.3, 0.6, 0.9, 1.2, 1.5)]
+                eq_sl = round(close_p - 0.6 * atr, 1)
             else:
-                direction, t1, t2, t3, t4, t5 = "Bearish (Put)", *[round(close_p - m * atr, 1) for m in (0.4, 0.8, 1.2, 1.6, 2.0)]
-                eq_sl = round(close_p + 0.8 * atr, 1)
+                direction, t1, t2, t3, t4, t5 = "Bearish (Put)", *[round(close_p - m * atr, 1) for m in (0.3, 0.6, 0.9, 1.2, 1.5)]
+                eq_sl = round(close_p + 0.6 * atr, 1)
             
-            opt, prem, pt1, pt2, pt3 = generate_quant_option(close_p, t1, t2, t3, df_h, df_l, df_c, direction.split(" ")[0])
+            opt, prem, pt1, pt2, pt3 = generate_quant_option(close_p, t1, t2, t3, df_h, df_l, df_c, direction.split(" ")[0], "Intraday")
             tv_sym = "NIFTY" if name == "NIFTY 50" else "BANKNIFTY"
             
             results.append({
@@ -145,9 +161,9 @@ def run_quant_scan():
             vol_vs = round(vol_today / adjusted_vol_50, 2)
             
             if vol_vs >= 1.5:
-                hor, m1, m2, m3, m4, m5, sl_m = "Intraday", 0.4, 0.8, 1.2, 1.6, 2.0, 0.8
+                hor, m1, m2, m3, m4, m5, sl_m = "Intraday", 0.3, 0.6, 0.9, 1.2, 1.5, 0.6
             elif vol_vs >= 1.2:
-                hor, m1, m2, m3, m4, m5, sl_m = "BTST", 0.8, 1.6, 2.4, 3.2, 4.0, 1.0
+                hor, m1, m2, m3, m4, m5, sl_m = "BTST", 0.6, 1.2, 1.8, 2.4, 3.0, 0.8
             else:
                 hor, m1, m2, m3, m4, m5, sl_m = "Swing", 1.5, 3.0, 4.5, 6.0, 7.5, 1.5
 
@@ -166,7 +182,7 @@ def run_quant_scan():
 
             symbol = ticker.replace(".NS", "")
             df_h, df_l, df_c = highs[ticker].dropna(), lows[ticker].dropna(), closes[ticker].dropna()
-            opt, prem, pt1, pt2, pt3 = generate_quant_option(close_p, t1, t2, t3, df_h, df_l, df_c, direction)
+            opt, prem, pt1, pt2, pt3 = generate_quant_option(close_p, t1, t2, t3, df_h, df_l, df_c, direction, hor)
             tv_clean_sym = symbol.replace("&", "_").replace("-", "_")
             
             valid_setups.append({
@@ -258,27 +274,69 @@ elif page == "Scan Market":
                     st.dataframe(df_swing[full_cols], use_container_width=True, hide_index=True, column_config={"TV_Link": st.column_config.LinkColumn("Live Chart", display_text="📊 View")})
                 else: st.info("No Swing setups found.")
 
-        # --- Clean Native Execution & Direct TradingView Hub ---
+        # --- Native Embedded TradingView Symbol Overview Widget ---
         st.markdown("---")
-        st.subheader("🔍 Live Asset Analysis & Execution Hub")
+        st.subheader("🔍 Live TradingView Native Chart Analysis")
         
         df_all_merged = pd.concat([st.session_state.get('index_results', pd.DataFrame()), df_results]) if not df_results.empty else st.session_state.get('index_results', pd.DataFrame())
         
         if not df_all_merged.empty:
-            selected_stock = st.selectbox("Select asset to configure trade:", df_all_merged['Stock'].tolist())
+            selected_stock = st.selectbox("Select asset to load native chart:", df_all_merged['Stock'].tolist())
             stock_row = df_all_merged[df_all_merged['Stock'] == selected_stock].iloc[0]
             
             tv_symbol = str(stock_row['RawStock']).strip().replace("&", "_").replace("-", "_")
-            chart_url = f"https://in.tradingview.com/chart/?symbol=NSE:{tv_symbol}"
-
-            st.markdown(f"### 📈 Quick Access Chart for `{selected_stock}`")
-            st.info(f"Click below to open the fully interactive, real-time live chart for **NSE:{tv_symbol}** directly on TradingView.")
-            st.link_button(f"🚀 Open Live Chart for {selected_stock} on TradingView", chart_url, use_container_width=True)
+            
+            # Official TradingView Symbol Overview Widget (Clean, responsive, locks onto NSE without bugs)
+            tv_overview_widget = f"""
+            <div class="tradingview-widget-container">
+              <div class="tradingview-widget-container__widget"></div>
+              <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-symbol-overview.js" async>
+              {{
+                "symbols": [
+                  ["NSE:{tv_symbol}|1D"]
+                ],
+                "chartOnly": false,
+                "width": "100%",
+                "height": "550",
+                "locale": "in",
+                "colorTheme": "dark",
+                "autosize": true,
+                "showVolume": true,
+                "showMA": false,
+                "hideDateRanges": false,
+                "hideMarketStatus": false,
+                "hideSymbolLogo": false,
+                "scalePosition": "right",
+                "scaleMode": "Normal",
+                "fontFamily": "-apple-system, BlinkMacSystemFont, Trebuchet MS, Roboto, Ubuntu, sans-serif",
+                "fontSize": "10",
+                "noTimeScale": false,
+                "valuesTracking": "1",
+                "changeMode": "price-and-percent",
+                "chartType": "area",
+                "maLineColor": "#2962FF",
+                "maLineWidth": 1,
+                "maLength": 9,
+                "gridLineColor": "rgba(240, 243, 250, 0.06)",
+                "backgroundColor": "#0f172a",
+                "widgetFontColor": "rgba(209, 213, 219, 1)",
+                "dateRanges": [
+                  "1d|1",
+                  "1m|30",
+                  "3m|60",
+                  "12m|1D"
+                ]
+              }}
+              </script>
+            </div>
+            """
+            components.html(tv_overview_widget, height=570)
 
             st.markdown("### ⚡ Execute Broker Trade")
-            b1, b2 = st.columns(2)
+            b1, b2, b3 = st.columns(3)
             with b1: st.link_button("🟠 Trade on Dhan", "https://web.dhan.co/", use_container_width=True)
             with b2: st.link_button("🔵 Trade on Angel One", "https://trade.angelone.in/", use_container_width=True)
+            with b3: st.link_button("📈 Open Full Chart on TV", f"https://in.tradingview.com/chart/?symbol=NSE:{tv_symbol}", use_container_width=True)
 
             st.markdown("---")
             st.subheader(f"🧮 Position Size & Risk Calculator: {selected_stock}")
