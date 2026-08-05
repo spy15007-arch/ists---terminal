@@ -275,14 +275,23 @@ elif page == "Scan Market":
 
         # --- NATIVE PLOTLY CHART INTEGRATION ---
         st.markdown("---")
-        st.subheader("🔍 Native Real-Time Chart Analysis (Bypassing TV Firewall)")
+        st.subheader("🔍 Native Real-Time Chart Analysis")
         
         df_all_merged = pd.concat([st.session_state.get('index_results', pd.DataFrame()), df_results]) if not df_results.empty else st.session_state.get('index_results', pd.DataFrame())
         
         if not df_all_merged.empty:
-            selected_stock = st.selectbox("Select asset to load native chart:", df_all_merged['Stock'].tolist())
-            stock_row = df_all_merged[df_all_merged['Stock'] == selected_stock].iloc[0]
             
+            c1, c2 = st.columns([3, 1])
+            with c1:
+                selected_stock = st.selectbox("Select asset to load native chart:", df_all_merged['Stock'].tolist())
+            with c2:
+                st.write("")
+                st.write("")
+                # Added a manual refresh button to instantly pull the newest live tick without rescanning the whole market
+                if st.button("🔄 Refresh Live Chart Data", use_container_width=True):
+                    pass # Clicking it reruns the script instantly and safely fetches the newest plot
+
+            stock_row = df_all_merged[df_all_merged['Stock'] == selected_stock].iloc[0]
             raw_sym = str(stock_row['RawStock']).strip().replace("&", "_").replace("-", "_")
             
             # Map symbol cleanly for Yahoo Finance to fetch our 15m data
@@ -291,8 +300,6 @@ elif page == "Scan Market":
             else: yf_sym = f"{raw_sym}.NS"
             
             tv_link_sym = f"NSE:{raw_sym}"
-            
-            st.info("⚡ **Native Plotly Engine Active:** We have fully dropped TradingView's iframe widget to guarantee you 100% reliable, block-free 15-minute data directly from the exchange feed.")
             
             with st.spinner("Fetching live 15m candlestick data..."):
                 chart_data = yf.Ticker(yf_sym).history(period="5d", interval="15m")
@@ -308,6 +315,14 @@ elif page == "Scan Market":
                         decreasing_line_color='#ff0000'
                     )])
                     
+                    # Fix the "gaps" in the chart by telling Plotly to hide non-trading hours and weekends
+                    fig.update_xaxes(
+                        rangebreaks=[
+                            dict(bounds=["sat", "mon"]), # Hide weekends
+                            dict(bounds=[15.5, 9.25], pattern="hour") # Hide overnight gaps (3:30 PM to 9:15 AM)
+                        ]
+                    )
+
                     fig.update_layout(
                         title=f"{selected_stock} - Native 15m Chart",
                         yaxis_title="Price (₹)",
