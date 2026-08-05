@@ -121,7 +121,6 @@ def generate_tabular_markdown(df_stocks, df_index, title, filename, include_inde
                 f.write(f"| {idx+1} | **{r['Stock']}** | ₹{r['Entry']} | {badge} | ₹{r['EqSL']} | {eq_tgts} | **{r['Opt']}** | ₹{r['Prem']} | {prem_tgts} |\n")
 
 def generate_telegram_cards(df_stocks, df_index, title, filename):
-    """Generates Telegram text files unconditionally (allows after-hours EOD swing analysis)."""
     with open(filename, "w", encoding="utf-8") as f:
         if df_stocks.empty and df_index.empty:
             f.write(f"🚨 {title} 🚨\n\nNo algorithmic setups triggered for this timeframe.")
@@ -136,6 +135,7 @@ def generate_telegram_cards(df_stocks, df_index, title, filename):
         
         if not df_stocks.empty:
             f.write("📊 TOP QUANT SETUPS\n")
+            # Currently limited to top 7 to prevent Telegram from crashing with long messages
             for idx, r in df_stocks.head(7).reset_index().iterrows():
                 f.write(f"{idx+1}. {r['Stock']} @ ₹{r['Entry']}\n   Eq Tgts: {r['EqT1']}/{r['EqT2']}/{r['EqT3']}\n")
                 if str(r['Opt']) != "N/A (Cash)":
@@ -146,6 +146,13 @@ def run():
     print("🚀 Starting Automated Master Quant Scanner (MTF Edition)...")
     sess_title, sess_type = get_session_info()
     print(f"🕒 Timeframe Registered: {sess_title}")
+    
+    now_ist = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=5, minutes=30)
+    market_open = now_ist.replace(hour=9, minute=15, second=0, microsecond=0)
+    
+    # Calculate how many minutes the market has been open today (cap at 375 for full day)
+    minutes_elapsed = max(1, (now_ist - market_open).total_seconds() / 60)
+    minutes_elapsed = min(minutes_elapsed, 375)
     
     if sess_type == "Intraday":
         df_index = get_index_options_ideas()
@@ -205,7 +212,11 @@ def run():
             
             rsi_val, macd_val, macd_sig = float(last_rsi[ticker]), float(last_macd[ticker]), float(last_macd_signal[ticker])
             d_ema, w_ema, atr = float(last_ema_50[ticker]), float(last_ema_50_weekly[ticker]), float(last_atr[ticker])
-            vol_vs = round(vol_today / vol_50_avg, 2)
+            
+            # --- RVOL CALCULATION FIX ---
+            # Adjust the 50-day average volume based on how long the market has been open today!
+            adjusted_vol_50 = vol_50_avg * (minutes_elapsed / 375.0)
+            vol_vs = round(vol_today / adjusted_vol_50, 2)
             
             if vol_vs >= 1.5:
                 hor, m1, m2, m3, m4, m5, sl_m = "Intraday", 0.4, 0.8, 1.2, 1.6, 2.0, 0.8
