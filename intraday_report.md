@@ -1,12 +1,13 @@
-# ⚡ Intraday Report — 05 Aug 2026 | 09:46 PM (Afternoon/EOD)
+# ⚡ Intraday Report — 06 Aug 2026 | 08:53 AM (Manual Override)
 
 > **System:** MTF Aligned Quant Breakout | **Targets:** Scaled ATR Vector & Black-Scholes Premiums
 
-## 📊 F&O High-Momentum Scans (Long-Only)
+## 👑 Index Options (Intraday Scalps)
 
-| # | Stock | Price | Base Score | Eq SL | Eq T1/T2/T3/T4/T5 | Option | Prem | Prem T1/T2/T3 |
+| # | Index Direction | Price | Base Score | Eq SL | Eq T1/T2/T3/T4/T5 | Option | Prem | Prem T1/T2/T3 |
 | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| 1 | **AMBUJACEM (↑)** | ₹445.0 | 🔥 4/10 | ₹436.2 | 449.4/453.8/458.2/462.7/467.1 | **445 CE** | ₹10.36 | 12.8/15.6/18.7 |
-| 2 | **BHARTIARTL (↑)** | ₹1978.0 | 🔥 4/10 | ₹1949.3 | 1992.3/2006.7/2021.0/2035.3/2049.6 | **1980 CE** | ₹32.53 | 40.6/49.7/59.8 |
-| 3 | **GNFC (↑)** | ₹538.3 | 🔥 4/10 | ₹527.0 | 544.0/549.6/555.3/561.0/566.6 | **540 CE** | ₹10.69 | 13.8/17.4/21.4 |
-| 4 | **HINDCOPPER (↑)** | ₹533.8 | 🔥 4/10 | ₹521.4 | 540.0/546.2/552.3/558.5/564.7 | **530 CE** | ₹17.65 | 21.4/25.5/29.9 |
+| 1 | **NIFTY 50 Bullish (Call)** | ₹24774.3 | 🔥 10/10 | ₹24567.5 | 24877.7/24981.1/25084.5/25187.9/25291.3 | **24800 CE** | ₹165.87 | 228.9/302.8/385.9 |
+| 2 | **BANK NIFTY Bullish (Call)** | ₹58247.95 | 🔥 10/10 | ₹57619.5 | 58562.2/58876.4/59190.7/59504.9/59819.2 | **58200 CE** | ₹605.58 | 801.2/1025.5/1274.8 |
+
+---
+
