@@ -1,23 +1,16 @@
-name: ISTS Master Scanner Automation
+name: Automated Quant Market Scanner
 
 on:
   schedule:
-    # Morning Intraday Scan: 09:15 AM IST (03:45 UTC) Mon-Fri
-    - cron: '45 3 * * 1-5'
-    # Afternoon BTST Scan: 03:05 PM IST (09:35 UTC) Mon-Fri
-    - cron: '35 9 * * 1-5'
-  
-  # This line allows you to click a "Run workflow" button to test it manually anytime!
-  workflow_dispatch: 
+    # Morning Scan: Monday to Friday at 8:30 AM IST (3:00 AM UTC)
+    - cron: '0 3 * * 1-5'
+    # Afternoon/BTST Scan: Monday to Friday at 2:30 PM IST (9:00 AM UTC)
+    - cron: '0 9 * * 1-5'
+  workflow_dispatch: # Enables the manual "Run workflow" button on GitHub
 
 jobs:
   run-scanner:
     runs-on: ubuntu-latest
-    
-    # Grants permission to push the markdown files back to your repository
-    permissions:
-      contents: write
-
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
@@ -33,40 +26,8 @@ jobs:
           pip install yfinance pandas numpy scipy requests
 
       - name: Run Master Scanner
-        run: python master_scanner.py
-
-      # --- NEW: TELEGRAM DELIVERY STEPS ---
-      
-      - name: Send Intraday Alerts to Telegram
-        uses: appleboy/telegram-action@master
-        with:
-          to: ${{ secrets.TELEGRAM_CHAT_ID }}
-          token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          message_file: intraday_tg.txt
-          disable_web_page_preview: true
-
-      - name: Send BTST Alerts to Telegram
-        uses: appleboy/telegram-action@master
-        with:
-          to: ${{ secrets.TELEGRAM_CHAT_ID }}
-          token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          message_file: btst_tg.txt
-          disable_web_page_preview: true
-
-      - name: Send Swing Alerts to Telegram
-        uses: appleboy/telegram-action@master
-        with:
-          to: ${{ secrets.TELEGRAM_CHAT_ID }}
-          token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          message_file: swing_tg.txt
-          disable_web_page_preview: true
-
-      # --- END TELEGRAM STEPS ---
-
-      - name: Commit and Push Markdown Reports
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action Bot"
-          git add *.md
-          git commit -m "Auto-update quant reports" || echo "No changes to commit"
-          git push
+          python master_scanner.py
