@@ -1,4 +1,5 @@
 import os
+import requests
 import yfinance as yf
 import pandas as pd
 import numpy as np
@@ -7,6 +8,29 @@ import math
 from scipy.stats import norm
 import warnings
 warnings.filterwarnings('ignore')
+
+# --- TELEGRAM CONFIGURATION ---
+TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
+TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
+
+def send_telegram_message(message):
+    if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
+        print("⚠️ Telegram credentials not found in environment variables. Skipping push.")
+        return
+    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+    payload = {
+        "chat_id": TELEGRAM_CHAT_ID,
+        "text": message,
+        "parse_mode": "Markdown"
+    }
+    try:
+        response = requests.post(url, json=payload)
+        if response.status_code == 200:
+            print("✅ Telegram message sent successfully!")
+        else:
+            print(f"❌ Failed to send Telegram message: {response.text}")
+    except Exception as e:
+        print(f"❌ Error sending Telegram message: {e}")
 
 # --- FIREWALL-PROOF F&O UNIVERSE ---
 STATIC_FNO = ["AARTIIND", "ABB", "ABBOTINDIA", "ABCAPITAL", "ABFRL", "ACC", "ADANIENT", "ADANIPORTS", "ALKEM", "AMBUJACEM", "APOLLOHOSP", "APOLLOTYRE", "ASHOKLEY", "ASIANPAINT", "ASTRAL", "ATUL", "AUBANK", "AUROPHARMA", "AXISBANK", "BAJAJ-AUTO", "BAJAJFINSV", "BAJFINANCE", "BALKRISIND", "BALRAMCHIN", "BANDHANBNK", "BANKBARODA", "BATAINDIA", "BEL", "BERGEPAINT", "BHARATFORG", "BHARTIARTL", "BHEL", "BIOCON", "BOSCHLTD", "BPCL", "BRITANNIA", "CANBK", "CANFINHOME", "CHAMBLFERT", "CHOLAFIN", "CIPLA", "COALINDIA", "COFORGE", "COLPAL", "CONCOR", "COROMANDEL", "CROMPTON", "CUB", "CUMMINSIND", "DABUR", "DALBHARAT", "DEEPAKNTR", "DIVISLAB", "DIXON", "DLF", "DRREDDY", "EICHERMOT", "ESCORTS", "EXIDEIND", "FEDERALBNK", "GAIL", "GLENMARK", "GMRINFRA", "GNFC", "GODREJCP", "GODREJPROP", "GRANULES", "GRASIM", "GUJGASLTD", "HAL", "HAVELLS", "HCLTECH", "HDFCAMC", "HDFCBANK", "HDFCLIFE", "HEROMOTOCO", "HINDALCO", "HINDCOPPER", "HINDPETRO", "HINDUNILVR", "ICICIBANK", "ICICIGI", "ICICIPRULI", "IDEA", "IDFCFIRSTB", "IEX", "IGL", "INDHOTEL", "INDIACEM", "INDIAMART", "INDIGO", "INDUSINDBK", "INFY", "IOC", "IPCALAB", "IRCTC", "ITC", "JINDALSTEL", "JSWSTEEL", "JUBLFOOD", "KOTAKBANK", "LALPATHLAB", "LAURUSLABS", "LICHSGFIN", "LT", "LTIM", "LTTS", "LUPIN", "M&M", "M&MFIN", "MANAPPURAM", "MARICO", "MARUTI", "MCDOWELL-N", "MCX", "METROPOLIS", "MFSL", "MGL", "MOTHERSON", "MPHASIS", "MRF", "MUTHOOTFIN", "NATIONALUM", "NAUKRI", "NAVINFLUOR", "NESTLEIND", "NMDC", "NTPC", "OBEROIRLTY", "OFSS", "ONGC", "PAGEIND", "PEL", "PETRONET", "PFC", "PIDILITIND", "PIIND", "PNB", "POLYCAB", "POWERGRID", "PVRINOX", "RAMCOCEM", "RBLBANK", "RECLTD", "RELIANCE", "SAIL", "SBICARD", "SBILIFE", "SBIN", "SHREECEM", "SHRIRAMFIN", "SIEMENS", "SRF", "SUNPHARMA", "SUNTV", "SYNGENE", "TATACHEM", "TATACOMM", "TATACONSUM", "TATAMOTORS", "TATAPOWER", "TATASTEEL", "TCS", "TECHM", "TITAN", "TORNTPHARM", "TRENT", "TVSMOTOR", "UBL", "ULTRACEMCO", "UPL", "VEDL", "VOLTAS", "WIPRO", "ZEEL", "ZYDUSLIFE"]
@@ -24,7 +48,7 @@ def get_session_info():
     elif hour < 14 or (hour == 14 and minute < 30):
         return now_ist.strftime("%d %b %Y | %I:%M %p (Intraday)"), "Intraday"
     else:
-        return now_ist.strftime("%d %b %Y | %I:%M %p (Afternoon/EOD)"), "Afternoon"
+        return now_ist.strftime("%d %b %Y | %I:%M %p (BTST/Afternoon)"), "Afternoon"
 
 def black_scholes(S, K, T, r, sigma, opt_type="CE"):
     if T <= 0 or sigma == 0: 
@@ -56,7 +80,6 @@ def generate_quant_option(price, t1, t2, t3, df_h, df_l, df_c, direction="Bullis
     return f"{atm} {opt_type}", c_prem, round(pt1, 1), round(pt2, 1), round(pt3, 1)
 
 def get_index_options_ideas():
-    """Isolated index fetching using .history() to prevent date cross-contamination."""
     indices = {'^NSEI': 'NIFTY 50', '^NSEBANK': 'BANK NIFTY'}
     results = []
     
@@ -105,60 +128,30 @@ def get_index_options_ideas():
         
     return pd.DataFrame(results)
 
-def generate_tabular_markdown(df_stocks, df_index, title, filename, include_index=False):
-    with open(filename, "w", encoding="utf-8") as f:
-        f.write(f"# {title}\n\n")
-        f.write("> **System:** MTF Aligned Quant Breakout | **Targets:** Scaled ATR Vector & Black-Scholes Premiums\n\n")
+def format_telegram_text(df_stocks, df_index, title):
+    msg = f"🚨 *{title}* 🚨\n\n"
+    
+    if not df_index.empty:
+        msg += "👑 *INDEX ALERTS*\n"
+        for _, r in df_index.iterrows():
+            msg += f"• {r['Stock']} @ ₹{r['Entry']}\n  {r['Opt']} @ ₹{r['Prem']}\n  Opt Targets: {r['PT1']}/{r['PT2']}/{r['PT3']}\n\n"
+    
+    if not df_stocks.empty:
+        msg += "📊 *TOP QUANT SETUPS (Long-Only)*\n"
+        for idx, r in df_stocks.head(15).reset_index().iterrows():
+            msg += f"{idx+1}. {r['Stock']} @ ₹{r['Entry']}\n"
+            msg += f"   Eq Tgts: {r['EqT1']}/{r['EqT2']}/{r['EqT3']}\n"
+            if str(r['Opt']) != "N/A (Cash)":
+                msg += f"   Option: {r['Opt']} @ ₹{r['Prem']}\n"
+                msg += f"   Opt Tgts: {r['PT1']}/{r['PT2']}/{r['PT3']}\n"
+            msg += "\n"
+    else:
+        msg += "No high-conviction long setups triggered for this scan."
         
-        if df_stocks.empty and df_index.empty:
-            f.write("*Market conditions did not trigger any MTF-aligned quantitative setups for this timeframe.*\n")
-            return
-
-        if include_index and not df_index.empty:
-            f.write("## 👑 Index Options (Intraday Scalps)\n\n")
-            f.write("| # | Index Direction | Price | Base Score | Eq SL | Eq T1/T2/T3/T4/T5 | Option | Prem | Prem T1/T2/T3 |\n")
-            f.write("| :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |\n")
-            for idx, r in df_index.reset_index().iterrows():
-                eq_tgts = f"{r['EqT1']}/{r['EqT2']}/{r['EqT3']}/{r['EqT4']}/{r['EqT5']}"
-                prem_tgts = f"{r['PT1']}/{r['PT2']}/{r['PT3']}"
-                f.write(f"| {idx+1} | **{r['Stock']}** | ₹{r['Entry']} | 🔥 {r['Score']}/10 | ₹{r['EqSL']} | {eq_tgts} | **{r['Opt']}** | ₹{r['Prem']} | {prem_tgts} |\n")
-            f.write("\n---\n\n")
-
-        if not df_stocks.empty:
-            f.write("## 📊 F&O High-Momentum Scans (Long-Only)\n\n")
-            f.write("| # | Stock | Price | Base Score | Eq SL | Eq T1/T2/T3/T4/T5 | Option | Prem | Prem T1/T2/T3 |\n")
-            f.write("| :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |\n")
-            for idx, r in df_stocks.reset_index().iterrows():
-                badge = f"🔥 {r['Score']}/10" if r['Score'] >= 4 else f"{r['Score']}/10"
-                eq_tgts = f"{r['EqT1']}/{r['EqT2']}/{r['EqT3']}/{r['EqT4']}/{r['EqT5']}"
-                prem_tgts = f"{r['PT1']}/{r['PT2']}/{r['PT3']}" if r['Prem'] != "-" else "-/-/-"
-                f.write(f"| {idx+1} | **{r['Stock']}** | ₹{r['Entry']} | {badge} | ₹{r['EqSL']} | {eq_tgts} | **{r['Opt']}** | ₹{r['Prem']} | {prem_tgts} |\n")
-
-def generate_telegram_cards(df_stocks, df_index, title, filename):
-    with open(filename, "w", encoding="utf-8") as f:
-        if df_stocks.empty and df_index.empty:
-            f.write(f"🚨 {title} 🚨\n\nNo algorithmic setups triggered for this timeframe.")
-            return
-            
-        f.write(f"🚨 {title} 🚨\n\n")
-        
-        if not df_index.empty:
-            f.write("👑 INDEX ALERTS\n")
-            for _, r in df_index.iterrows():
-                f.write(f"• {r['Stock']} @ ₹{r['Entry']}\n  {r['Opt']} @ ₹{r['Prem']}\n  Option Targets: {r['PT1']}/{r['PT2']}/{r['PT3']}\n\n")
-        
-        if not df_stocks.empty:
-            f.write("📊 TOP QUANT SETUPS (Long-Only)\n")
-            for idx, r in df_stocks.head(15).reset_index().iterrows():
-                f.write(f"{idx+1}. {r['Stock']} @ ₹{r['Entry']}\n")
-                f.write(f"   Eq Targets: {r['EqT1']}/{r['EqT2']}/{r['EqT3']}\n")
-                if str(r['Opt']) != "N/A (Cash)":
-                    f.write(f"   Option: {r['Opt']} @ ₹{r['Prem']}\n")
-                    f.write(f"   Option Targets: {r['PT1']}/{r['PT2']}/{r['PT3']}\n")
-                f.write("\n")
+    return msg
 
 def run():
-    print("🚀 Starting Automated Master Quant Scanner (Long-Only MTF Edition)...")
+    print("🚀 Starting Automated Master Quant Scanner (Cloud Edition)...")
     sess_title, sess_type = get_session_info()
     print(f"🕒 Timeframe Registered: {sess_title}")
     
@@ -237,7 +230,6 @@ def run():
             else:
                 hor, m1, m2, m3, m4, m5, sl_m = "Swing", 1.5, 3.0, 4.5, 6.0, 7.5, 1.5
 
-            # STRICT LONG-ONLY FILTER
             if close_p > d_ema and close_p > w_ema and macd_val > macd_sig and (55 <= rsi_val <= 75):
                 direction = "Bullish"
                 t1, t2, t3, t4, t5 = [round(close_p + m * atr, 1) for m in (m1, m2, m3, m4, m5)]
@@ -259,19 +251,22 @@ def run():
 
     df_all = pd.DataFrame(valid_setups).drop_duplicates(subset=['Stock']).sort_values(by=['Score'], ascending=False) if valid_setups else pd.DataFrame()
 
-    # --- UPGRADED OUTPUT LIMITS ---
     df_intra = df_all[df_all['Horizon'] == 'Intraday'].head(10) if not df_all.empty else pd.DataFrame()
     df_btst = df_all[df_all['Horizon'] == 'BTST'].head(15) if not df_all.empty else pd.DataFrame()
     df_swing = df_all[df_all['Horizon'] == 'Swing'].head(25) if not df_all.empty else pd.DataFrame()
 
-    generate_tabular_markdown(df_intra, df_index, f"⚡ Intraday Report — {sess_title}", "intraday_report.md", include_index=True)
-    generate_telegram_cards(df_intra, df_index, f"⚡ Intraday Report — {sess_title}", "intraday_tg.txt")
-    
-    generate_tabular_markdown(df_btst, pd.DataFrame(), f"🌙 BTST Report — {sess_title}", "btst_report.md", include_index=False)
-    generate_telegram_cards(df_btst, pd.DataFrame(), f"🌙 BTST Report — {sess_title}", "btst_tg.txt")
-    
-    generate_tabular_markdown(df_swing, pd.DataFrame(), f"📈 Swing Trade Report — {sess_title}", "swing_report.md", include_index=False)
-    generate_telegram_cards(df_swing, pd.DataFrame(), f"📈 Swing Trade Report — {sess_title}", "swing_tg.txt")
+    # Send alerts directly to Telegram if credentials exist
+    if not df_intra.empty or not df_index.empty:
+        msg_intra = format_telegram_text(df_intra, df_index, f"⚡ Intraday Report — {sess_title}")
+        send_telegram_message(msg_intra)
+
+    if not df_btst.empty:
+        msg_btst = format_telegram_text(df_btst, pd.DataFrame(), f"🌙 BTST Report — {sess_title}")
+        send_telegram_message(msg_btst)
+
+    if not df_swing.empty:
+        msg_swing = format_telegram_text(df_swing, pd.DataFrame(), f"📈 Swing Trade Report — {sess_title}")
+        send_telegram_message(msg_swing)
 
 if __name__ == "__main__":
     run()
