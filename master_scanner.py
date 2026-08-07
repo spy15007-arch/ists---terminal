@@ -80,7 +80,6 @@ def generate_quant_option(price, t1, t2, t3, df_h, df_l, df_c, direction="Bullis
     return f"{atm} {opt_type}", c_prem, round(pt1, 1), round(pt2, 1), round(pt3, 1)
 
 def check_structure_hh_hl(df_h, df_l):
-    """Ensures the stock is in a structural uptrend with Higher Highs and Higher Lows."""
     if len(df_h) < 20: return True
     h_half1 = df_h.iloc[-20:-10].max()
     h_half2 = df_h.iloc[-10:].max()
@@ -147,7 +146,7 @@ def get_index_options_ideas():
 def generate_tabular_markdown(df_stocks, df_index, title, filename, include_index=False):
     with open(filename, "w", encoding="utf-8") as f:
         f.write(f"# {title}\n\n")
-        f.write("> **System:** MTF Quant Breakout, Squeeze Detection & HH/HL Structure | **Targets:** ATR Vector & Black-Scholes\n\n")
+        f.write("> **System:** MACD, RSI, EMA, ATR & HH/HL Structure | **Targets:** ATR Vector & Black-Scholes\n\n")
         
         if df_stocks.empty and df_index.empty:
             f.write("*Market conditions did not trigger any structural quantitative setups for this timeframe.*\n")
@@ -164,7 +163,7 @@ def generate_tabular_markdown(df_stocks, df_index, title, filename, include_inde
             f.write("\n---\n\n")
 
         if not df_stocks.empty:
-            f.write("## 📊 F&O High-Momentum & Structural Squeeze Scans (Long-Only)\n\n")
+            f.write("## 📊 F&O Momentum & Structural Squeeze Scans (Long-Only)\n\n")
             f.write("| # | Stock | Setup Type | Price | Score | Eq SL | Eq T1/T2/T3/T4/T5 | Option | Prem | Prem T1/T2/T3 |\n")
             f.write("| :--- | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |\n")
             for idx, r in df_stocks.reset_index().iterrows():
@@ -182,7 +181,7 @@ def format_telegram_text(df_stocks, df_index, title):
             msg += f"• {r['Stock']} @ ₹{r['Entry']}\n  {r['Opt']} @ ₹{r['Prem']}\n  Opt Targets: {r['PT1']}/{r['PT2']}/{r['PT3']}\n\n"
     
     if not df_stocks.empty:
-        msg += "📊 *TOP QUANT & STRUCTURAL SETUPS (Long-Only)*\n"
+        msg += "📊 *TOP QUANT & MACD SETUPS (Long-Only)*\n"
         for idx, r in df_stocks.head(15).reset_index().iterrows():
             msg += f"{idx+1}. {r['Stock']} | *{r['Tag']}* @ ₹{r['Entry']}\n"
             msg += f"   Eq Tgts: {r['EqT1']}/{r['EqT2']}/{r['EqT3']}\n"
@@ -198,7 +197,7 @@ def format_telegram_text(df_stocks, df_index, title):
     return msg
 
 def run():
-    print("🚀 Starting Automated Master Quant Scanner (Structural HH/HL & Live Price Edition)...")
+    print("🚀 Starting Automated Master Quant Scanner (MACD, Structure & Live Price Edition)...")
     sess_title, sess_type = get_session_info()
     print(f"🕒 Timeframe Registered: {sess_title}")
     
@@ -277,7 +276,6 @@ def run():
             adjusted_vol_50 = vol_50_avg * (minutes_elapsed / 375.0)
             vol_vs = round(vol_today / adjusted_vol_50, 2)
 
-            # Squeeze & Structural Trend checks
             recent_vol_avg = float(volumes[ticker].tail(3).mean())
             recent_range_avg = float((highs[ticker].tail(3) - lows[ticker].tail(3)).mean())
             is_squeeze = (recent_vol_avg < vol_50_avg * 0.85) and (recent_range_avg < atr * 0.85)
@@ -290,7 +288,7 @@ def run():
             else:
                 hor, m1, m2, m3, m4, m5, sl_m = "Swing", 1.5, 3.0, 4.5, 6.0, 7.5, 1.5
 
-            # Core conditions + structural HH/HL filter requirement
+            # Core conditions: Daily/Weekly EMA, MACD crossover, RSI band, and HH/HL Structure
             if close_p > d_ema and close_p > w_ema and macd_val > macd_sig and (55 <= rsi_val <= 75) and is_structural_uptrend:
                 direction = "Bullish"
                 t1, t2, t3, t4, t5 = [round(close_p + m * atr, 1) for m in (m1, m2, m3, m4, m5)]
