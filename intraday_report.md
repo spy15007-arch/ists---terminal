@@ -1,4 +1,4 @@
-# ⚡ Intraday Report — 07 Aug 2026 | 04:34 PM (Manual Override)
+# ⚡ Intraday Report — 07 Aug 2026 | 04:47 PM (Manual Override)
 
 > **System:** MTF Hierarchy + Sectoral RS + VWAP Gate + Strict 1:2 RRR Hard Gate
 
@@ -11,3 +11,9 @@
 
 ---
 
+## 📊 F&O Verified Institutional Scans (Long-Only)
+
+| # | Stock | Setup Type | Price | Score | Eq SL | Eq T1/T2/T3/T4/T5 | Option | Prem | Prem T1/T2/T3 |
+| :--- | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| 1 | **HEROMOTOCO (↑)** | Volume Breakout | ₹5725.0 | 🔥 5/10 | ₹5619.4 | 5969.8/6141.3/6386.1/6749.6/7305.0 | **5700 CE** | ₹145.8 | 318.0/468.9/704.4 |
+| 2 | **MOTHERSON (↑)** | Volume Breakout | ₹168.5 | 🔥 5/10 | ₹164.3 | 176.1/181.6/189.3/200.3/216.9 | **170 CE** | ₹5.01 | 9.5/13.7/20.4 |
