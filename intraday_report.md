@@ -1,6 +1,6 @@
-# ⚡ Intraday Report — 07 Aug 2026 | 04:47 PM (Manual Override)
+# ⚡ Intraday Report — 07 Aug 2026 | 06:02 PM (Manual Override)
 
-> **System:** MTF Hierarchy + Sectoral RS + VWAP Gate + Strict 1:2 RRR Hard Gate
+> **System:** Expanded Universe + Sectoral RS + VWAP Gate + Strict 1:1.8 RRR
 
 ## 👑 Index Options (MTF Intraday Scalps)
 
@@ -11,7 +11,7 @@
 
 ---
 
-## 📊 F&O Verified Institutional Scans (Long-Only)
+## 📊 Expanded Universe Verified Institutional Scans (Long-Only)
 
 | # | Stock | Setup Type | Price | Score | Eq SL | Eq T1/T2/T3/T4/T5 | Option | Prem | Prem T1/T2/T3 |
 | :--- | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
