@@ -112,14 +112,12 @@ def check_structure_hh_hl(df_h, df_l):
     return (h_half2 >= h_half1) and (l_half2 >= l_half1)
 
 def validate_mtf_confluence(ticker):
-    """Validates 4-Hour and 60-min / 15-min price action alignment for precision options entry."""
+    """Validates 4-Hour price action alignment for precision options entry."""
     try:
         df_hr = yf.download(ticker, period="5d", interval="1h", progress=False, threads=False)
         if df_hr.empty: return True
-        # Resample 1-hour to 4-hour candles
         df_4h = df_hr['Close'].resample('4H').last().dropna()
         if len(df_4h) >= 3:
-            # Check 4H momentum alignment (higher closes on recent 4H bars)
             return float(df_4h.iloc[-1]) >= float(df_4h.iloc[-2])
     except:
         pass
@@ -182,7 +180,7 @@ def get_index_options_ideas():
 def generate_tabular_markdown(df_stocks, df_index, title, filename, include_index=False):
     with open(filename, "w", encoding="utf-8") as f:
         f.write(f"# {title}\n\n")
-        f.write("> **System:** MTF Hierarchy (Weekly/Daily/4H/1H/15m) + Dynamic Targets & MACD/RSI Confluence\n\n")
+        f.write("> **System:** MTF Hierarchy + Volume Spike Breakout Filter + Dynamic Targets\n\n")
         
         if df_stocks.empty and df_index.empty:
             f.write("*Market conditions did not trigger any multi-timeframe quantitative setups for this timeframe.*\n")
@@ -199,7 +197,7 @@ def generate_tabular_markdown(df_stocks, df_index, title, filename, include_inde
             f.write("\n---\n\n")
 
         if not df_stocks.empty:
-            f.write("## 📊 F&O MTF Confluence & Breakout Scans (Long-Only)\n\n")
+            f.write("## 📊 F&O Volume-Verified Breakout & MTF Scans (Long-Only)\n\n")
             f.write("| # | Stock | Setup Type | Price | Score | Eq SL | Eq T1/T2/T3/T4/T5 | Option | Prem | Prem T1/T2/T3 |\n")
             f.write("| :--- | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |\n")
             for idx, r in df_stocks.reset_index().iterrows():
@@ -217,7 +215,7 @@ def format_telegram_text(df_stocks, df_index, title):
             msg += f"• {r['Stock']} @ ₹{r['Entry']}\n  {r['Opt']} @ ₹{r['Prem']}\n  Opt Targets: {r['PT1']}/{r['PT2']}/{r['PT3']}\n\n"
     
     if not df_stocks.empty:
-        msg += "📊 *TOP MTF CONFLUENCE SETUPS (Long-Only)*\n"
+        msg += "📊 *TOP VOLUME-VERIFIED MTF SETUPS (Long-Only)*\n"
         for idx, r in df_stocks.head(15).reset_index().iterrows():
             msg += f"{idx+1}. {r['Stock']} | *{r['Tag']}* @ ₹{r['Entry']}\n"
             msg += f"   Eq Tgts: {r['EqT1']}/{r['EqT2']}/{r['EqT3']}\n"
@@ -228,12 +226,12 @@ def format_telegram_text(df_stocks, df_index, title):
                 msg += f"   Option: N/A (Cash Equity Only)\n"
             msg += "\n"
     else:
-        msg += "No high-conviction MTF setups triggered for this scan."
+        msg += "No high-conviction volume-verified setups triggered for this scan."
         
     return msg
 
 def run():
-    print("🚀 Starting Automated Master Quant Scanner (Full MTF & Precision Options Edition)...")
+    print("🚀 Starting Automated Master Quant Scanner (Volume Spike Breakout Edition)...")
     sess_title, sess_type = get_session_info()
     print(f"🕒 Timeframe Registered: {sess_title}")
     
@@ -315,6 +313,9 @@ def run():
             is_squeeze = (recent_vol_avg < vol_50_avg * 0.85) and (recent_range_avg < atr * 0.85)
             is_structural_uptrend = check_structure_hh_hl(highs[ticker], lows[ticker])
 
+            # EXPLICIT VOLUME SPIKE MULTIPLIER FILTER: Must have at least 1.5x volume expansion relative to adjusted 50-period average
+            is_volume_breakout = (vol_vs >= 1.5) or is_squeeze
+
             if vol_vs >= 1.5:
                 hor, sl_m = "Intraday", 0.8
             elif is_squeeze or vol_vs >= 1.2:
@@ -322,9 +323,8 @@ def run():
             else:
                 hor, sl_m = "Swing", 1.5
 
-            # Core MTF conditions: Weekly/Daily Trend + MACD Crossover + RSI + HH/HL Structure + 4H Confluence
-            if close_p > d_ema and close_p > w_ema and macd_val > macd_sig and (55 <= rsi_val <= 75) and is_structural_uptrend:
-                # Validate 4H / Intraday precision confluence
+            # Core conditions: Trend + MACD + RSI + Structure + Mandatory Volume Spike
+            if close_p > d_ema and close_p > w_ema and macd_val > macd_sig and (55 <= rsi_val <= 75) and is_structural_uptrend and is_volume_breakout:
                 if not validate_mtf_confluence(ticker):
                     continue
 
@@ -336,8 +336,8 @@ def run():
                     base_score = 5  
                     tag = "🔥 Squeeze Blast (1-3d)"
                 else:
-                    base_score = 2 + (2 if vol_vs >= 1.5 else 0)
-                    tag = "MTF Breakout"
+                    base_score = 3 + (2 if vol_vs >= 2.0 else 1)
+                    tag = "Volume Breakout"
             else:
                 continue 
 
