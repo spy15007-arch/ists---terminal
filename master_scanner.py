@@ -35,6 +35,33 @@ def send_telegram_message(message):
 # --- FIREWALL-PROOF F&O UNIVERSE ---
 STATIC_FNO = ["AARTIIND", "ABB", "ABBOTINDIA", "ABCAPITAL", "ABFRL", "ACC", "ADANIENT", "ADANIPORTS", "ALKEM", "AMBUJACEM", "APOLLOHOSP", "APOLLOTYRE", "ASHOKLEY", "ASIANPAINT", "ASTRAL", "ATUL", "AUBANK", "AUROPHARMA", "AXISBANK", "BAJAJ-AUTO", "BAJAJFINSV", "BAJFINANCE", "BALKRISIND", "BALRAMCHIN", "BANDHANBNK", "BANKBARODA", "BATAINDIA", "BEL", "BERGEPAINT", "BHARATFORG", "BHARTIARTL", "BHEL", "BIOCON", "BOSCHLTD", "BPCL", "BRITANNIA", "CANBK", "CANFINHOME", "CHAMBLFERT", "CHOLAFIN", "CIPLA", "COALINDIA", "COFORGE", "COLPAL", "CONCOR", "COROMANDEL", "CROMPTON", "CUB", "CUMMINSIND", "DABUR", "DALBHARAT", "DEEPAKNTR", "DIVISLAB", "DIXON", "DLF", "DRREDDY", "EICHERMOT", "ESCORTS", "EXIDEIND", "FEDERALBNK", "GAIL", "GLENMARK", "GMRINFRA", "GNFC", "GODREJCP", "GODREJPROP", "GRANULES", "GRASIM", "GUJGASLTD", "HAL", "HAVELLS", "HCLTECH", "HDFCAMC", "HDFCBANK", "HDFCLIFE", "HEROMOTOCO", "HINDALCO", "HINDCOPPER", "HINDPETRO", "HINDUNILVR", "ICICIBANK", "ICICIGI", "ICICIPRULI", "IDEA", "IDFCFIRSTB", "IEX", "IGL", "INDHOTEL", "INDIACEM", "INDIAMART", "INDIGO", "INDUSINDBK", "INFY", "IOC", "IPCALAB", "IRCTC", "ITC", "JINDALSTEL", "JSWSTEEL", "JUBLFOOD", "KOTAKBANK", "LALPATHLAB", "LAURUSLABS", "LICHSGFIN", "LT", "LTIM", "LTTS", "LUPIN", "M&M", "M&MFIN", "MANAPPURAM", "MARICO", "MARUTI", "MCDOWELL-N", "MCX", "METROPOLIS", "MFSL", "MGL", "MOTHERSON", "MPHASIS", "MRF", "MUTHOOTFIN", "NATIONALUM", "NAUKRI", "NAVINFLUOR", "NESTLEIND", "NMDC", "NTPC", "OBEROIRLTY", "OFSS", "ONGC", "PAGEIND", "PEL", "PETRONET", "PFC", "PIDILITIND", "PIIND", "PNB", "POLYCAB", "POWERGRID", "PVRINOX", "RAMCOCEM", "RBLBANK", "RECLTD", "RELIANCE", "SAIL", "SBICARD", "SBILIFE", "SBIN", "SHREECEM", "SHRIRAMFIN", "SIEMENS", "SRF", "SUNPHARMA", "SUNTV", "SYNGENE", "TATACHEM", "TATACOMM", "TATACONSUM", "TATAMOTORS", "TATAPOWER", "TATASTEEL", "TCS", "TECHM", "TITAN", "TORNTPHARM", "TRENT", "TVSMOTOR", "UBL", "ULTRACEMCO", "UPL", "VEDL", "VOLTAS", "WIPRO", "ZEEL", "ZYDUSLIFE"]
 
+# --- SECTORAL MAPPING FOR TOP-DOWN RELATIVE STRENGTH ---
+SECTOR_MAP = {
+    'IT': ["TCS", "INFY", "TECHM", "HCLTECH", "WIPRO", "COFORGE", "LTIM", "MPHASIS", "OFSS", "NAUKRI", "LTTS"],
+    'AUTO': ["MARUTI", "M&M", "HEROMOTOCO", "BAJAJ-AUTO", "EICHERMOT", "TVSMOTOR", "APOLLOTYRE", "ASHOKLEY", "BALKRISIND", "MOTHERSON"],
+    'PHARMA': ["SUNPHARMA", "DRREDDY", "CIPLA", "DIVISLAB", "LUPIN", "AUROPHARMA", "ALKEM", "ZYDUSLIFE", "GLENMARK", "METROPOLIS", "LALPATHLAB", "IPCALAB", "BIOCON", "TORNTPHARM"],
+    'BANKFIN': ["HDFCBANK", "ICICIBANK", "AXISBANK", "KOTAKBANK", "SBIN", "INDUSINDBK", "BANKBARODA", "PNB", "AUBANK", "FEDERALBNK", "CHOLAFIN", "BAJFINANCE", "BAJFINSV", "SBICARD", "MUTHOOTFIN", "RECLTD", "PFC", "ABCAPITAL", "CANBK", "CANFINHOME", "LICHSGFIN", "MANAPPURAM", "MFSL", "SBILIFE", "ICICIGI", "ICICIPRULI", "HDFCAMC", "HDFCLIFE", "IDFCFIRSTB", "RBLBANK", "SHRIRAMFIN"],
+    'METAL': ["TATASTEEL", "HINDALCO", "JINDALSTEL", "VEDL", "SAIL", "NATIONALUM", "HINDCOPPER"],
+    'ENERGY': ["RELIANCE", "ONGC", "BPCL", "IOC", "HINDPETRO", "GAIL", "NTPC", "POWERGRID", "COALINDIA", "TATAPOWER", "ADANIENT", "ADANIPORTS"],
+    'FMCG': ["HINDUNILVR", "ITC", "BRITANNIA", "NESTLEIND", "DABUR", "MARICO", "TATACONSUM", "COLPAL", "GODREJCP"]
+}
+
+SECTOR_TICKERS = {
+    'IT': '^CNXIT',
+    'AUTO': '^CNXAUTO',
+    'PHARMA': '^CNXPHARMA',
+    'BANKFIN': '^NSEBANK',
+    'METAL': '^CNXMETAL',
+    'ENERGY': '^CNXENERGY',
+    'FMCG': '^CNXFMCG'
+}
+
+def get_sector_symbol(symbol):
+    for sec, syms in SECTOR_MAP.items():
+        if symbol in syms:
+            return SECTOR_TICKERS.get(sec, '^NSEI')
+    return '^NSEI'
+
 def get_session_info():
     now_ist = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=5, minutes=30)
     hour, minute = now_ist.hour, now_ist.minute
@@ -63,7 +90,6 @@ def black_scholes(S, K, T, r, sigma, opt_type="CE"):
     return round(prem, 2)
 
 def calculate_dynamic_targets(close_p, atr, df_h, df_l, direction="Bullish", is_squeeze=False):
-    """Dynamic Decision Engine blending ATR volatility with Fibonacci structural extensions."""
     recent_high = float(df_h.tail(20).max())
     recent_low = float(df_l.tail(20).min())
     diff = max(1.0, recent_high - recent_low)
@@ -112,7 +138,6 @@ def check_structure_hh_hl(df_h, df_l):
     return (h_half2 >= h_half1) and (l_half2 >= l_half1)
 
 def check_flag_and_pole(closes, highs, lows, volumes):
-    """Algorithmic Flag & Pole Pattern Recognition."""
     try:
         if len(closes) < 25: return False
         past_window = closes.iloc[-25:-3]
@@ -120,10 +145,8 @@ def check_flag_and_pole(closes, highs, lows, volumes):
         pole_high = past_window.max()
         pole_gain = (pole_high / pole_start) - 1
         
-        # Requires at least 7-8% impulsive gain (Pole)
         if pole_gain < 0.07: return False
         
-        # Requires tight price contraction and low volume in recent 3 days (Flag)
         recent_highs = highs.tail(3)
         recent_lows = lows.tail(3)
         recent_vol = volumes.tail(3).mean()
@@ -135,11 +158,26 @@ def check_flag_and_pole(closes, highs, lows, volumes):
     except:
         return False
 
+def check_vwap_gate(ticker, close_p):
+    """Verifies price is trading above intraday VWAP for institutional volume backing."""
+    try:
+        df_intra = yf.download(ticker, period="1d", interval="5m", progress=False, threads=False)
+        if df_intra.empty: return True
+        if isinstance(df_intra.columns, pd.MultiIndex):
+            df_intra.columns = df_intra.columns.get_level_values(0)
+        v = df_intra['Volume']
+        tp = (df_intra['High'] + df_intra['Low'] + df_intra['Close']) / 3
+        vwap = (tp * v).sum() / v.sum() if v.sum() > 0 else close_p
+        return close_p >= vwap
+    except:
+        return True
+
 def validate_mtf_confluence(ticker):
-    """Validates 4-Hour price action alignment for precision options entry."""
     try:
         df_hr = yf.download(ticker, period="5d", interval="1h", progress=False, threads=False)
         if df_hr.empty: return True
+        if isinstance(df_hr.columns, pd.MultiIndex):
+            df_hr.columns = df_hr.columns.get_level_values(0)
         df_4h = df_hr['Close'].resample('4H').last().dropna()
         if len(df_4h) >= 3:
             return float(df_4h.iloc[-1]) >= float(df_4h.iloc[-2])
@@ -204,10 +242,10 @@ def get_index_options_ideas():
 def generate_tabular_markdown(df_stocks, df_index, title, filename, include_index=False):
     with open(filename, "w", encoding="utf-8") as f:
         f.write(f"# {title}\n\n")
-        f.write("> **System:** MTF Hierarchy + Relative Strength Filter + Flag & Pole Recognition\n\n")
+        f.write("> **System:** MTF Hierarchy + Sectoral RS + VWAP Gate + Strict 1:2 RRR Hard Gate\n\n")
         
         if df_stocks.empty and df_index.empty:
-            f.write("*Market conditions did not trigger any quantitative setups for this timeframe.*\n")
+            f.write("*Market conditions did not trigger any quantitative setups meeting institutional gates for this timeframe.*\n")
             return
 
         if include_index and not df_index.empty:
@@ -221,7 +259,7 @@ def generate_tabular_markdown(df_stocks, df_index, title, filename, include_inde
             f.write("\n---\n\n")
 
         if not df_stocks.empty:
-            f.write("## 📊 F&O Relative Strength & Pattern Scans (Long-Only)\n\n")
+            f.write("## 📊 F&O Verified Institutional Scans (Long-Only)\n\n")
             f.write("| # | Stock | Setup Type | Price | Score | Eq SL | Eq T1/T2/T3/T4/T5 | Option | Prem | Prem T1/T2/T3 |\n")
             f.write("| :--- | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |\n")
             for idx, r in df_stocks.reset_index().iterrows():
@@ -239,7 +277,7 @@ def format_telegram_text(df_stocks, df_index, title):
             msg += f"• {r['Stock']} @ ₹{r['Entry']}\n  {r['Opt']} @ ₹{r['Prem']}\n  Opt Targets: {r['PT1']}/{r['PT2']}/{r['PT3']}\n\n"
     
     if not df_stocks.empty:
-        msg += "📊 *TOP RELATIVE STRENGTH & PATTERN SETUPS (Long-Only)*\n"
+        msg += "📊 *TOP VERIFIED INSTITUTIONAL SETUPS (Long-Only)*\n"
         for idx, r in df_stocks.head(15).reset_index().iterrows():
             msg += f"{idx+1}. {r['Stock']} | *{r['Tag']}* @ ₹{r['Entry']}\n"
             msg += f"   Eq Tgts: {r['EqT1']}/{r['EqT2']}/{r['EqT3']}\n"
@@ -250,12 +288,12 @@ def format_telegram_text(df_stocks, df_index, title):
                 msg += f"   Option: N/A (Cash Equity Only)\n"
             msg += "\n"
     else:
-        msg += "No high-conviction relative strength setups triggered for this scan."
+        msg += "No setups cleared the strict 1:2 RRR and VWAP gates for this scan."
         
     return msg
 
 def run():
-    print("🚀 Starting Automated Master Quant Scanner (Relative Strength & Flag/Pole Edition)...")
+    print("🚀 Starting Automated Master Quant Scanner (Full Institutional Edition)...")
     sess_title, sess_type = get_session_info()
     print(f"🕒 Timeframe Registered: {sess_title}")
     
@@ -270,19 +308,47 @@ def run():
     else:
         df_index = pd.DataFrame()
     
-    # Fetch Nifty 50 Benchmark for Relative Strength Filter
+    # 1. Fetch Nifty 50 Benchmark for Market Relative Strength
     nifty_df = yf.download("^NSEI", period="6mo", interval="1d", progress=False)
     nifty_return_20d = 0.0
-    if not nifty_df.empty and len(nifty_df['Close']) >= 20:
+    if not nifty_df.empty:
+        if isinstance(nifty_df.columns, pd.MultiIndex):
+            nifty_df.columns = nifty_df.columns.get_level_values(0)
         nifty_closes = nifty_df['Close'].squeeze()
-        nifty_return_20d = float(nifty_closes.iloc[-1] / nifty_closes.iloc[-20] - 1)
+        if len(nifty_closes) >= 20:
+            nifty_return_20d = float(nifty_closes.iloc[-1] / nifty_closes.iloc[-20] - 1)
+
+    # 2. Fetch Sectoral Indices Performance Data for Top-Down Relative Strength
+    sector_returns = {}
+    unique_sectors = set(SECTOR_TICKERS.values())
+    for sec_ticker in unique_sectors:
+        try:
+            sec_df = yf.download(sec_ticker, period="6mo", interval="1d", progress=False)
+            if not sec_df.empty:
+                if isinstance(sec_df.columns, pd.MultiIndex):
+                    sec_df.columns = sec_df.columns.get_level_values(0)
+                sec_closes = sec_df['Close'].squeeze()
+                if len(sec_closes) >= 20:
+                    sector_returns[sec_ticker] = float(sec_closes.iloc[-1] / sec_closes.iloc[-20] - 1)
+                else:
+                    sector_returns[sec_ticker] = 0.0
+            else:
+                sector_returns[sec_ticker] = 0.0
+        except:
+            sector_returns[sec_ticker] = 0.0
 
     tickers = [f"{s}.NS" for s in STATIC_FNO]
     data = yf.download(tickers, period="6mo", interval="1d", progress=False, threads=True)
     
     if data.empty: return
-    
-    closes, highs, lows, volumes = data['Close'], data['High'], data['Low'], data['Volume']
+    if isinstance(data.columns, pd.MultiIndex):
+        closes = data['Close']
+        highs = data['High']
+        lows = data['Low']
+        volumes = data['Volume']
+    else:
+        closes, highs, lows, volumes = data['Close'], data['High'], data['Low'], data['Volume']
+
     ema_50_daily = closes.ewm(span=50).mean()
     vol_50d_avg_daily = volumes.rolling(50).mean()
     
@@ -345,11 +411,14 @@ def run():
             is_structural_uptrend = check_structure_hh_hl(highs[ticker], lows[ticker])
             is_flag_pole = check_flag_and_pole(closes[ticker], highs[ticker], lows[ticker], volumes[ticker])
 
-            # Relative Strength Filter: Stock's 20d return must outperform Nifty 50's 20d return
+            # Relative Strength Filters (Stock vs Nifty & Sector vs Nifty)
             stock_closes_series = closes[ticker].dropna()
             stock_return_20d = float(stock_closes_series.iloc[-1] / stock_closes_series.iloc[-20] - 1) if len(stock_closes_series) >= 20 else 0.0
-            is_relative_strong = stock_return_20d > nifty_return_20d
-
+            
+            sec_symbol = get_sector_symbol(symbol)
+            sec_return_20d = sector_returns.get(sec_symbol, 0.0)
+            
+            is_relative_strong = (stock_return_20d > nifty_return_20d) and (sec_return_20d >= nifty_return_20d)
             is_volume_breakout = (vol_vs >= 1.5) or is_squeeze or is_flag_pole
 
             if vol_vs >= 1.5:
@@ -359,14 +428,25 @@ def run():
             else:
                 hor, sl_m = "Swing", 1.5
 
-            # Core conditions: Trend + MACD + RSI + Structure + Relative Strength + Volume/Pattern trigger
+            # Core Trigger: Trend + MACD + RSI + Structure + Sectoral RS + Volume/Pattern trigger
             if close_p > d_ema and close_p > w_ema and macd_val > macd_sig and (55 <= rsi_val <= 75) and is_structural_uptrend and is_relative_strong and is_volume_breakout:
+                
+                # VWAP Gate Check for Intraday/BTST execution quality
+                if hor in ["Intraday", "BTST"] and not check_vwap_gate(ticker, close_p):
+                    continue
+
                 if not validate_mtf_confluence(ticker):
                     continue
 
                 direction = "Bullish"
                 t1, t2, t3, t4, t5 = calculate_dynamic_targets(close_p, atr, highs[ticker], lows[ticker], "Bullish", is_squeeze or is_flag_pole)
                 eq_sl = round(close_p - sl_m * atr, 1)
+                
+                # STRICT 1:2 RISK-TO-REWARD RATIO HARD GATE
+                risk = close_p - eq_sl
+                reward = t1 - close_p
+                if risk <= 0 or (reward / risk) < 2.0:
+                    continue  # Discarded: fails minimum 1:2 RRR requirement
                 
                 if is_flag_pole:
                     base_score = 6
@@ -376,7 +456,7 @@ def run():
                     tag = "🔥 Squeeze Blast (1-3d)"
                 else:
                     base_score = 3 + (2 if vol_vs >= 2.0 else 1)
-                    tag = "RS Volume Breakout"
+                    tag = "Institutional Breakout"
             else:
                 continue 
 
