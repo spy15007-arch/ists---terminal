@@ -10,29 +10,29 @@ from streamlit_autorefresh import st_autorefresh
 
 st.set_page_config(page_title="ISTS Pro Dashboard", page_icon="📈", layout="wide")
 
-# --- FIREWALL-PROOF F&O UNIVERSE (For Options Validation) ---
+# --- FIREWALL-PROOF F&O UNIVERSE ---
 STATIC_FNO = [
-    "AARTIIND", "ABB", "ABBOTINDIA", "ABCAPITAL", "ABFRL", "ACC", "ADANIENT", "ADANIPORTS", "ALKEM", "AMBUJACEM", 
-    "APOLLOHOSP", "APOLLOTYRE", "ASHOKLEY", "ASIANPAINT", "ASTRAL", "ATUL", "AUBANK", "AUROPHARMA", "AXISBANK", 
-    "BAJAJ-AUTO", "BAJAJFINSV", "BAJFINANCE", "BALKRISIND", "BALRAMCHIN", "BANDHANBNK", "BANKBARODA", "BATAINDIA", 
-    "BEL", "BERGEPAINT", "BHARATFORG", "BHARTIARTL", "BHEL", "BIOCON", "BOSCHLTD", "BPCL", "BRITANNIA", "CANBK", 
-    "CANFINHOME", "CHAMBLFERT", "CHOLAFIN", "CIPLA", "COALINDIA", "COFORGE", "COLPAL", "CONCOR", "COROMANDEL", 
-    "CROMPTON", "CUB", "CUMMINSIND", "DABUR", "DALBHARAT", "DEEPAKNTR", "DIVISLAB", "DIXON", "DLF", "DRREDDY", 
-    "EICHERMOT", "ESCORTS", "EXIDEIND", "FEDERALBNK", "GAIL", "GLENMARK", "GMRINFRA", "GNFC", "GODREJCP", "GODREJPROP", 
-    "GRANULES", "GRASIM", "GUJGASLTD", "HAL", "HAVELLS", "HCLTECH", "HDFCAMC", "HDFCBANK", "HDFCLIFE", "HEROMOTOCO", 
-    "HINDALCO", "HINDCOPPER", "HINDPETRO", "HINDUNILVR", "ICICIBANK", "ICICIGI", "ICICIPRULI", "IDEA", "IDFCFIRSTB", 
-    "IEX", "IGL", "INDHOTEL", "INDIACEM", "INDIAMART", "INDIGO", "INDUSINDBK", "INFY", "IOC", "IPCALAB", "IRCTC", "ITC", 
-    "JINDALSTEL", "JSWSTEEL", "JUBLFOOD", "KOTAKBANK", "LALPATHLAB", "LAURUSLABS", "LICHSGFIN", "LT", "LTIM", "LTTS", 
-    "LUPIN", "M&M", "M&MFIN", "MANAPPURAM", "MARICO", "MARUTI", "MCDOWELL-N", "MCX", "METROPOLIS", "MFSL", "MGL", 
-    "MOTHERSON", "MPHASIS", "MRF", "MUTHOOTFIN", "NATIONALUM", "NAUKRI", "NAVINFLUOR", "NESTLEIND", "NMDC", "NTPC", 
-    "OBEROIRLTY", "OFSS", "ONGC", "PAGEIND", "PEL", "PETRONET", "PFC", "PIDILITIND", "PIIND", "PNB", "POLYCAB", 
-    "POWERGRID", "PVRINOX", "RAMCOCEM", "RBLBANK", "RECLTD", "RELIANCE", "SAIL", "SBICARD", "SBILIFE", "SBIN", 
-    "SHREECEM", "SHRIRAMFIN", "SIEMENS", "SRF", "SUNPHARMA", "SUNTV", "SYNGENE", "TATACHEM", "TATACOMM", "TATACONSUM", 
-    "TATAMOTORS", "TATAPOWER", "TATASTEEL", "TCS", "TECHM", "TITAN", "TORNTPHARM", "TRENT", "TVSMOTOR", "UBL", 
-    "ULTRACEMCO", "UPL", "VEDL", "VOLTAS", "WIPRO", "ZEEL", "ZYDUSLIFE"
+    "AARTIIND", "ABB", "ABBOTINDIA", "ABCAPITAL", "ABFRL", "ACC", "ACCELYA", "ACTIONCONST", "ADANIENSOL", "ADANIENT", 
+    "ADANIGREEN", "ADANIPORTS", "ADANIPOWER", "ALKEM", "AMBUJACEM", "APOLLOHOSP", "APOLLOTYRE", "ASHOKLEY", "ASIANPAINT", 
+    "ASTRAL", "ATUL", "AUBANK", "AUROPHARMA", "AXISBANK", "BAJAJ-AUTO", "BAJAJFINSV", "BAJFINANCE", "BALKRISIND", 
+    "BALRAMCHIN", "BANDHANBNK", "BANKBARODA", "BATAINDIA", "BEL", "BERGEPAINT", "BHARATFORG", "BHARTIARTL", "BHEL", 
+    "BIOCON", "BOSCHLTD", "BPCL", "BRITANNIA", "CANBK", "CANFINHOME", "CHAMBLFERT", "CHOLAFIN", "CIPLA", "COALINDIA", 
+    "COFORGE", "COLPAL", "CONCOR", "COROMANDEL", "CROMPTON", "CUB", "CUMMINSIND", "DABUR", "DALBHARAT", "DEEPAKNTR", 
+    "DIVISLAB", "DIXON", "DLF", "DRREDDY", "EICHERMOT", "ESCORTS", "EXIDEIND", "FEDERALBNK", "GAIL", "GLENMARK", 
+    "GMRINFRA", "GNFC", "GODREJCP", "GODREJPROP", "GRANULES", "GRASIM", "GUJGASLTD", "HAL", "HAVELLS", "HCLTECH", 
+    "HDFCAMC", "HDFCBANK", "HDFCLIFE", "HEROMOTOCO", "HINDALCO", "HINDCOPPER", "HINDPETRO", "HINDUNILVR", "ICICIBANK", 
+    "ICICIGI", "ICICIPRULI", "IDEA", "IDFCFIRSTB", "IEX", "IGL", "INDHOTEL", "INDIACEM", "INDIAMART", "INDIGO", 
+    "INDUSINDBK", "INFY", "IOC", "IPCALAB", "IRCTC", "ITC", "JINDALSTEL", "JSWSTEEL", "JUBLFOOD", "KOTAKBANK", 
+    "LALPATHLAB", "LAURUSLABS", "LICHSGFIN", "LT", "LTIM", "LTTS", "LUPIN", "M&M", "M&MFIN", "MANAPPURAM", "MARICO", 
+    "MARUTI", "MCDOWELL-N", "MCX", "METROPOLIS", "MFSL", "MGL", "MOTHERSON", "MPHASIS", "MRF", "MUTHOOTFIN", "NATIONALUM", 
+    "NAUKRI", "NAVINFLUOR", "NESTLEIND", "NMDC", "NTPC", "OBEROIRLTY", "OFSS", "ONGC", "PAGEIND", "PEL", "PETRONET", 
+    "PFC", "PIDILITIND", "PIIND", "PNB", "POLYCAB", "POWERGRID", "PVRINOX", "RAMCOCEM", "RBLBANK", "RECLTD", "RELIANCE", 
+    "SAIL", "SBICARD", "SBILIFE", "SBIN", "SHREECEM", "SHRIRAMFIN", "SIEMENS", "SRF", "SUNPHARMA", "SUNTV", "SYNGENE", 
+    "TATACHEM", "TATACOMM", "TATACONSUM", "TATAMOTORS", "TATAPOWER", "TATASTEEL", "TCS", "TECHM", "TITAN", "TORNTPHARM", 
+    "TRENT", "TVSMOTOR", "UBL", "ULTRACEMCO", "UPL", "VEDL", "VOLTAS", "WIPRO", "ZEEL", "ZYDUSLIFE"
 ]
 
-# --- 1200+ MEGA UNIVERSE (Equities) ---
+# --- 1200+ UNIVERSE ---
 raw_symbols = (
     "360ONE 3IINFOTECH 3MINDIA 5PAISA 63MOONS AARTIIND AARTIPHARM AARTISURF AAVAS ABBOTINDIA ABCAPITAL ABFRL ACC ACCELYA ACTIONCONST "
     "ADANIENSOL ADANIENT ADANIGREEN ADANIPORTS ADANIPOWER ADVENZYMES AEGISCHEM AETHER AFFLE AGARIND AGI AGL AJANTPHARM ALKALI "
@@ -89,16 +89,12 @@ raw_symbols = (
     "UNITEDTEA UNO MINDA UPL URAVI USHAMART UTIAMC VAIBHAVGBL VAKRANGEE VALIANTORG VARDHMAN VARROC VASCONEQ VBL VEDL VENKEYS "
     "VESUVIUS VGUARD VIDHIING VINATIORGA VINDHYATEL VIPIND VISAKAIND VISHNU VOLTAMP VOLTAS VRLLOG WABAG WALCHANNAG WEALTH WELCORP "
     "WELENT WESCG WELSPUNIND WHIRLPOOL WINDLAS WIPRO WOCKPHARMA WONDERLA XPROINDIA YESBANK YUKEN ZEELEARN ZEEL ZENSARTECH "
-    "ZFCVINDIA ZOMATO ZOTA ZUARI ZUARIIND ZYDUSLIFE ZYDUSWELL"
+    "ZFCVINDIA ZOMATO ZOTA ZUARI ZUARIIND ZYDUSLIFE ZYDUSWELL TFCI SHIVALIK SWANDEFENCE AVALON AIMTRON INDOTECH PEARLGLOBAL DIL"
 )
 EXTENDED_UNIVERSE = list(set(raw_symbols.split()))
 
 st.sidebar.title("ISTS Pro Terminal")
 page = st.sidebar.radio("Navigation", ["Dashboard", "Scan Market", "Budget Scanner (< ₹500)"])
-
-def get_session_info():
-    hour = (datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=5, minutes=30)).hour
-    return "Intraday" if hour < 14 else "BTST"
 
 def black_scholes(S, K, T, r, sigma, opt_type="CE"):
     if T <= 0 or sigma == 0: return max(0, S - K) if opt_type == "CE" else max(0, K - S)
@@ -120,21 +116,12 @@ def generate_quant_option(price, t1, t2, t3, df_h, df_l, df_c, direction="Bullis
     except: vol = 0.2
     
     c_prem = black_scholes(price, atm, dte/365.0, 0.07, vol, opt_type)
-    
-    if horizon == "Intraday":
-        ot1 = price + (t1 - price) * 0.4 if direction == "Bullish" else price - (price - t1) * 0.4
-        ot2 = price + (t2 - price) * 0.7 if direction == "Bullish" else price - (price - t2) * 0.7
-        ot3 = t1
-    else:
-        ot1, ot2, ot3 = t1, t2, t3
-
-    pt1 = black_scholes(ot1, atm, dte/365.0, 0.07, vol, opt_type)
-    pt2 = black_scholes(ot2, atm, dte/365.0, 0.07, vol, opt_type)
-    pt3 = black_scholes(ot3, atm, dte/365.0, 0.07, vol, opt_type)
+    pt1 = black_scholes(t1, atm, dte/365.0, 0.07, vol, opt_type)
+    pt2 = black_scholes(t2, atm, dte/365.0, 0.07, vol, opt_type)
+    pt3 = black_scholes(t3, atm, dte/365.0, 0.07, vol, opt_type)
     
     return f"{atm} {opt_type}", c_prem, round(pt1, 1), round(pt2, 1), round(pt3, 1)
 
-# Auto refresh set to 60 seconds (ttl=60)
 @st.cache_data(ttl=60)
 def get_index_options_ideas():
     indices_map = {'^NSEI': 'NIFTY 50', '^NSEBANK': 'BANK NIFTY'}
@@ -189,20 +176,19 @@ def get_index_options_ideas():
         df.insert(0, '#', range(1, len(df) + 1))
     return df
 
-# Auto refresh set to 60 seconds (ttl=60)
 @st.cache_data(ttl=60)
 def run_quant_scan():
     now_ist = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=5, minutes=30)
     market_open = now_ist.replace(hour=9, minute=15, second=0, microsecond=0)
     minutes_elapsed = min(max(1, (now_ist - market_open).total_seconds() / 60), 375)
     
-    # Connect to 1200+ Universe
     tickers = [f"{s}.NS" for s in EXTENDED_UNIVERSE]
     data = yf.download(tickers, period="6mo", interval="1d", progress=False, threads=True)
     if data.empty: return pd.DataFrame()
     
     closes, highs, lows, volumes = data['Close'], data['High'], data['Low'], data['Volume']
     ema_50_daily = closes.ewm(span=50).mean()
+    ema_20_daily = closes.ewm(span=20).mean()
     vol_50d_avg_daily = volumes.rolling(50).mean()
     
     delta = closes.diff()
@@ -225,7 +211,7 @@ def run_quant_scan():
     last_close, last_high, last_low = closes.iloc[-1], highs.iloc[-1], lows.iloc[-1]
     last_vol, last_vol_50 = volumes.iloc[-1], vol_50d_avg_daily.iloc[-1]
     last_rsi, last_macd, last_macd_sig = rsi_daily.iloc[-1], macd_daily.iloc[-1], macd_signal_daily.iloc[-1]
-    last_ema_50, last_atr = ema_50_daily.iloc[-1], atr_daily.iloc[-1]
+    last_ema_50, last_ema_20, last_atr = ema_50_daily.iloc[-1], ema_20_daily.iloc[-1], atr_daily.iloc[-1]
     last_ema_50_weekly = ema_50_weekly.iloc[-1]
 
     valid_setups = []
@@ -235,45 +221,50 @@ def run_quant_scan():
             close_p, vol_today = float(last_close[ticker]), float(last_vol[ticker])
             vol_50_avg = float(last_vol_50[ticker])
             
-            # --- STRICT LIQUIDITY GATE ---
-            if pd.isna(close_p) or close_p <= 0 or vol_today < 250000 or vol_50_avg < 250000: 
+            if pd.isna(close_p) or close_p <= 0 or vol_today < 200000 or vol_50_avg < 200000: 
                 continue
             
             rsi_val, macd_val, macd_sig = float(last_rsi[ticker]), float(last_macd[ticker]), float(last_macd_sig[ticker])
-            d_ema, w_ema, atr = float(last_ema_50[ticker]), float(last_ema_50_weekly[ticker]), float(last_atr[ticker])
+            d_ema, d_ema20, w_ema, atr = float(last_ema_50[ticker]), float(last_ema_20[ticker]), float(last_ema_50_weekly[ticker]), float(last_atr[ticker])
             
             adjusted_vol_50 = vol_50_avg * (minutes_elapsed / 375.0)
             vol_vs = round(vol_today / adjusted_vol_50, 2)
             
             recent_vol_avg = float(volumes[ticker].tail(3).mean())
             recent_range_avg = float((highs[ticker].tail(3) - lows[ticker].tail(3)).mean())
+            recent_20d_high = float(highs[ticker].tail(20).max())
+            
+            dist_to_20d_high = (recent_20d_high - close_p) / close_p
+
             is_squeeze = (recent_vol_avg < vol_50_avg * 0.85) and (recent_range_avg < atr * 0.85)
 
-            # --- SWING VOLUME FIX ---
-            if not ((vol_vs >= 0.8) or is_squeeze):
-                continue
-            
-            if vol_vs >= 1.5:
+            # --- PRE-BREAKOUT DETECTOR ---
+            is_pre_breakout = (0.002 <= dist_to_20d_high <= 0.035) and (close_p > d_ema20) and (vol_vs <= 1.25)
+
+            if is_pre_breakout:
+                hor, m1, m2, m3, m4, m5, sl_m = "Pre-Breakout", 0.8, 1.6, 2.4, 3.2, 4.0, 1.0
+            elif vol_vs >= 1.5:
                 hor, m1, m2, m3, m4, m5, sl_m = "Intraday", 0.3, 0.6, 0.9, 1.2, 1.5, 0.8
             elif is_squeeze or vol_vs >= 1.2:
                 hor, m1, m2, m3, m4, m5, sl_m = "BTST", 0.6, 1.2, 1.8, 2.4, 3.0, 1.0
-            else:
+            elif vol_vs >= 0.8:
                 hor, m1, m2, m3, m4, m5, sl_m = "Swing", 1.5, 3.0, 4.5, 6.0, 7.5, 1.5
+            else:
+                continue
 
-            # STRICT LONG-ONLY FILTER
             if close_p > d_ema and close_p > w_ema and macd_val > macd_sig and (45 <= rsi_val <= 85):
                 direction = "Bullish"
                 t1, t2, t3, t4, t5 = [round(close_p + m * atr, 1) for m in (m1, m2, m3, m4, m5)]
                 eq_sl = round(close_p - sl_m * atr, 1)
                 
-                # --- MATHEMATICAL RRR SWING FIX ---
                 risk = close_p - eq_sl
-                reward = (t2 - close_p) if hor == "Swing" else (t1 - close_p)
-                if risk <= 0 or (reward / risk) < 1.6:
+                reward = (t2 - close_p) if hor in ["Swing", "Pre-Breakout"] else (t1 - close_p)
+                if risk <= 0 or (reward / risk) < 1.5:
                     continue
-                # -----------------------------------
                 
-                if is_squeeze:
+                if is_pre_breakout:
+                    base_score = 6
+                elif is_squeeze:
                     base_score = 5
                 else:
                     base_score = 2 + (2 if vol_vs >= 1.5 else 0)
@@ -283,7 +274,6 @@ def run_quant_scan():
             symbol = ticker.replace(".NS", "")
             df_h, df_l, df_c = highs[ticker].dropna(), lows[ticker].dropna(), closes[ticker].dropna()
             
-            # --- OPTIONS (F&O) FILTER ---
             if symbol in STATIC_FNO:
                 try:
                     opt, prem, pt1, pt2, pt3 = generate_quant_option(close_p, t1, t2, t3, df_h, df_l, df_c, direction, hor)
@@ -315,12 +305,12 @@ if page == "Dashboard":
     col1, col2, col3, col4 = st.columns(4)
     col1.metric("Market Status", "MTF ALIGNED", "NSE Live Feed")
     col2.metric("Scan Universe", "1200+ Equities", "Liquidity Protected")
-    col3.metric("Math Engine", "Black-Scholes", "F&O Isolated")
-    col4.metric("Strategy", "Scaled ATR Vectors", "Scalp/Swing")
+    col3.metric("Math Engine", "Black-Scholes", "Pre-Breakout Coils")
+    col4.metric("Strategy", "Scaled ATR Vectors", "Scalp/Swing/Pre")
 
 elif page == "Scan Market":
     st.title("🚀 Master Quant Scanner")
-    st.markdown("Scans 1200+ Universe matching Institutional Liquidity and VWAP momentum gates.")
+    st.markdown("Scans 1200+ Universe matching Institutional Liquidity, VWAP, and Pre-Breakout Coils.")
 
     if st.button("Run Live Quant Scan", type="primary"):
         with st.spinner("Crunching indicator matrix and pricing options..."):
@@ -347,11 +337,20 @@ elif page == "Scan Market":
         
         st.markdown("---")
         st.subheader("📊 Full Market Scan by Horizon")
-        tab1, tab2, tab3 = st.tabs(["⚡ Intraday", "🌙 BTST (Best 10-15)", "📈 Swing (Top 25)"])
+        tab1, tab2, tab3, tab4 = st.tabs(["💥 Soon to Breakout (2-3 Days)", "⚡ Intraday", "🌙 BTST (Best 10-15)", "📈 Swing (Top 25)"])
         
         full_cols = ['#', 'Stock', 'RSI', 'Vol vs 50d', 'Entry', 'EqSL', 'Eq Tgts (1-5)', 'Opt', 'Prem', 'Prem Tgts (1-3)', 'TV_Link']
         
         with tab1:
+            if not df_results.empty:
+                df_pre = df_results[df_results['Horizon'] == 'Pre-Breakout'].copy()
+                if not df_pre.empty:
+                    df_pre.insert(0, '#', range(1, len(df_pre) + 1))
+                    st.dataframe(df_pre[full_cols], use_container_width=True, hide_index=True, column_config={"TV_Link": st.column_config.LinkColumn("Live Chart", display_text="📊 View")})
+                else:
+                    st.info("No Pre-Breakout coiling setups found right below 20-day resistance today.")
+
+        with tab2:
             if 'index_results' in st.session_state and not st.session_state['index_results'].empty:
                 st.markdown("#### 👑 Index Options (Intraday Scalps)")
                 df_idx = st.session_state['index_results'].copy()
@@ -368,7 +367,7 @@ elif page == "Scan Market":
                     st.dataframe(df_intra[full_cols], use_container_width=True, hide_index=True, column_config={"TV_Link": st.column_config.LinkColumn("Live Chart", display_text="📊 View")})
                 else: st.info("No Intraday equity setups found based on RVOL parameters.")
                 
-        with tab2:
+        with tab3:
             if not df_results.empty:
                 df_btst = df_results[df_results['Horizon'] == 'BTST'].head(15).copy()
                 if not df_btst.empty: 
@@ -376,7 +375,7 @@ elif page == "Scan Market":
                     st.dataframe(df_btst[full_cols], use_container_width=True, hide_index=True, column_config={"TV_Link": st.column_config.LinkColumn("Live Chart", display_text="📊 View")})
                 else: st.info("No BTST setups found.")
                 
-        with tab3:
+        with tab4:
             if not df_results.empty:
                 df_swing = df_results[df_results['Horizon'] == 'Swing'].head(25).copy()
                 if not df_swing.empty: 
