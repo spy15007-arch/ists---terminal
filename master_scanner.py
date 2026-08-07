@@ -62,6 +62,26 @@ def black_scholes(S, K, T, r, sigma, opt_type="CE"):
         prem = K * math.exp(-r * T) * norm.cdf(-d2) - S * norm.cdf(-d1)
     return round(prem, 2)
 
+def calculate_fibonacci_targets(close_p, df_h, df_l, direction="Bullish"):
+    """Calculates Fibonacci extension targets based on the recent 20-day swing range."""
+    recent_high = float(df_h.tail(20).max())
+    recent_low = float(df_l.tail(20).min())
+    diff = max(1.0, recent_high - recent_low)
+    
+    if direction == "Bullish":
+        t1 = round(close_p + diff * 0.382, 1)
+        t2 = round(close_p + diff * 0.618, 1)
+        t3 = round(close_p + diff * 1.000, 1)
+        t4 = round(close_p + diff * 1.618, 1)
+        t5 = round(close_p + diff * 2.618, 1)
+    else:
+        t1 = round(close_p - diff * 0.382, 1)
+        t2 = round(close_p - diff * 0.618, 1)
+        t3 = round(close_p - diff * 1.000, 1)
+        t4 = round(close_p - diff * 1.618, 1)
+        t5 = round(close_p - diff * 2.618, 1)
+    return t1, t2, t3, t4, t5
+
 def generate_quant_option(price, t1, t2, t3, df_h, df_l, df_c, direction="Bullish"):
     dte = 15 
     step = 100 if price > 5000 else (50 if price > 2000 else (20 if price > 1000 else (10 if price > 500 else 5)))
@@ -112,9 +132,7 @@ def get_index_options_ideas():
             ema_50 = float(df_c.ewm(span=50).mean().iloc[-1])
             
             hl = df_h - df_l
-            hc = (df_h - df_c.shift(1)).abs()
-            lc = (df_l - df_c.shift(1)).abs()
-            tr = pd.concat([hl, hc, lc], axis=1).max(axis=1)
+            tr = pd.concat([hl, (df_h - df_c.shift(1)).abs(), (df_l - df_c.shift(1)).abs()], axis=1).max(axis=1)
             atr = float(tr.ewm(alpha=1/14).mean().iloc[-1])
             
             delta = df_c.diff()
@@ -124,11 +142,11 @@ def get_index_options_ideas():
             
             if close_p > ema_50:
                 direction = "Bullish (Call)"
-                t1, t2, t3, t4, t5 = [round(close_p + m * atr, 1) for m in (0.4, 0.8, 1.2, 1.6, 2.0)]
+                t1, t2, t3, t4, t5 = calculate_fibonacci_targets(close_p, df_h, df_l, "Bullish")
                 eq_sl = round(close_p - 0.8 * atr, 1)
             else:
                 direction = "Bearish (Put)"
-                t1, t2, t3, t4, t5 = [round(close_p - m * atr, 1) for m in (0.4, 0.8, 1.2, 1.6, 2.0)]
+                t1, t2, t3, t4, t5 = calculate_fibonacci_targets(close_p, df_h, df_l, "Bearish")
                 eq_sl = round(close_p + 0.8 * atr, 1)
             
             opt, prem, pt1, pt2, pt3 = generate_quant_option(close_p, t1, t2, t3, df_h, df_l, df_c, direction.split(" ")[0])
@@ -146,7 +164,7 @@ def get_index_options_ideas():
 def generate_tabular_markdown(df_stocks, df_index, title, filename, include_index=False):
     with open(filename, "w", encoding="utf-8") as f:
         f.write(f"# {title}\n\n")
-        f.write("> **System:** MACD, RSI, EMA, ATR & HH/HL Structure | **Targets:** ATR Vector & Black-Scholes\n\n")
+        f.write("> **System:** Fibonacci Extensions, MACD, RSI, EMA & HH/HL Structure | **Targets:** Fibonacci Ratios & Black-Scholes\n\n")
         
         if df_stocks.empty and df_index.empty:
             f.write("*Market conditions did not trigger any structural quantitative setups for this timeframe.*\n")
@@ -163,7 +181,7 @@ def generate_tabular_markdown(df_stocks, df_index, title, filename, include_inde
             f.write("\n---\n\n")
 
         if not df_stocks.empty:
-            f.write("## 📊 F&O Momentum & Structural Squeeze Scans (Long-Only)\n\n")
+            f.write("## 📊 F&O Momentum & Fibonacci Breakout Scans (Long-Only)\n\n")
             f.write("| # | Stock | Setup Type | Price | Score | Eq SL | Eq T1/T2/T3/T4/T5 | Option | Prem | Prem T1/T2/T3 |\n")
             f.write("| :--- | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |\n")
             for idx, r in df_stocks.reset_index().iterrows():
@@ -181,7 +199,7 @@ def format_telegram_text(df_stocks, df_index, title):
             msg += f"• {r['Stock']} @ ₹{r['Entry']}\n  {r['Opt']} @ ₹{r['Prem']}\n  Opt Targets: {r['PT1']}/{r['PT2']}/{r['PT3']}\n\n"
     
     if not df_stocks.empty:
-        msg += "📊 *TOP QUANT & MACD SETUPS (Long-Only)*\n"
+        msg += "📊 *TOP QUANT & FIBONACCI SETUPS (Long-Only)*\n"
         for idx, r in df_stocks.head(15).reset_index().iterrows():
             msg += f"{idx+1}. {r['Stock']} | *{r['Tag']}* @ ₹{r['Entry']}\n"
             msg += f"   Eq Tgts: {r['EqT1']}/{r['EqT2']}/{r['EqT3']}\n"
@@ -197,7 +215,7 @@ def format_telegram_text(df_stocks, df_index, title):
     return msg
 
 def run():
-    print("🚀 Starting Automated Master Quant Scanner (MACD, Structure & Live Price Edition)...")
+    print("🚀 Starting Automated Master Quant Scanner (Fibonacci Extensions & Live Price Edition)...")
     sess_title, sess_type = get_session_info()
     print(f"🕒 Timeframe Registered: {sess_title}")
     
@@ -240,8 +258,6 @@ def run():
     closes_weekly = closes.resample('W').last().dropna(how='all')
     ema_50_weekly = closes_weekly.ewm(span=50).mean()
 
-    last_high = highs.iloc[-1]
-    last_low = lows.iloc[-1]
     last_vol = volumes.iloc[-1]
     last_vol_50 = vol_50d_avg_daily.iloc[-1]
     last_rsi = rsi_daily.iloc[-1]
@@ -282,16 +298,16 @@ def run():
             is_structural_uptrend = check_structure_hh_hl(highs[ticker], lows[ticker])
 
             if vol_vs >= 1.5:
-                hor, m1, m2, m3, m4, m5, sl_m = "Intraday", 0.4, 0.8, 1.2, 1.6, 2.0, 0.8
+                hor, sl_m = "Intraday", 0.8
             elif is_squeeze or vol_vs >= 1.2:
-                hor, m1, m2, m3, m4, m5, sl_m = "BTST", 0.8, 1.6, 2.4, 3.2, 4.0, 1.0
+                hor, sl_m = "BTST", 1.0
             else:
-                hor, m1, m2, m3, m4, m5, sl_m = "Swing", 1.5, 3.0, 4.5, 6.0, 7.5, 1.5
+                hor, sl_m = "Swing", 1.5
 
-            # Core conditions: Daily/Weekly EMA, MACD crossover, RSI band, and HH/HL Structure
             if close_p > d_ema and close_p > w_ema and macd_val > macd_sig and (55 <= rsi_val <= 75) and is_structural_uptrend:
                 direction = "Bullish"
-                t1, t2, t3, t4, t5 = [round(close_p + m * atr, 1) for m in (m1, m2, m3, m4, m5)]
+                # Using Fibonacci Extension targets for target assessment
+                t1, t2, t3, t4, t5 = calculate_fibonacci_targets(close_p, highs[ticker], lows[ticker], "Bullish")
                 eq_sl = round(close_p - sl_m * atr, 1)
                 
                 if is_squeeze:
@@ -299,7 +315,7 @@ def run():
                     tag = "🔥 Squeeze Blast (1-3d)"
                 else:
                     base_score = 2 + (2 if vol_vs >= 1.5 else 0)
-                    tag = "Momentum Breakout"
+                    tag = "Fibonacci Breakout"
             else:
                 continue 
 
