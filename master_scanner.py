@@ -14,7 +14,8 @@ TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
 
 # --- PORTFOLIO SETTINGS ---
-MAX_CAPITAL_PER_TRADE = 50000  # Based on your ₹3L total, using ₹50k per stock
+BASE_CAPITAL_PER_TRADE = 50000  # Normal Allocation
+HIGH_CONVICTION_MULTIPLIER = 2  # Doubles capital to ₹1,00,000 for elite setups
 
 def send_telegram_message(message):
     if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
@@ -262,7 +263,7 @@ def get_index_options_ideas():
 def generate_tabular_markdown(df_stocks, df_index, title, filename, include_index=False):
     with open(filename, "w", encoding="utf-8") as f:
         f.write(f"# {title}\n\n")
-        f.write("> **System:** Nifty 500 Universe + Auto Position Sizing (₹50k) + Liquidity & Risk Gates\n\n")
+        f.write("> **System:** Dynamic Conviction Sizing (₹50k Base | ₹1L Elite) + Liquidity & Risk Gates\n\n")
         
         if df_stocks.empty and df_index.empty:
             f.write("*Market conditions did not trigger any quantitative setups meeting institutional gates for this timeframe.*\n")
@@ -280,7 +281,7 @@ def generate_tabular_markdown(df_stocks, df_index, title, filename, include_inde
 
         if not df_stocks.empty:
             f.write("## 📊 Cash Equity Position Sized Scans (Long-Only)\n\n")
-            f.write("| # | Stock | Setup Type | Price | Qty (₹50k) | Risk (₹) | Eq SL | Eq Tgts | Option | Prem | Prem Tgts |\n")
+            f.write("| # | Stock | Setup Type | Price | Qty | Risk (₹) | Eq SL | Eq Tgts | Option | Prem | Prem Tgts |\n")
             f.write("| :--- | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |\n")
             for idx, r in df_stocks.reset_index().iterrows():
                 badge = f"🔥 {r['Score']}/10" if r['Score'] >= 4 else f"{r['Score']}/10"
@@ -297,7 +298,7 @@ def format_telegram_text(df_stocks, df_index, title):
             msg += f"• {r['Stock']} @ ₹{r['Entry']}\n  {r['Opt']} @ ₹{r['Prem']}\n  Opt Targets: {r['PT1']}/{r['PT2']}/{r['PT3']}\n\n"
     
     if not df_stocks.empty:
-        msg += "📊 *TOP POSITION SIZED SETUPS (₹50k Base)*\n"
+        msg += "📊 *TOP POSITION SIZED SETUPS (₹50k Base | ⭐ 2x High Conviction)*\n"
         for idx, r in df_stocks.head(15).reset_index().iterrows():
             msg += f"{idx+1}. {r['Stock']} | *{r['Tag']}* @ ₹{r['Entry']}\n"
             msg += f"   🛒 *Qty:* {r['Qty']} shares | 📉 *Risk:* ₹{r['Risk']}\n"
@@ -314,7 +315,7 @@ def format_telegram_text(df_stocks, df_index, title):
     return msg
 
 def run():
-    print("🚀 Starting Automated Master Quant Scanner (Capital Allocation Edition)...")
+    print("🚀 Starting Automated Master Quant Scanner (Conviction Sizing Edition)...")
     sess_title, sess_type = get_session_info()
     print(f"🕒 Timeframe Registered: {sess_title}")
     
@@ -329,7 +330,6 @@ def run():
     else:
         df_index = pd.DataFrame()
     
-    # Fetch Nifty 50 Benchmark for Market Relative Strength
     nifty_df = yf.download("^NSEI", period="6mo", interval="1d", progress=False)
     nifty_return_20d = 0.0
     if not nifty_df.empty:
@@ -339,7 +339,6 @@ def run():
         if len(nifty_closes) >= 20:
             nifty_return_20d = float(nifty_closes.iloc[-1] / nifty_closes.iloc[-20] - 1)
 
-    # Download massive universe data
     tickers = [f"{s}.NS" for s in EXTENDED_UNIVERSE]
     data = yf.download(tickers, period="6mo", interval="1d", progress=False, threads=True)
     
@@ -399,7 +398,6 @@ def run():
             vol_today = float(last_vol[ticker])
             vol_50_avg = float(last_vol_50[ticker])
 
-            # LIQUIDITY PROTECTION GATE
             if pd.isna(close_p) or close_p <= 0 or vol_today < 250000 or vol_50_avg < 250000: 
                 continue
             
@@ -414,7 +412,6 @@ def run():
             is_squeeze = (recent_vol_avg < vol_50_avg * 0.85) and (recent_range_avg < atr * 0.85)
             is_structural_uptrend = check_structure_hh_hl(highs[ticker], lows[ticker])
 
-            # RELAXED RELATIVE STRENGTH
             stock_closes_series = closes[ticker].dropna()
             stock_return_20d = float(stock_closes_series.iloc[-1] / stock_closes_series.iloc[-20] - 1) if len(stock_closes_series) >= 20 else 0.0
             
@@ -440,22 +437,29 @@ def run():
                 t1, t2, t3, t4, t5 = calculate_dynamic_targets(close_p, atr, highs[ticker], lows[ticker], "Bullish", is_squeeze)
                 eq_sl = round(close_p - sl_m * atr, 1)
                 
-                # --- AUTOMATED POSITION SIZING & RISK MATH ---
-                cash_qty = int(MAX_CAPITAL_PER_TRADE / close_p)
-                trade_risk = round(cash_qty * (close_p - eq_sl), 2)
-                
-                # Strict 1:1.6 RRR Hard Gate
                 risk = close_p - eq_sl
                 reward = t1 - close_p
                 if risk <= 0 or (reward / risk) < 1.6:
                     continue
                 
+                # Assign Base Score and Core Tag
                 if is_squeeze:
                     base_score = 5  
                     tag = "🔥 Squeeze Blast"
                 else:
                     base_score = 3 + (2 if vol_vs >= 2.0 else 1)
                     tag = "Volume Breakout"
+
+                # --- DYNAMIC CONVICTION SIZING LOGIC ---
+                is_high_conviction = (base_score >= 5)  # Identifies elite setups (Squeezes or massive volume spikes)
+                
+                capital_to_deploy = BASE_CAPITAL_PER_TRADE * HIGH_CONVICTION_MULTIPLIER if is_high_conviction else BASE_CAPITAL_PER_TRADE
+                if is_high_conviction:
+                    tag += " (⭐ 2x Size)"
+
+                cash_qty = int(capital_to_deploy / close_p)
+                trade_risk = round(cash_qty * (close_p - eq_sl), 2)
+
             else:
                 continue 
 
