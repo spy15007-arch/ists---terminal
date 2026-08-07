@@ -85,7 +85,8 @@ def get_index_options_ideas():
     
     for ticker, name in indices.items():
         try:
-            data = yf.Ticker(ticker).history(period="6mo")
+            t_obj = yf.Ticker(ticker)
+            data = t_obj.history(period="6mo")
             if data.empty: continue
             
             df_c = data['Close'].dropna()
@@ -93,7 +94,13 @@ def get_index_options_ideas():
             df_l = data['Low'].dropna()
             if df_c.empty: continue
             
-            close_p = float(df_c.iloc[-1])
+            try:
+                close_p = float(t_obj.fast_info.last_price)
+                if math.isnan(close_p) or close_p <= 0:
+                    close_p = float(df_c.iloc[-1])
+            except:
+                close_p = float(df_c.iloc[-1])
+
             ema_50 = float(df_c.ewm(span=50).mean().iloc[-1])
             
             hl = df_h - df_l
@@ -122,7 +129,7 @@ def get_index_options_ideas():
                 'Stock': f"{name} {direction}", 'Horizon': 'Intraday', 'Entry': round(close_p, 2),
                 'RSI': round(rsi_val, 1), 'EqSL': eq_sl,
                 'EqT1': t1, 'EqT2': t2, 'EqT3': t3, 'EqT4': t4, 'EqT5': t5,
-                'Opt': opt, 'Prem': prem, 'PT1': pt1, 'PT2': pt2, 'PT3': pt3, 'Score': 10
+                'Opt': opt, 'Prem': prem, 'PT1': pt1, 'PT2': pt2, 'PT3': pt3, 'Score': 10, 'Tag': 'Index Scalp'
             })
         except Exception as e: pass
         
@@ -131,7 +138,7 @@ def get_index_options_ideas():
 def generate_tabular_markdown(df_stocks, df_index, title, filename, include_index=False):
     with open(filename, "w", encoding="utf-8") as f:
         f.write(f"# {title}\n\n")
-        f.write("> **System:** MTF Aligned Quant Breakout | **Targets:** Scaled ATR Vector & Black-Scholes Premiums\n\n")
+        f.write("> **System:** MTF Aligned Quant Breakout & Squeeze Detection | **Targets:** Scaled ATR Vector & Black-Scholes Premiums\n\n")
         
         if df_stocks.empty and df_index.empty:
             f.write("*Market conditions did not trigger any MTF-aligned quantitative setups for this timeframe.*\n")
@@ -139,7 +146,7 @@ def generate_tabular_markdown(df_stocks, df_index, title, filename, include_inde
 
         if include_index and not df_index.empty:
             f.write("## 👑 Index Options (Intraday Scalps)\n\n")
-            f.write("| # | Index Direction | Price | Base Score | Eq SL | Eq T1/T2/T3/T4/T5 | Option | Prem | Prem T1/T2/T3 |\n")
+            f.write("| # | Index Direction | Price | Score | Eq SL | Eq T1/T2/T3/T4/T5 | Option | Prem | Prem T1/T2/T3 |\n")
             f.write("| :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |\n")
             for idx, r in df_index.reset_index().iterrows():
                 eq_tgts = f"{r['EqT1']}/{r['EqT2']}/{r['EqT3']}/{r['EqT4']}/{r['EqT5']}"
@@ -148,14 +155,14 @@ def generate_tabular_markdown(df_stocks, df_index, title, filename, include_inde
             f.write("\n---\n\n")
 
         if not df_stocks.empty:
-            f.write("## 📊 F&O High-Momentum Scans (Long-Only)\n\n")
-            f.write("| # | Stock | Price | Base Score | Eq SL | Eq T1/T2/T3/T4/T5 | Option | Prem | Prem T1/T2/T3 |\n")
-            f.write("| :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |\n")
+            f.write("## 📊 F&O High-Momentum & Squeeze Scans (Long-Only)\n\n")
+            f.write("| # | Stock | Setup Type | Price | Score | Eq SL | Eq T1/T2/T3/T4/T5 | Option | Prem | Prem T1/T2/T3 |\n")
+            f.write("| :--- | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |\n")
             for idx, r in df_stocks.reset_index().iterrows():
                 badge = f"🔥 {r['Score']}/10" if r['Score'] >= 4 else f"{r['Score']}/10"
                 eq_tgts = f"{r['EqT1']}/{r['EqT2']}/{r['EqT3']}/{r['EqT4']}/{r['EqT5']}"
                 prem_tgts = f"{r['PT1']}/{r['PT2']}/{r['PT3']}" if r['Prem'] != "-" else "-/-/-"
-                f.write(f"| {idx+1} | **{r['Stock']}** | ₹{r['Entry']} | {badge} | ₹{r['EqSL']} | {eq_tgts} | **{r['Opt']}** | ₹{r['Prem']} | {prem_tgts} |\n")
+                f.write(f"| {idx+1} | **{r['Stock']}** | {r['Tag']} | ₹{r['Entry']} | {badge} | ₹{r['EqSL']} | {eq_tgts} | **{r['Opt']}** | ₹{r['Prem']} | {prem_tgts} |\n")
 
 def format_telegram_text(df_stocks, df_index, title):
     msg = f"🚨 *{title}* 🚨\n\n"
@@ -166,9 +173,9 @@ def format_telegram_text(df_stocks, df_index, title):
             msg += f"• {r['Stock']} @ ₹{r['Entry']}\n  {r['Opt']} @ ₹{r['Prem']}\n  Opt Targets: {r['PT1']}/{r['PT2']}/{r['PT3']}\n\n"
     
     if not df_stocks.empty:
-        msg += "📊 *TOP QUANT SETUPS (Long-Only)*\n"
+        msg += "📊 *TOP QUANT & SQUEEZE SETUPS (Long-Only)*\n"
         for idx, r in df_stocks.head(15).reset_index().iterrows():
-            msg += f"{idx+1}. {r['Stock']} @ ₹{r['Entry']}\n"
+            msg += f"{idx+1}. {r['Stock']} | *{r['Tag']}* @ ₹{r['Entry']}\n"
             msg += f"   Eq Tgts: {r['EqT1']}/{r['EqT2']}/{r['EqT3']}\n"
             if str(r['Opt']) != "N/A (Cash)":
                 msg += f"   Option: {r['Opt']} @ ₹{r['Prem']}\n"
@@ -182,7 +189,7 @@ def format_telegram_text(df_stocks, df_index, title):
     return msg
 
 def run():
-    print("🚀 Starting Automated Master Quant Scanner (Long-Only MTF Edition)...")
+    print("🚀 Starting Automated Master Quant Scanner (Squeeze & Live Price Edition)...")
     sess_title, sess_type = get_session_info()
     print(f"🕒 Timeframe Registered: {sess_title}")
     
@@ -225,7 +232,6 @@ def run():
     closes_weekly = closes.resample('W').last().dropna(how='all')
     ema_50_weekly = closes_weekly.ewm(span=50).mean()
 
-    last_close = closes.iloc[-1]
     last_high = highs.iloc[-1]
     last_low = lows.iloc[-1]
     last_vol = volumes.iloc[-1]
@@ -242,7 +248,14 @@ def run():
     for ticker in closes.columns:
         symbol = ticker.replace(".NS", "")
         try:
-            close_p = float(last_close[ticker])
+            t_obj = yf.Ticker(ticker)
+            try:
+                close_p = float(t_obj.fast_info.last_price)
+                if math.isnan(close_p) or close_p <= 0:
+                    close_p = float(closes[ticker].iloc[-1])
+            except:
+                close_p = float(closes[ticker].iloc[-1])
+
             vol_today = float(last_vol[ticker])
             if pd.isna(close_p) or close_p <= 0 or vol_today < 1000: continue
             
@@ -254,10 +267,15 @@ def run():
             
             adjusted_vol_50 = vol_50_avg * (minutes_elapsed / 375.0)
             vol_vs = round(vol_today / adjusted_vol_50, 2)
-            
+
+            # Squeeze & Volume Consolidation metrics (3-day tight range + volume contraction)
+            recent_vol_avg = float(volumes[ticker].tail(3).mean())
+            recent_range_avg = float((highs[ticker].tail(3) - lows[ticker].tail(3)).mean())
+            is_squeeze = (recent_vol_avg < vol_50_avg * 0.85) and (recent_range_avg < atr * 0.85)
+
             if vol_vs >= 1.5:
                 hor, m1, m2, m3, m4, m5, sl_m = "Intraday", 0.4, 0.8, 1.2, 1.6, 2.0, 0.8
-            elif vol_vs >= 1.2:
+            elif is_squeeze or vol_vs >= 1.2:
                 hor, m1, m2, m3, m4, m5, sl_m = "BTST", 0.8, 1.6, 2.4, 3.2, 4.0, 1.0
             else:
                 hor, m1, m2, m3, m4, m5, sl_m = "Swing", 1.5, 3.0, 4.5, 6.0, 7.5, 1.5
@@ -266,37 +284,40 @@ def run():
                 direction = "Bullish"
                 t1, t2, t3, t4, t5 = [round(close_p + m * atr, 1) for m in (m1, m2, m3, m4, m5)]
                 eq_sl = round(close_p - sl_m * atr, 1)
-                base_score = 2 + (2 if vol_vs >= 1.5 else 0)
+                
+                if is_squeeze:
+                    base_score = 5  # High priority for squeeze blast
+                    tag = "🔥 Squeeze Blast (1-3d)"
+                else:
+                    base_score = 2 + (2 if vol_vs >= 1.5 else 0)
+                    tag = "Momentum Breakout"
             else:
                 continue 
 
             df_h, df_l, df_c = highs[ticker].dropna(), lows[ticker].dropna(), closes[ticker].dropna()
             
-            # Safe option generation: if options fail or aren't liquid, default to Cash Equity trade
             try:
                 opt, prem, pt1, pt2, pt3 = generate_quant_option(close_p, t1, t2, t3, df_h, df_l, df_c, direction)
             except:
                 opt, prem, pt1, pt2, pt3 = "N/A (Cash)", "-", "-", "-", "-"
             
             valid_setups.append({
-                'Stock': f"{symbol} (↑)", 'Horizon': hor, 'Entry': round(close_p, 2), 
+                'Stock': f"{symbol} (↑)", 'Horizon': hor, 'Tag': tag, 'Entry': round(close_p, 2), 
                 'RSI': round(rsi_val,1), 'EqSL': eq_sl, 'EqT1': t1, 'EqT2': t2, 'EqT3': t3, 'EqT4': t4, 'EqT5': t5, 
                 'Opt': opt, 'Prem': prem, 'PT1': pt1, 'PT2': pt2, 'PT3': pt3, 'Score': base_score
             })
         except: continue
 
-    df_all = pd.DataFrame(valid_setups).drop_duplicates(subset=['Stock']).sort_values(by=['Score'], ascending=False) if valid_setups else pd.DataFrame()
+    df_all = pd.DataFrame(valid_setups).drop_duplicates(subset=['Stock']).sort_values(by=['Score', 'RSI'], ascending=[False, False]) if valid_setups else pd.DataFrame()
 
     df_intra = df_all[df_all['Horizon'] == 'Intraday'].head(10) if not df_all.empty else pd.DataFrame()
     df_btst = df_all[df_all['Horizon'] == 'BTST'].head(15) if not df_all.empty else pd.DataFrame()
     df_swing = df_all[df_all['Horizon'] == 'Swing'].head(25) if not df_all.empty else pd.DataFrame()
 
-    # Generate separate files
     generate_tabular_markdown(df_intra, df_index, f"⚡ Intraday Report — {sess_title}", "intraday_report.md", include_index=True)
     generate_tabular_markdown(df_btst, pd.DataFrame(), f"🌙 BTST Report — {sess_title}", "btst_report.md", include_index=False)
     generate_tabular_markdown(df_swing, pd.DataFrame(), f"📈 Swing Trade Report — {sess_title}", "swing_report.md", include_index=False)
 
-    # Push separate Telegram messages
     if not df_intra.empty or not df_index.empty:
         msg_intra = format_telegram_text(df_intra, df_index, f"⚡ Intraday Report — {sess_title}")
         send_telegram_message(msg_intra)
