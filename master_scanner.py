@@ -79,6 +79,15 @@ def generate_quant_option(price, t1, t2, t3, df_h, df_l, df_c, direction="Bullis
     pt3 = black_scholes(t3, atm, dte/365.0, 0.07, vol, opt_type)
     return f"{atm} {opt_type}", c_prem, round(pt1, 1), round(pt2, 1), round(pt3, 1)
 
+def check_structure_hh_hl(df_h, df_l):
+    """Ensures the stock is in a structural uptrend with Higher Highs and Higher Lows."""
+    if len(df_h) < 20: return True
+    h_half1 = df_h.iloc[-20:-10].max()
+    h_half2 = df_h.iloc[-10:].max()
+    l_half1 = df_l.iloc[-20:-10].min()
+    l_half2 = df_l.iloc[-10:].min()
+    return (h_half2 >= h_half1) and (l_half2 >= l_half1)
+
 def get_index_options_ideas():
     indices = {'^NSEI': 'NIFTY 50', '^NSEBANK': 'BANK NIFTY'}
     results = []
@@ -138,10 +147,10 @@ def get_index_options_ideas():
 def generate_tabular_markdown(df_stocks, df_index, title, filename, include_index=False):
     with open(filename, "w", encoding="utf-8") as f:
         f.write(f"# {title}\n\n")
-        f.write("> **System:** MTF Aligned Quant Breakout & Squeeze Detection | **Targets:** Scaled ATR Vector & Black-Scholes Premiums\n\n")
+        f.write("> **System:** MTF Quant Breakout, Squeeze Detection & HH/HL Structure | **Targets:** ATR Vector & Black-Scholes\n\n")
         
         if df_stocks.empty and df_index.empty:
-            f.write("*Market conditions did not trigger any MTF-aligned quantitative setups for this timeframe.*\n")
+            f.write("*Market conditions did not trigger any structural quantitative setups for this timeframe.*\n")
             return
 
         if include_index and not df_index.empty:
@@ -155,7 +164,7 @@ def generate_tabular_markdown(df_stocks, df_index, title, filename, include_inde
             f.write("\n---\n\n")
 
         if not df_stocks.empty:
-            f.write("## 📊 F&O High-Momentum & Squeeze Scans (Long-Only)\n\n")
+            f.write("## 📊 F&O High-Momentum & Structural Squeeze Scans (Long-Only)\n\n")
             f.write("| # | Stock | Setup Type | Price | Score | Eq SL | Eq T1/T2/T3/T4/T5 | Option | Prem | Prem T1/T2/T3 |\n")
             f.write("| :--- | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |\n")
             for idx, r in df_stocks.reset_index().iterrows():
@@ -173,7 +182,7 @@ def format_telegram_text(df_stocks, df_index, title):
             msg += f"• {r['Stock']} @ ₹{r['Entry']}\n  {r['Opt']} @ ₹{r['Prem']}\n  Opt Targets: {r['PT1']}/{r['PT2']}/{r['PT3']}\n\n"
     
     if not df_stocks.empty:
-        msg += "📊 *TOP QUANT & SQUEEZE SETUPS (Long-Only)*\n"
+        msg += "📊 *TOP QUANT & STRUCTURAL SETUPS (Long-Only)*\n"
         for idx, r in df_stocks.head(15).reset_index().iterrows():
             msg += f"{idx+1}. {r['Stock']} | *{r['Tag']}* @ ₹{r['Entry']}\n"
             msg += f"   Eq Tgts: {r['EqT1']}/{r['EqT2']}/{r['EqT3']}\n"
@@ -184,12 +193,12 @@ def format_telegram_text(df_stocks, df_index, title):
                 msg += f"   Option: N/A (Cash Equity Only)\n"
             msg += "\n"
     else:
-        msg += "No high-conviction long setups triggered for this scan."
+        msg += "No high-conviction structural long setups triggered for this scan."
         
     return msg
 
 def run():
-    print("🚀 Starting Automated Master Quant Scanner (Squeeze & Live Price Edition)...")
+    print("🚀 Starting Automated Master Quant Scanner (Structural HH/HL & Live Price Edition)...")
     sess_title, sess_type = get_session_info()
     print(f"🕒 Timeframe Registered: {sess_title}")
     
@@ -268,10 +277,11 @@ def run():
             adjusted_vol_50 = vol_50_avg * (minutes_elapsed / 375.0)
             vol_vs = round(vol_today / adjusted_vol_50, 2)
 
-            # Squeeze & Volume Consolidation metrics (3-day tight range + volume contraction)
+            # Squeeze & Structural Trend checks
             recent_vol_avg = float(volumes[ticker].tail(3).mean())
             recent_range_avg = float((highs[ticker].tail(3) - lows[ticker].tail(3)).mean())
             is_squeeze = (recent_vol_avg < vol_50_avg * 0.85) and (recent_range_avg < atr * 0.85)
+            is_structural_uptrend = check_structure_hh_hl(highs[ticker], lows[ticker])
 
             if vol_vs >= 1.5:
                 hor, m1, m2, m3, m4, m5, sl_m = "Intraday", 0.4, 0.8, 1.2, 1.6, 2.0, 0.8
@@ -280,13 +290,14 @@ def run():
             else:
                 hor, m1, m2, m3, m4, m5, sl_m = "Swing", 1.5, 3.0, 4.5, 6.0, 7.5, 1.5
 
-            if close_p > d_ema and close_p > w_ema and macd_val > macd_sig and (55 <= rsi_val <= 75):
+            # Core conditions + structural HH/HL filter requirement
+            if close_p > d_ema and close_p > w_ema and macd_val > macd_sig and (55 <= rsi_val <= 75) and is_structural_uptrend:
                 direction = "Bullish"
                 t1, t2, t3, t4, t5 = [round(close_p + m * atr, 1) for m in (m1, m2, m3, m4, m5)]
                 eq_sl = round(close_p - sl_m * atr, 1)
                 
                 if is_squeeze:
-                    base_score = 5  # High priority for squeeze blast
+                    base_score = 5  
                     tag = "🔥 Squeeze Blast (1-3d)"
                 else:
                     base_score = 2 + (2 if vol_vs >= 1.5 else 0)
