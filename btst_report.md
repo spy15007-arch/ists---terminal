@@ -1,9 +1,10 @@
-# 🌙 BTST Report — 06 Aug 2026 | 05:20 PM (Afternoon/EOD)
+# 🌙 BTST Report — 07 Aug 2026 | 04:34 PM (Manual Override)
 
-> **System:** MTF Aligned Quant Breakout | **Targets:** Scaled ATR Vector & Black-Scholes Premiums
+> **System:** MTF Hierarchy + Sectoral RS + VWAP Gate + Strict 1:2 RRR Hard Gate
 
-## 📊 F&O High-Momentum Scans (Long-Only)
+## 📊 F&O Verified Institutional Scans (Long-Only)
 
-| # | Stock | Price | Base Score | Eq SL | Eq T1/T2/T3/T4/T5 | Option | Prem | Prem T1/T2/T3 |
-| :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| 1 | **AARTIIND (↑)** | ₹504.95 | 2/10 | ₹489.5 | 517.3/529.7/542.0/554.4/566.7 | **500 CE** | ₹15.86 | 24.1/33.9/44.8 |
+| # | Stock | Setup Type | Price | Score | Eq SL | Eq T1/T2/T3/T4/T5 | Option | Prem | Prem T1/T2/T3 |
+| :--- | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| 1 | **EICHERMOT (↑)** | 🚩 Flag & Pole Pattern | ₹8020.0 | 🔥 6/10 | ₹7862.6 | 8402.6/8638.9/9021.5/9640.4/10641.9 | **8000 CE** | ₹149.23 | 440.0/664.6/1044.6 |
+| 2 | **TCS (↑)** | 🚩 Flag & Pole Pattern | ₹2452.7 | 🔥 6/10 | ₹2384.6 | 2621.2/2725.3/2893.9/3166.5/3607.7 | **2450 CE** | ₹58.8 | 184.9/283.6/451.0 |
