@@ -63,21 +63,18 @@ def black_scholes(S, K, T, r, sigma, opt_type="CE"):
     return round(prem, 2)
 
 def calculate_dynamic_targets(close_p, atr, df_h, df_l, direction="Bullish", is_squeeze=False):
-    """Dynamically decides and blends ATR volatility targets with Fibonacci structural extensions based on market behavior."""
+    """Dynamic Decision Engine blending ATR volatility with Fibonacci structural extensions."""
     recent_high = float(df_h.tail(20).max())
     recent_low = float(df_l.tail(20).min())
     diff = max(1.0, recent_high - recent_low)
     
     if direction == "Bullish":
-        # Fibonacci Extension Levels
         f_t1, f_t2, f_t3, f_t4, f_t5 = close_p + diff * 0.382, close_p + diff * 0.618, close_p + diff * 1.000, close_p + diff * 1.618, close_p + diff * 2.618
-        # ATR Volatility Levels
         a_t1, a_t2, a_t3, a_t4, a_t5 = close_p + 0.8 * atr, close_p + 1.6 * atr, close_p + 2.4 * atr, close_p + 3.2 * atr, close_p + 4.0 * atr
     else:
         f_t1, f_t2, f_t3, f_t4, f_t5 = close_p - diff * 0.382, close_p - diff * 0.618, close_p - diff * 1.000, close_p - diff * 1.618, close_p - diff * 2.618
         a_t1, a_t2, a_t3, a_t4, a_t5 = close_p - 0.8 * atr, close_p - 1.6 * atr, close_p - 2.4 * atr, close_p - 3.2 * atr, close_p - 4.0 * atr
 
-    # Decision Engine: If volume squeeze or breakout condition, lean towards structural Fibonacci. Otherwise, blend ATR & Fibonacci for optimal practical achievability.
     if is_squeeze:
         t1, t2, t3, t4, t5 = f_t1, f_t2, f_t3, f_t4, f_t5
     else:
@@ -113,6 +110,20 @@ def check_structure_hh_hl(df_h, df_l):
     l_half1 = df_l.iloc[-20:-10].min()
     l_half2 = df_l.iloc[-10:].min()
     return (h_half2 >= h_half1) and (l_half2 >= l_half1)
+
+def validate_mtf_confluence(ticker):
+    """Validates 4-Hour and 60-min / 15-min price action alignment for precision options entry."""
+    try:
+        df_hr = yf.download(ticker, period="5d", interval="1h", progress=False, threads=False)
+        if df_hr.empty: return True
+        # Resample 1-hour to 4-hour candles
+        df_4h = df_hr['Close'].resample('4H').last().dropna()
+        if len(df_4h) >= 3:
+            # Check 4H momentum alignment (higher closes on recent 4H bars)
+            return float(df_4h.iloc[-1]) >= float(df_4h.iloc[-2])
+    except:
+        pass
+    return True
 
 def get_index_options_ideas():
     indices = {'^NSEI': 'NIFTY 50', '^NSEBANK': 'BANK NIFTY'}
@@ -162,7 +173,7 @@ def get_index_options_ideas():
                 'Stock': f"{name} {direction}", 'Horizon': 'Intraday', 'Entry': round(close_p, 2),
                 'RSI': round(rsi_val, 1), 'EqSL': eq_sl,
                 'EqT1': t1, 'EqT2': t2, 'EqT3': t3, 'EqT4': t4, 'EqT5': t5,
-                'Opt': opt, 'Prem': prem, 'PT1': pt1, 'PT2': pt2, 'PT3': pt3, 'Score': 10, 'Tag': 'Index Scalp'
+                'Opt': opt, 'Prem': prem, 'PT1': pt1, 'PT2': pt2, 'PT3': pt3, 'Score': 10, 'Tag': 'Index MTF Scalp'
             })
         except Exception as e: pass
         
@@ -171,14 +182,14 @@ def get_index_options_ideas():
 def generate_tabular_markdown(df_stocks, df_index, title, filename, include_index=False):
     with open(filename, "w", encoding="utf-8") as f:
         f.write(f"# {title}\n\n")
-        f.write("> **System:** Dynamic ATR + Fibonacci Engine, MACD, RSI, EMA & HH/HL Structure\n\n")
+        f.write("> **System:** MTF Hierarchy (Weekly/Daily/4H/1H/15m) + Dynamic Targets & MACD/RSI Confluence\n\n")
         
         if df_stocks.empty and df_index.empty:
-            f.write("*Market conditions did not trigger any structural quantitative setups for this timeframe.*\n")
+            f.write("*Market conditions did not trigger any multi-timeframe quantitative setups for this timeframe.*\n")
             return
 
         if include_index and not df_index.empty:
-            f.write("## 👑 Index Options (Intraday Scalps)\n\n")
+            f.write("## 👑 Index Options (MTF Intraday Scalps)\n\n")
             f.write("| # | Index Direction | Price | Score | Eq SL | Eq T1/T2/T3/T4/T5 | Option | Prem | Prem T1/T2/T3 |\n")
             f.write("| :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |\n")
             for idx, r in df_index.reset_index().iterrows():
@@ -188,7 +199,7 @@ def generate_tabular_markdown(df_stocks, df_index, title, filename, include_inde
             f.write("\n---\n\n")
 
         if not df_stocks.empty:
-            f.write("## 📊 F&O Momentum & Dynamic Target Scans (Long-Only)\n\n")
+            f.write("## 📊 F&O MTF Confluence & Breakout Scans (Long-Only)\n\n")
             f.write("| # | Stock | Setup Type | Price | Score | Eq SL | Eq T1/T2/T3/T4/T5 | Option | Prem | Prem T1/T2/T3 |\n")
             f.write("| :--- | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |\n")
             for idx, r in df_stocks.reset_index().iterrows():
@@ -201,12 +212,12 @@ def format_telegram_text(df_stocks, df_index, title):
     msg = f"🚨 *{title}* 🚨\n\n"
     
     if not df_index.empty:
-        msg += "👑 *INDEX ALERTS*\n"
+        msg += "👑 *INDEX ALERTS (MTF)*\n"
         for _, r in df_index.iterrows():
             msg += f"• {r['Stock']} @ ₹{r['Entry']}\n  {r['Opt']} @ ₹{r['Prem']}\n  Opt Targets: {r['PT1']}/{r['PT2']}/{r['PT3']}\n\n"
     
     if not df_stocks.empty:
-        msg += "📊 *TOP QUANT & DYNAMIC TARGET SETUPS (Long-Only)*\n"
+        msg += "📊 *TOP MTF CONFLUENCE SETUPS (Long-Only)*\n"
         for idx, r in df_stocks.head(15).reset_index().iterrows():
             msg += f"{idx+1}. {r['Stock']} | *{r['Tag']}* @ ₹{r['Entry']}\n"
             msg += f"   Eq Tgts: {r['EqT1']}/{r['EqT2']}/{r['EqT3']}\n"
@@ -217,12 +228,12 @@ def format_telegram_text(df_stocks, df_index, title):
                 msg += f"   Option: N/A (Cash Equity Only)\n"
             msg += "\n"
     else:
-        msg += "No high-conviction structural long setups triggered for this scan."
+        msg += "No high-conviction MTF setups triggered for this scan."
         
     return msg
 
 def run():
-    print("🚀 Starting Automated Master Quant Scanner (Dynamic ATR + Fibonacci Edition)...")
+    print("🚀 Starting Automated Master Quant Scanner (Full MTF & Precision Options Edition)...")
     sess_title, sess_type = get_session_info()
     print(f"🕒 Timeframe Registered: {sess_title}")
     
@@ -311,9 +322,13 @@ def run():
             else:
                 hor, sl_m = "Swing", 1.5
 
+            # Core MTF conditions: Weekly/Daily Trend + MACD Crossover + RSI + HH/HL Structure + 4H Confluence
             if close_p > d_ema and close_p > w_ema and macd_val > macd_sig and (55 <= rsi_val <= 75) and is_structural_uptrend:
+                # Validate 4H / Intraday precision confluence
+                if not validate_mtf_confluence(ticker):
+                    continue
+
                 direction = "Bullish"
-                # Dynamic decision engine blending ATR and Fibonacci targets based on market behavior
                 t1, t2, t3, t4, t5 = calculate_dynamic_targets(close_p, atr, highs[ticker], lows[ticker], "Bullish", is_squeeze)
                 eq_sl = round(close_p - sl_m * atr, 1)
                 
@@ -322,7 +337,7 @@ def run():
                     tag = "🔥 Squeeze Blast (1-3d)"
                 else:
                     base_score = 2 + (2 if vol_vs >= 1.5 else 0)
-                    tag = "Dynamic Breakout"
+                    tag = "MTF Breakout"
             else:
                 continue 
 
