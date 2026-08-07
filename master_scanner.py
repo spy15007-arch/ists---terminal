@@ -414,18 +414,21 @@ def run():
 
             stock_closes_series = closes[ticker].dropna()
             stock_return_20d = float(stock_closes_series.iloc[-1] / stock_closes_series.iloc[-20] - 1) if len(stock_closes_series) >= 20 else 0.0
-            
             is_relative_strong = (stock_return_20d > nifty_return_20d)
-            is_volume_breakout = (vol_vs >= 1.2) or is_squeeze
 
-            if vol_vs >= 1.2:
+            # --- FIXED HORIZON LOGIC ---
+            # Stocks with 0.8x to 1.19x volume can now easily pass as Swing Trades
+            if not ((vol_vs >= 0.8) or is_squeeze): 
+                continue
+
+            if vol_vs >= 1.5:
                 hor, sl_m = "Intraday", 0.8
-            elif is_squeeze or vol_vs >= 1.05:
+            elif is_squeeze or vol_vs >= 1.2:
                 hor, sl_m = "BTST", 1.0
             else:
                 hor, sl_m = "Swing", 1.5
 
-            if close_p > d_ema and close_p > w_ema and macd_val > macd_sig and (45 <= rsi_val <= 85) and is_structural_uptrend and is_relative_strong and is_volume_breakout:
+            if close_p > d_ema and close_p > w_ema and macd_val > macd_sig and (45 <= rsi_val <= 85) and is_structural_uptrend and is_relative_strong:
                 
                 if hor in ["Intraday", "BTST"] and not check_vwap_gate(ticker, close_p):
                     continue
@@ -442,7 +445,6 @@ def run():
                 if risk <= 0 or (reward / risk) < 1.6:
                     continue
                 
-                # Assign Base Score and Core Tag
                 if is_squeeze:
                     base_score = 5  
                     tag = "🔥 Squeeze Blast"
@@ -450,8 +452,8 @@ def run():
                     base_score = 3 + (2 if vol_vs >= 2.0 else 1)
                     tag = "Volume Breakout"
 
-                # --- DYNAMIC CONVICTION SIZING LOGIC ---
-                is_high_conviction = (base_score >= 5)  # Identifies elite setups (Squeezes or massive volume spikes)
+                # Dynamic Conviction Sizing Logic
+                is_high_conviction = (base_score >= 5) 
                 
                 capital_to_deploy = BASE_CAPITAL_PER_TRADE * HIGH_CONVICTION_MULTIPLIER if is_high_conviction else BASE_CAPITAL_PER_TRADE
                 if is_high_conviction:
