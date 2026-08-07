@@ -62,25 +62,32 @@ def black_scholes(S, K, T, r, sigma, opt_type="CE"):
         prem = K * math.exp(-r * T) * norm.cdf(-d2) - S * norm.cdf(-d1)
     return round(prem, 2)
 
-def calculate_fibonacci_targets(close_p, df_h, df_l, direction="Bullish"):
-    """Calculates Fibonacci extension targets based on the recent 20-day swing range."""
+def calculate_dynamic_targets(close_p, atr, df_h, df_l, direction="Bullish", is_squeeze=False):
+    """Dynamically decides and blends ATR volatility targets with Fibonacci structural extensions based on market behavior."""
     recent_high = float(df_h.tail(20).max())
     recent_low = float(df_l.tail(20).min())
     diff = max(1.0, recent_high - recent_low)
     
     if direction == "Bullish":
-        t1 = round(close_p + diff * 0.382, 1)
-        t2 = round(close_p + diff * 0.618, 1)
-        t3 = round(close_p + diff * 1.000, 1)
-        t4 = round(close_p + diff * 1.618, 1)
-        t5 = round(close_p + diff * 2.618, 1)
+        # Fibonacci Extension Levels
+        f_t1, f_t2, f_t3, f_t4, f_t5 = close_p + diff * 0.382, close_p + diff * 0.618, close_p + diff * 1.000, close_p + diff * 1.618, close_p + diff * 2.618
+        # ATR Volatility Levels
+        a_t1, a_t2, a_t3, a_t4, a_t5 = close_p + 0.8 * atr, close_p + 1.6 * atr, close_p + 2.4 * atr, close_p + 3.2 * atr, close_p + 4.0 * atr
     else:
-        t1 = round(close_p - diff * 0.382, 1)
-        t2 = round(close_p - diff * 0.618, 1)
-        t3 = round(close_p - diff * 1.000, 1)
-        t4 = round(close_p - diff * 1.618, 1)
-        t5 = round(close_p - diff * 2.618, 1)
-    return t1, t2, t3, t4, t5
+        f_t1, f_t2, f_t3, f_t4, f_t5 = close_p - diff * 0.382, close_p - diff * 0.618, close_p - diff * 1.000, close_p - diff * 1.618, close_p - diff * 2.618
+        a_t1, a_t2, a_t3, a_t4, a_t5 = close_p - 0.8 * atr, close_p - 1.6 * atr, close_p - 2.4 * atr, close_p - 3.2 * atr, close_p - 4.0 * atr
+
+    # Decision Engine: If volume squeeze or breakout condition, lean towards structural Fibonacci. Otherwise, blend ATR & Fibonacci for optimal practical achievability.
+    if is_squeeze:
+        t1, t2, t3, t4, t5 = f_t1, f_t2, f_t3, f_t4, f_t5
+    else:
+        t1 = (a_t1 + f_t1) / 2
+        t2 = (a_t2 + f_t2) / 2
+        t3 = (a_t3 + f_t3) / 2
+        t4 = (a_t4 + f_t4) / 2
+        t5 = (a_t5 + f_t5) / 2
+
+    return round(t1, 1), round(t2, 1), round(t3, 1), round(t4, 1), round(t5, 1)
 
 def generate_quant_option(price, t1, t2, t3, df_h, df_l, df_c, direction="Bullish"):
     dte = 15 
@@ -142,11 +149,11 @@ def get_index_options_ideas():
             
             if close_p > ema_50:
                 direction = "Bullish (Call)"
-                t1, t2, t3, t4, t5 = calculate_fibonacci_targets(close_p, df_h, df_l, "Bullish")
+                t1, t2, t3, t4, t5 = calculate_dynamic_targets(close_p, atr, df_h, df_l, "Bullish", is_squeeze=False)
                 eq_sl = round(close_p - 0.8 * atr, 1)
             else:
                 direction = "Bearish (Put)"
-                t1, t2, t3, t4, t5 = calculate_fibonacci_targets(close_p, df_h, df_l, "Bearish")
+                t1, t2, t3, t4, t5 = calculate_dynamic_targets(close_p, atr, df_h, df_l, "Bearish", is_squeeze=False)
                 eq_sl = round(close_p + 0.8 * atr, 1)
             
             opt, prem, pt1, pt2, pt3 = generate_quant_option(close_p, t1, t2, t3, df_h, df_l, df_c, direction.split(" ")[0])
@@ -164,7 +171,7 @@ def get_index_options_ideas():
 def generate_tabular_markdown(df_stocks, df_index, title, filename, include_index=False):
     with open(filename, "w", encoding="utf-8") as f:
         f.write(f"# {title}\n\n")
-        f.write("> **System:** Fibonacci Extensions, MACD, RSI, EMA & HH/HL Structure | **Targets:** Fibonacci Ratios & Black-Scholes\n\n")
+        f.write("> **System:** Dynamic ATR + Fibonacci Engine, MACD, RSI, EMA & HH/HL Structure\n\n")
         
         if df_stocks.empty and df_index.empty:
             f.write("*Market conditions did not trigger any structural quantitative setups for this timeframe.*\n")
@@ -181,7 +188,7 @@ def generate_tabular_markdown(df_stocks, df_index, title, filename, include_inde
             f.write("\n---\n\n")
 
         if not df_stocks.empty:
-            f.write("## 📊 F&O Momentum & Fibonacci Breakout Scans (Long-Only)\n\n")
+            f.write("## 📊 F&O Momentum & Dynamic Target Scans (Long-Only)\n\n")
             f.write("| # | Stock | Setup Type | Price | Score | Eq SL | Eq T1/T2/T3/T4/T5 | Option | Prem | Prem T1/T2/T3 |\n")
             f.write("| :--- | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |\n")
             for idx, r in df_stocks.reset_index().iterrows():
@@ -199,7 +206,7 @@ def format_telegram_text(df_stocks, df_index, title):
             msg += f"• {r['Stock']} @ ₹{r['Entry']}\n  {r['Opt']} @ ₹{r['Prem']}\n  Opt Targets: {r['PT1']}/{r['PT2']}/{r['PT3']}\n\n"
     
     if not df_stocks.empty:
-        msg += "📊 *TOP QUANT & FIBONACCI SETUPS (Long-Only)*\n"
+        msg += "📊 *TOP QUANT & DYNAMIC TARGET SETUPS (Long-Only)*\n"
         for idx, r in df_stocks.head(15).reset_index().iterrows():
             msg += f"{idx+1}. {r['Stock']} | *{r['Tag']}* @ ₹{r['Entry']}\n"
             msg += f"   Eq Tgts: {r['EqT1']}/{r['EqT2']}/{r['EqT3']}\n"
@@ -215,7 +222,7 @@ def format_telegram_text(df_stocks, df_index, title):
     return msg
 
 def run():
-    print("🚀 Starting Automated Master Quant Scanner (Fibonacci Extensions & Live Price Edition)...")
+    print("🚀 Starting Automated Master Quant Scanner (Dynamic ATR + Fibonacci Edition)...")
     sess_title, sess_type = get_session_info()
     print(f"🕒 Timeframe Registered: {sess_title}")
     
@@ -306,8 +313,8 @@ def run():
 
             if close_p > d_ema and close_p > w_ema and macd_val > macd_sig and (55 <= rsi_val <= 75) and is_structural_uptrend:
                 direction = "Bullish"
-                # Using Fibonacci Extension targets for target assessment
-                t1, t2, t3, t4, t5 = calculate_fibonacci_targets(close_p, highs[ticker], lows[ticker], "Bullish")
+                # Dynamic decision engine blending ATR and Fibonacci targets based on market behavior
+                t1, t2, t3, t4, t5 = calculate_dynamic_targets(close_p, atr, highs[ticker], lows[ticker], "Bullish", is_squeeze)
                 eq_sl = round(close_p - sl_m * atr, 1)
                 
                 if is_squeeze:
@@ -315,7 +322,7 @@ def run():
                     tag = "🔥 Squeeze Blast (1-3d)"
                 else:
                     base_score = 2 + (2 if vol_vs >= 1.5 else 0)
-                    tag = "Fibonacci Breakout"
+                    tag = "Dynamic Breakout"
             else:
                 continue 
 
