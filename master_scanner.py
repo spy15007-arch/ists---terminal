@@ -32,18 +32,39 @@ def send_telegram_message(message):
     except Exception as e:
         print(f"❌ Error sending Telegram message: {e}")
 
-# --- FIREWALL-PROOF F&O UNIVERSE ---
-STATIC_FNO = ["AARTIIND", "ABB", "ABBOTINDIA", "ABCAPITAL", "ABFRL", "ACC", "ADANIENT", "ADANIPORTS", "ALKEM", "AMBUJACEM", "APOLLOHOSP", "APOLLOTYRE", "ASHOKLEY", "ASIANPAINT", "ASTRAL", "ATUL", "AUBANK", "AUROPHARMA", "AXISBANK", "BAJAJ-AUTO", "BAJAJFINSV", "BAJFINANCE", "BALKRISIND", "BALRAMCHIN", "BANDHANBNK", "BANKBARODA", "BATAINDIA", "BEL", "BERGEPAINT", "BHARATFORG", "BHARTIARTL", "BHEL", "BIOCON", "BOSCHLTD", "BPCL", "BRITANNIA", "CANBK", "CANFINHOME", "CHAMBLFERT", "CHOLAFIN", "CIPLA", "COALINDIA", "COFORGE", "COLPAL", "CONCOR", "COROMANDEL", "CROMPTON", "CUB", "CUMMINSIND", "DABUR", "DALBHARAT", "DEEPAKNTR", "DIVISLAB", "DIXON", "DLF", "DRREDDY", "EICHERMOT", "ESCORTS", "EXIDEIND", "FEDERALBNK", "GAIL", "GLENMARK", "GMRINFRA", "GNFC", "GODREJCP", "GODREJPROP", "GRANULES", "GRASIM", "GUJGASLTD", "HAL", "HAVELLS", "HCLTECH", "HDFCAMC", "HDFCBANK", "HDFCLIFE", "HEROMOTOCO", "HINDALCO", "HINDCOPPER", "HINDPETRO", "HINDUNILVR", "ICICIBANK", "ICICIGI", "ICICIPRULI", "IDEA", "IDFCFIRSTB", "IEX", "IGL", "INDHOTEL", "INDIACEM", "INDIAMART", "INDIGO", "INDUSINDBK", "INFY", "IOC", "IPCALAB", "IRCTC", "ITC", "JINDALSTEL", "JSWSTEEL", "JUBLFOOD", "KOTAKBANK", "LALPATHLAB", "LAURUSLABS", "LICHSGFIN", "LT", "LTIM", "LTTS", "LUPIN", "M&M", "M&MFIN", "MANAPPURAM", "MARICO", "MARUTI", "MCDOWELL-N", "MCX", "METROPOLIS", "MFSL", "MGL", "MOTHERSON", "MPHASIS", "MRF", "MUTHOOTFIN", "NATIONALUM", "NAUKRI", "NAVINFLUOR", "NESTLEIND", "NMDC", "NTPC", "OBEROIRLTY", "OFSS", "ONGC", "PAGEIND", "PEL", "PETRONET", "PFC", "PIDILITIND", "PIIND", "PNB", "POLYCAB", "POWERGRID", "PVRINOX", "RAMCOCEM", "RBLBANK", "RECLTD", "RELIANCE", "SAIL", "SBICARD", "SBILIFE", "SBIN", "SHREECEM", "SHRIRAMFIN", "SIEMENS", "SRF", "SUNPHARMA", "SUNTV", "SYNGENE", "TATACHEM", "TATACOMM", "TATACONSUM", "TATAMOTORS", "TATAPOWER", "TATASTEEL", "TCS", "TECHM", "TITAN", "TORNTPHARM", "TRENT", "TVSMOTOR", "UBL", "ULTRACEMCO", "UPL", "VEDL", "VOLTAS", "WIPRO", "ZEEL", "ZYDUSLIFE"]
+# --- EXPANDED HIGH-LIQUIDITY UNIVERSE (F&O + High-Momentum Cash Equities) ---
+EXTENDED_UNIVERSE = [
+    "NETWEB", "MEESHO", "DIXON", "TATAELXSI", "BEL", "LTTS", "TCS", "INFY", "RELIANCE", "MARUTI",
+    "APOLLOHOSP", "TATACONSUM", "AARTIIND", "ABB", "ABBOTINDIA", "ABCAPITAL", "ABFRL", "ACC", "ADANIENT", 
+    "ADANIPORTS", "ALKEM", "AMBUJACEM", "APOLLOTYRE", "ASHOKLEY", "ASIANPAINT", "ASTRAL", "ATUL", "AUBANK", 
+    "AUROPHARMA", "AXISBANK", "BAJAJ-AUTO", "BAJAJFINSV", "BAJFINANCE", "BALKRISIND", "BALRAMCHIN", "BANDHANBNK", 
+    "BANKBARODA", "BATAINDIA", "BERGEPAINT", "BHARATFORG", "BHARTIARTL", "BHEL", "BIOCON", "BOSCHLTD", "BPCL", 
+    "BRITANNIA", "CANBK", "CANFINHOME", "CHAMBLFERT", "CHOLAFIN", "CIPLA", "COALINDIA", "COFORGE", "COLPAL", 
+    "CONCOR", "COROMANDEL", "CROMPTON", "CUB", "CUMMINSIND", "DABUR", "DALBHARAT", "DEEPAKNTR", "DIVISLAB", 
+    "DLF", "DRREDDY", "EICHERMOT", "ESCORTS", "EXIDEIND", "FEDERALBNK", "GAIL", "GLENMARK", "GMRINFRA", 
+    "GNFC", "GODREJCP", "GODREJPROP", "GRANULES", "GRASIM", "GUJGASLTD", "HAL", "HAVELLS", "HCLTECH", 
+    "HDFCAMC", "HDFCBANK", "HDFCLIFE", "HEROMOTOCO", "HINDALCO", "HINDCOPPER", "HINDPETRO", "HINDUNILVR", 
+    "ICICIBANK", "ICICIGI", "ICICIPRULI", "IDEA", "IDFCFIRSTB", "IEX", "IGL", "INDHOTEL", "INDIACEM", 
+    "INDIAMART", "INDIGO", "INDUSINDBK", "IOC", "IPCALAB", "IRCTC", "ITC", "JINDALSTEL", "JSWSTEEL", 
+    "JUBLFOOD", "KOTAKBANK", "LALPATHLAB", "LAURUSLABS", "LICHSGFIN", "LT", "LTIM", "LUPIN", "M&M", 
+    "M&MFIN", "MANAPPURAM", "MARICO", "MCDOWELL-N", "MCX", "METROPOLIS", "MFSL", "MGL", "MOTHERSON", 
+    "MPHASIS", "MRF", "MUTHOOTFIN", "NATIONALUM", "NAUKRI", "NAVINFLUOR", "NESTLEIND", "NMDC", "NTPC", 
+    "OBEROIRLTY", "OFSS", "ONGC", "PAGEIND", "PEL", "PETRONET", "PFC", "PIDILITIND", "PIIND", "PNB", 
+    "POLYCAB", "POWERGRID", "PVRINOX", "RAMCOCEM", "RBLBANK", "RECLTD", "SAIL", "SBICARD", "SBILIFE", 
+    "SBIN", "SHREECEM", "SHRIRAMFIN", "SIEMENS", "SRF", "SUNPHARMA", "SUNTV", "SYNGENE", "TATACHEM", 
+    "TATACOMM", "TATAMOTORS", "TATAPOWER", "TATASTEEL", "TECHM", "TITAN", "TORNTPHARM", "TRENT", 
+    "TVSMOTOR", "UBL", "ULTRACEMCO", "UPL", "VEDL", "VOLTAS", "WIPRO", "ZEEL", "ZYDUSLIFE"
+]
 
-# --- SECTORAL MAPPING FOR TOP-DOWN RELATIVE STRENGTH ---
+# --- SECTORAL MAPPING ---
 SECTOR_MAP = {
-    'IT': ["TCS", "INFY", "TECHM", "HCLTECH", "WIPRO", "COFORGE", "LTIM", "MPHASIS", "OFSS", "NAUKRI", "LTTS"],
-    'AUTO': ["MARUTI", "M&M", "HEROMOTOCO", "BAJAJ-AUTO", "EICHERMOT", "TVSMOTOR", "APOLLOTYRE", "ASHOKLEY", "BALKRISIND", "MOTHERSON"],
-    'PHARMA': ["SUNPHARMA", "DRREDDY", "CIPLA", "DIVISLAB", "LUPIN", "AUROPHARMA", "ALKEM", "ZYDUSLIFE", "GLENMARK", "METROPOLIS", "LALPATHLAB", "IPCALAB", "BIOCON", "TORNTPHARM"],
+    'IT': ["TCS", "INFY", "TECHM", "HCLTECH", "WIPRO", "COFORGE", "LTIM", "MPHASIS", "OFSS", "NAUKRI", "LTTS", "NETWEB"],
+    'AUTO': ["MARUTI", "M&M", "HEROMOTOCO", "BAJAJ-AUTO", "EICHERMOT", "TVSMOTOR", "APOLLOTYRE", "ASHOKLEY", "BALKRISIND", "MOTHERSON", "TATAELXSI"],
+    'PHARMA': ["SUNPHARMA", "DRREDDY", "CIPLA", "DIVISLAB", "LUPIN", "AUROPHARMA", "ALKEM", "ZYDUSLIFE", "GLENMARK", "METROPOLIS", "LALPATHLAB", "IPCALAB", "BIOCON", "TORNTPHARM", "APOLLOHOSP"],
     'BANKFIN': ["HDFCBANK", "ICICIBANK", "AXISBANK", "KOTAKBANK", "SBIN", "INDUSINDBK", "BANKBARODA", "PNB", "AUBANK", "FEDERALBNK", "CHOLAFIN", "BAJFINANCE", "BAJFINSV", "SBICARD", "MUTHOOTFIN", "RECLTD", "PFC", "ABCAPITAL", "CANBK", "CANFINHOME", "LICHSGFIN", "MANAPPURAM", "MFSL", "SBILIFE", "ICICIGI", "ICICIPRULI", "HDFCAMC", "HDFCLIFE", "IDFCFIRSTB", "RBLBANK", "SHRIRAMFIN"],
     'METAL': ["TATASTEEL", "HINDALCO", "JINDALSTEL", "VEDL", "SAIL", "NATIONALUM", "HINDCOPPER"],
     'ENERGY': ["RELIANCE", "ONGC", "BPCL", "IOC", "HINDPETRO", "GAIL", "NTPC", "POWERGRID", "COALINDIA", "TATAPOWER", "ADANIENT", "ADANIPORTS"],
-    'FMCG': ["HINDUNILVR", "ITC", "BRITANNIA", "NESTLEIND", "DABUR", "MARICO", "TATACONSUM", "COLPAL", "GODREJCP"]
+    'FMCG': ["HINDUNILVR", "ITC", "BRITANNIA", "NESTLEIND", "DABUR", "MARICO", "TATACONSUM", "COLPAL", "GODREJCP", "MEESHO", "DIXON", "BEL"]
 }
 
 SECTOR_TICKERS = {
@@ -220,7 +241,7 @@ def get_index_options_ideas():
 def generate_tabular_markdown(df_stocks, df_index, title, filename, include_index=False):
     with open(filename, "w", encoding="utf-8") as f:
         f.write(f"# {title}\n\n")
-        f.write("> **System:** MTF Hierarchy + Sectoral RS + VWAP Gate + Strict 1:2 RRR Hard Gate\n\n")
+        f.write("> **System:** Expanded Universe + Sectoral RS + VWAP Gate + Strict 1:1.8 RRR\n\n")
         
         if df_stocks.empty and df_index.empty:
             f.write("*Market conditions did not trigger any quantitative setups meeting institutional gates for this timeframe.*\n")
@@ -237,7 +258,7 @@ def generate_tabular_markdown(df_stocks, df_index, title, filename, include_inde
             f.write("\n---\n\n")
 
         if not df_stocks.empty:
-            f.write("## 📊 F&O Verified Institutional Scans (Long-Only)\n\n")
+            f.write("## 📊 Expanded Universe Verified Institutional Scans (Long-Only)\n\n")
             f.write("| # | Stock | Setup Type | Price | Score | Eq SL | Eq T1/T2/T3/T4/T5 | Option | Prem | Prem T1/T2/T3 |\n")
             f.write("| :--- | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |\n")
             for idx, r in df_stocks.reset_index().iterrows():
@@ -266,12 +287,12 @@ def format_telegram_text(df_stocks, df_index, title):
                 msg += f"   Option: N/A (Cash Equity Only)\n"
             msg += "\n"
     else:
-        msg += "No setups cleared the strict 1:2 RRR and VWAP gates for this scan."
+        msg += "No setups cleared the institutional gates for this scan."
         
     return msg
 
 def run():
-    print("🚀 Starting Automated Master Quant Scanner (Balanced Volume & Momentum Edition)...")
+    print("🚀 Starting Automated Master Quant Scanner (Expanded Universe Edition)...")
     sess_title, sess_type = get_session_info()
     print(f"🕒 Timeframe Registered: {sess_title}")
     
@@ -315,7 +336,7 @@ def run():
         except:
             sector_returns[sec_ticker] = 0.0
 
-    tickers = [f"{s}.NS" for s in STATIC_FNO]
+    tickers = [f"{s}.NS" for s in EXTENDED_UNIVERSE]
     data = yf.download(tickers, period="6mo", interval="1d", progress=False, threads=True)
     
     if data.empty: return
@@ -396,17 +417,17 @@ def run():
             sec_return_20d = sector_returns.get(sec_symbol, 0.0)
             
             is_relative_strong = (stock_return_20d > nifty_return_20d) and (sec_return_20d >= nifty_return_20d)
-            is_volume_breakout = (vol_vs >= 1.3) or is_squeeze
+            is_volume_breakout = (vol_vs >= 1.2) or is_squeeze
 
-            if vol_vs >= 1.3:
+            if vol_vs >= 1.2:
                 hor, sl_m = "Intraday", 0.8
-            elif is_squeeze or vol_vs >= 1.1:
+            elif is_squeeze or vol_vs >= 1.05:
                 hor, sl_m = "BTST", 1.0
             else:
                 hor, sl_m = "Swing", 1.5
 
             # Core Trigger: Trend + MACD + RSI + Structure + Sectoral RS + Volume Breakout / Squeeze
-            if close_p > d_ema and close_p > w_ema and macd_val > macd_sig and (50 <= rsi_val <= 80) and is_structural_uptrend and is_relative_strong and is_volume_breakout:
+            if close_p > d_ema and close_p > w_ema and macd_val > macd_sig and (45 <= rsi_val <= 85) and is_structural_uptrend and is_relative_strong and is_volume_breakout:
                 
                 if hor in ["Intraday", "BTST"] and not check_vwap_gate(ticker, close_p):
                     continue
@@ -418,11 +439,11 @@ def run():
                 t1, t2, t3, t4, t5 = calculate_dynamic_targets(close_p, atr, highs[ticker], lows[ticker], "Bullish", is_squeeze)
                 eq_sl = round(close_p - sl_m * atr, 1)
                 
-                # Strict 1:2 RRR Hard Gate
+                # Strict 1:1.8 RRR Hard Gate
                 risk = close_p - eq_sl
                 reward = t1 - close_p
-                if risk <= 0 or (reward / risk) < 1.8:
-                    continue  # Requires at least 1:1.8 RRR to ensure healthy output
+                if risk <= 0 or (reward / risk) < 1.6:
+                    continue
                 
                 if is_squeeze:
                     base_score = 5  
