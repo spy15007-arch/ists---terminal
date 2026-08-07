@@ -10,7 +10,6 @@ st.set_page_config(
 )
 
 # --- CACHE CLEARING FUNCTION ---
-# The ttl=60 tells Streamlit to auto-clear the cache and fetch fresh data every 60 seconds.
 @st.cache_data(ttl=60)
 def load_report(filepath):
     """Reads the markdown report from the local file system."""
@@ -33,10 +32,11 @@ with st.sidebar:
     st.markdown("---")
     st.markdown("""
     **System Architecture:**
-    - Mega Nifty 500 Universe
+    - 1200+ Master Universe (Large/Mid/Small)
+    - Explicit Options (F&O) Filter
     - Auto Position Sizing (₹50k Base)
     - ⭐ 2x Conviction Sizing (₹1L)
-    - Liquidity & VWAP Gates
+    - 250k Vol Liquidity & VWAP Gates
     - Strict 1:1.6 RRR Minimum
     """)
 
