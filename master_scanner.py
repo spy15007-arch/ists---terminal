@@ -90,9 +90,9 @@ raw_symbols = (
     "KESORAMIND KEYFINSERV KFINTECH KICL KIRLOSENG KIRLOSIND KIRIINDUS KITEX KNRCON KOTAKBANK KPIGREEN KPITTECH KPRMILL KRBL "
     "KRISHANA KSB KSERASERA L&TFH LALPATHLAB LAOPALA LATENTVIEW LAURUSLABS LEMONTREE LICHSGFIN LICI LIKHITHA LINCOLN LINDEINDIA "
     "LLOYDSENG LLOYDSME LODHA LOKESHMACH LOVABLE LTIM LTTS LUMAXIND LUMAXTECH LUPIN LUXIND M&M M&MFIN MACPOWER MADRASFERT MAGADSUGAR "
-    "MAHABANK MAHLIFE MAHLOG MAHSCOOTER MAITHANALL MANAPPURAM MANGLMCEM MANINDS MARICO MARKSANS MARUTI MASTEK MATRIMONY "
-    "MAXHEALTH MAXIND MAYURUNIQ MAZDOCK MCDOWELL-N MCLEODRUSS MCX MEDPLUS MEESHO MENONBE MFL MHRIL MIDHANI MINDAIND MINDACORP "
-    "MINDSPACE MIRZAINT MITCON MOLDTKPAC MONARCH MONGIPA MOTHERSON MOTILALOFS MPHASIS MRF MRPL MSTC MTARTECH MTNL MUKANDLTD MUNJALAU "
+    "MAHABANK MAHLIFE MAHLOG MAHSCOOTER MAITHANALL MANAPPURAM MANGLMCEM MANINDS MARICO MARKSANS MARUTI MASTEK MATRIMONY MAXHEALTH "
+    "MAXIND MAYURUNIQ MAZDOCK MCDOWELL-N MCLEODRUSS MCX MEDPLUS MEESHO MENONBE MFL MHRIL MIDHANI MINDAIND MINDACORP MINDSPACE "
+    "MIRZAINT MITCON MOLDTKPAC MONARCH MONGIPA MOTHERSON MOTILALOFS MPHASIS MRF MRPL MSTC MTARTECH MTNL MUKANDLTD MUNJALAU "
     "MUNJALSHOW MUTHOOTFIN NAM-INDIA NATCOPHARM NATHBIOGEN NATIONALUM NAUKRI NAVA NAVINFLUOR NAZARA NBCC NCC NCLIND NDTV NECCLTD "
     "NEOGEN NESCO NESTLEIND NETWORK18 NETWEB NEULANDLAB NEWGEN NFL NH NHPC NIACL NIITLTD NILKAMAL NLCINDIA NMDC NOCIL NOIDATOLL "
     "NON-RE NMDCSTEEL NTPC NUCLEUS NUVOCO NYKAA OBEROIRLTY OFSS OIL OLECTRA OMAXE ONGC OPTIEMUS ORIENTELEC ORIENTHOT ORISSAELECO "
@@ -106,44 +106,18 @@ raw_symbols = (
     "SHALPAINTS SHARDACROP SHARDACH SHOOPERS SHREECEM SHREEPUSHK SHRIRAMFIN SHYAMMETL SIEMENS SIGACHI SIL SIS SJVN SKFINDIA "
     "SKIPPER SKMEGGPROD SMARTLINK SMCGLOBAL SMLISUZU SMSLIFE SOBHA SOLARINDS SOLARA SOMANYCERA SOMATEX SONACOMS SOTL SOUTHBANK "
     "SPAL SPANDANA SPARC SPECIALITY SPENCERS SPLIL SPORTKING SREEL SRF SRHHYPMEL STAR STARPAPER STCINDIA STEELCITY STLTECH "
-    "SUBROS SUDARSCHEM SUMICHEM SUNDARMFIN SUNDRMFAST SUNPHARMA SUNTECK SUNTV SUPRAJIT SUPREMEIND SULA SUZLON SWANENERGY "
-    "SYMPHONY SYNCOMF SYNGENE TAINWALCHM TAJGVK TALBROAUTO TANLA TARAJEWELS TARSONS TASTYBITE TATACHEM TATACOFFEE TATACOMM "
-    "TATACONSUM TATAELXSI TATAINVEST TATAMETALI TATAMOTORS TATAPOWER TATASTEEL TCS TDPOWERSYS TECHM TECHNOE TEJASNET TEXINFRA "
-    "TEXRAIL TFCILTD TFL THERMAX THYROCARE TIIL TIMKEN TINPLATE TIPSINDLTD TIRUMALCHM TITAN TNPL TOKYOPLAST TORNTPHARM TORNTPOWER "
-    "TRENT TRF TRIDENT TRIL TRITURBINE TRIVENI TTKHLTHCARE TTKPRESTIG TV18BRDCST TVSMOTOR TVSSRICHAK UBL UCALFUEL UCOBANK UFLEX "
-    "UGARSUGAR UJJIVAN UJJIVANSFB ULTRACEMCO UMANGDAIR UNICHEMLAB UNIONBANK UNITEDTEA UNO MINDA UPL URAVI USHAMART UTIAMC "
-    "VAIBHAVGBL VAKRANGEE VALIANTORG VARDHMAN VARROC VASCONEQ VBL VEDL VENKEYS VESUVIUS VGUARD VIDHIING VINATIORGA VINDHYATEL "
-    "VIPIND VISAKAIND VISHNU VOLTAMP VOLTAS VRLLOG WABAG WALCHANNAG WEALTH WELCORP WELENT WESCG WELSPUNIND WHIRLPOOL WINDLAS "
-    "WIPRO WOCKPHARMA WONDERLA XPROINDIA YESBANK YUKEN ZEELEARN ZEEL ZENSARTECH ZFCVINDIA ZOMATO ZOTA ZUARI ZUARIIND ZYDUSLIFE ZYDUSWELL"
+    "SUBROS SUDARSCHEM SUMICHEM SUMIT SUNCLAYLTD SUNDARAM SUNDARMFIN SUNDRMFAST SUNPHARMA SUNTECK SUNTV SUPRAJIT SUPREMEIND "
+    "SURYAROSNI SULA SUZLON SWANENERGY SWARAJENG SWSOLAR SYMPHONY SYNCOMF SYNGENE TAINWALCHM TAJGVK TALBROAUTO TANLA TARAJEWELS "
+    "TARSONS TASTYBITE TATACHEM TATACOFFEE TATACOMM TATACONSUM TATAELXSI TATAINVEST TATAMETALI TATAMOTORS TATAPOWER TATASTEEL TCS "
+    "TDPOWERSYS TECHM TECHNOE TEJASNET TEXINFRA TEXRAIL TFCILTD TFL THERMAX THYROCARE TIIL TIMKEN TINPLATE TIPSINDLTD TIRUMALCHM "
+    "TITAN TNPL TOKYOPLAST TORNTPHARM TORNTPOWER TRENT TRF TRIDENT TRIL TRITURBINE TRIVENI TTKHLTHCARE TTKPRESTIG TV18BRDCST "
+    "TVSMOTOR TVSSRICHAK UBL UCALFUEL UCOBANK UFLEX UGARSUGAR UJJIVAN UJJIVANSFB ULTRACEMCO UMANGDAIR UNICHEMLAB UNIONBANK "
+    "UNITEDTEA UNO MINDA UPL URAVI USHAMART UTIAMC VAIBHAVGBL VAKRANGEE VALIANTORG VARDHMAN VARROC VASCONEQ VBL VEDL VENKEYS "
+    "VESUVIUS VGUARD VIDHIING VINATIORGA VINDHYATEL VIPIND VISAKAIND VISHNU VOLTAMP VOLTAS VRLLOG WABAG WALCHANNAG WEALTH WELCORP "
+    "WELENT WESCG WELSPUNIND WHIRLPOOL WINDLAS WIPRO WOCKPHARMA WONDERLA XPROINDIA YESBANK YUKEN ZEELEARN ZEEL ZENSARTECH "
+    "ZFCVINDIA ZOMATO ZOTA ZUARI ZUARIIND ZYDUSLIFE ZYDUSWELL TFCI SHIVALIK SWANDEFENCE AVALON AIMTRON INDOTECH PEARLGLOBAL DIL"
 )
 EXTENDED_UNIVERSE = list(set(raw_symbols.split()))
-
-# --- SECTORAL MAPPING ---
-SECTOR_MAP = {
-    'IT': ["TCS", "INFY", "TECHM", "HCLTECH", "WIPRO", "COFORGE", "LTIM", "MPHASIS", "OFSS", "NAUKRI", "LTTS", "NETWEB", "BSOFT", "CYIENT", "KPITTECH", "PERSISTENT"],
-    'AUTO': ["MARUTI", "M&M", "HEROMOTOCO", "BAJAJ-AUTO", "EICHERMOT", "TVSMOTOR", "APOLLOTYRE", "ASHOKLEY", "BALKRISIND", "MOTHERSON", "TATAELXSI", "SONACOMS", "BOSCHLTD", "TIINDIA"],
-    'PHARMA': ["SUNPHARMA", "DRREDDY", "CIPLA", "DIVISLAB", "LUPIN", "AUROPHARMA", "ALKEM", "ZYDUSLIFE", "GLENMARK", "METROPOLIS", "LALPATHLAB", "IPCALAB", "BIOCON", "TORNTPHARM", "APOLLOHOSP", "MAXHEALTH"],
-    'BANKFIN': ["HDFCBANK", "ICICIBANK", "AXISBANK", "KOTAKBANK", "SBIN", "INDUSINDBK", "BANKBARODA", "PNB", "AUBANK", "FEDERALBNK", "CHOLAFIN", "BAJFINANCE", "BAJFINSV", "SBICARD", "MUTHOOTFIN", "RECLTD", "PFC", "ABCAPITAL", "CANBK", "CANFINHOME", "LICHSGFIN", "MANAPPURAM", "MFSL", "SBILIFE", "ICICIGI", "ICICIPRULI", "HDFCAMC", "HDFCLIFE", "IDFCFIRSTB", "RBLBANK", "SHRIRAMFIN", "JIOFIN", "BSE", "CDSL", "ANGELONE", "IREDA", "IRFC"],
-    'METAL': ["TATASTEEL", "HINDALCO", "JINDALSTEL", "VEDL", "SAIL", "NATIONALUM", "HINDCOPPER", "WELCORP", "JSL"],
-    'ENERGY': ["RELIANCE", "ONGC", "BPCL", "IOC", "HINDPETRO", "GAIL", "NTPC", "POWERGRID", "COALINDIA", "TATAPOWER", "ADANIENT", "ADANIPORTS", "ADANIENSOL", "ADANIGREEN", "ADANIPOWER", "SUZLON", "NHPC", "SJVN"],
-    'FMCG': ["HINDUNILVR", "ITC", "BRITANNIA", "NESTLEIND", "DABUR", "MARICO", "TATACONSUM", "COLPAL", "GODREJCP", "MEESHO", "DIXON", "BEL", "VBL", "DMART", "ZOMATO"]
-}
-
-SECTOR_TICKERS = {
-    'IT': '^CNXIT',
-    'AUTO': '^CNXAUTO',
-    'PHARMA': '^CNXPHARMA',
-    'BANKFIN': '^NSEBANK',
-    'METAL': '^CNXMETAL',
-    'ENERGY': '^CNXENERGY',
-    'FMCG': '^CNXFMCG'
-}
-
-def get_sector_symbol(symbol):
-    for sec, syms in SECTOR_MAP.items():
-        if symbol in syms:
-            return SECTOR_TICKERS.get(sec, '^NSEI')
-    return '^NSEI'
 
 def get_session_info():
     now_ist = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=5, minutes=30)
@@ -303,7 +277,7 @@ def get_index_options_ideas():
 def generate_tabular_markdown(df_stocks, df_index, title, filename, include_index=False):
     with open(filename, "w", encoding="utf-8") as f:
         f.write(f"# {title}\n\n")
-        f.write("> **System:** 1200+ Mega Universe + Options F&O Filter + Liquidity & Risk Gates\n\n")
+        f.write("> **System:** 1200+ Mega Universe + Pre-Breakout Coils + Liquidity Gates\n\n")
         
         if df_stocks.empty and df_index.empty:
             f.write("*Market conditions did not trigger any quantitative setups meeting institutional gates for this timeframe.*\n")
@@ -355,7 +329,7 @@ def format_telegram_text(df_stocks, df_index, title):
     return msg
 
 def run():
-    print("🚀 Starting Automated Master Quant Scanner (1200+ Mega Universe & F&O Filter Edition)...")
+    print("🚀 Starting Automated Master Quant Scanner (Pre-Breakout Coils Included)...")
     sess_title, sess_type = get_session_info()
     print(f"🕒 Timeframe Registered: {sess_title}")
     
@@ -392,6 +366,7 @@ def run():
         closes, highs, lows, volumes = data['Close'], data['High'], data['Low'], data['Volume']
 
     ema_50_daily = closes.ewm(span=50).mean()
+    ema_20_daily = closes.ewm(span=20).mean()
     vol_50d_avg_daily = volumes.rolling(50).mean()
     
     delta = closes.diff()
@@ -419,6 +394,7 @@ def run():
     last_macd = macd_daily.iloc[-1]
     last_macd_signal = macd_signal_daily.iloc[-1]
     last_ema_50 = ema_50_daily.iloc[-1]
+    last_ema_20 = ema_20_daily.iloc[-1]
     last_atr = atr_daily.iloc[-1]
     last_ema_50_weekly = ema_50_weekly.iloc[-1]
 
@@ -438,17 +414,22 @@ def run():
             vol_today = float(last_vol[ticker])
             vol_50_avg = float(last_vol_50[ticker])
 
-            if pd.isna(close_p) or close_p <= 0 or vol_today < 250000 or vol_50_avg < 250000: 
+            if pd.isna(close_p) or close_p <= 0 or vol_today < 200000 or vol_50_avg < 200000: 
                 continue
             
             rsi_val, macd_val, macd_sig = float(last_rsi[ticker]), float(last_macd[ticker]), float(last_macd_signal[ticker])
             d_ema, w_ema, atr = float(last_ema_50[ticker]), float(last_ema_50_weekly[ticker]), float(last_atr[ticker])
+            d_ema20 = float(last_ema_20[ticker])
             
             adjusted_vol_50 = vol_50_avg * (minutes_elapsed / 375.0)
             vol_vs = round(vol_today / adjusted_vol_50, 2)
 
             recent_vol_avg = float(volumes[ticker].tail(3).mean())
             recent_range_avg = float((highs[ticker].tail(3) - lows[ticker].tail(3)).mean())
+            recent_20d_high = float(highs[ticker].tail(20).max())
+            
+            dist_to_20d_high = (recent_20d_high - close_p) / close_p
+
             is_squeeze = (recent_vol_avg < vol_50_avg * 0.85) and (recent_range_avg < atr * 0.85)
             is_structural_uptrend = check_structure_hh_hl(highs[ticker], lows[ticker])
 
@@ -456,17 +437,25 @@ def run():
             stock_return_20d = float(stock_closes_series.iloc[-1] / stock_closes_series.iloc[-20] - 1) if len(stock_closes_series) >= 20 else 0.0
             is_relative_strong = (stock_return_20d > nifty_return_20d)
 
-            if not ((vol_vs >= 0.8) or is_squeeze): 
+            # --- PRE-BREAKOUT DETECTOR (2-3 DAYS LAUNCHPAD) ---
+            is_pre_breakout = (0.002 <= dist_to_20d_high <= 0.035) and (close_p > d_ema20) and (vol_vs <= 1.25)
+
+            if is_pre_breakout:
+                hor = "Pre-Breakout"
+                sl_m = 1.0
+            elif vol_vs >= 1.5:
+                hor = "Intraday"
+                sl_m = 0.8
+            elif is_squeeze or vol_vs >= 1.2:
+                hor = "BTST"
+                sl_m = 1.0
+            elif vol_vs >= 0.8:
+                hor = "Swing"
+                sl_m = 1.5
+            else:
                 continue
 
-            if vol_vs >= 1.5:
-                hor, sl_m = "Intraday", 0.8
-            elif is_squeeze or vol_vs >= 1.2:
-                hor, sl_m = "BTST", 1.0
-            else:
-                hor, sl_m = "Swing", 1.5
-
-            if close_p > d_ema and close_p > w_ema and macd_val > macd_sig and (45 <= rsi_val <= 85) and is_structural_uptrend and is_relative_strong:
+            if close_p > d_ema and close_p > w_ema and macd_val > macd_sig and (45 <= rsi_val <= 85) and is_relative_strong:
                 
                 if hor in ["Intraday", "BTST"] and not check_vwap_gate(ticker, close_p):
                     continue
@@ -478,15 +467,16 @@ def run():
                 t1, t2, t3, t4, t5 = calculate_dynamic_targets(close_p, atr, highs[ticker], lows[ticker], "Bullish", is_squeeze)
                 eq_sl = round(close_p - sl_m * atr, 1)
                 
-                # --- MATHEMATICAL FIX FOR SWING TRADES ---
                 risk = close_p - eq_sl
-                reward = (t2 - close_p) if hor == "Swing" else (t1 - close_p)
+                reward = (t2 - close_p) if hor in ["Swing", "Pre-Breakout"] else (t1 - close_p)
                 
-                if risk <= 0 or (reward / risk) < 1.6:
+                if risk <= 0 or (reward / risk) < 1.5:
                     continue
-                # -----------------------------------------
                 
-                if is_squeeze:
+                if is_pre_breakout:
+                    base_score = 6
+                    tag = "💥 Pre-Breakout Coil"
+                elif is_squeeze:
                     base_score = 5  
                     tag = "🔥 Squeeze Blast"
                 else:
@@ -495,7 +485,7 @@ def run():
 
                 is_high_conviction = (base_score >= 5) 
                 capital_to_deploy = BASE_CAPITAL_PER_TRADE * HIGH_CONVICTION_MULTIPLIER if is_high_conviction else BASE_CAPITAL_PER_TRADE
-                if is_high_conviction:
+                if is_high_conviction and not is_pre_breakout:
                     tag += " (⭐ 2x Size)"
 
                 cash_qty = int(capital_to_deploy / close_p)
@@ -525,13 +515,19 @@ def run():
 
     df_all = pd.DataFrame(valid_setups).drop_duplicates(subset=['Stock']).sort_values(by=['Score', 'RSI'], ascending=[False, False]) if valid_setups else pd.DataFrame()
 
+    df_pre = df_all[df_all['Horizon'] == 'Pre-Breakout'].head(15) if not df_all.empty else pd.DataFrame()
     df_intra = df_all[df_all['Horizon'] == 'Intraday'].head(15) if not df_all.empty else pd.DataFrame()
     df_btst = df_all[df_all['Horizon'] == 'BTST'].head(20) if not df_all.empty else pd.DataFrame()
     df_swing = df_all[df_all['Horizon'] == 'Swing'].head(30) if not df_all.empty else pd.DataFrame()
 
+    generate_tabular_markdown(df_pre, pd.DataFrame(), f"💥 Soon to Breakout Report (2-3 Days Watchlist) — {sess_title}", "prebreakout_report.md", include_index=False)
     generate_tabular_markdown(df_intra, df_index, f"⚡ Intraday Report — {sess_title}", "intraday_report.md", include_index=True)
     generate_tabular_markdown(df_btst, pd.DataFrame(), f"🌙 BTST Report — {sess_title}", "btst_report.md", include_index=False)
     generate_tabular_markdown(df_swing, pd.DataFrame(), f"📈 Swing Trade Report — {sess_title}", "swing_report.md", include_index=False)
+
+    if not df_pre.empty:
+        msg_pre = format_telegram_text(df_pre, pd.DataFrame(), f"💥 Soon to Breakout (2-3 Days Watchlist) — {sess_title}")
+        send_telegram_message(msg_pre)
 
     if not df_intra.empty or not df_index.empty:
         msg_intra = format_telegram_text(df_intra, df_index, f"⚡ Intraday Report — {sess_title}")
