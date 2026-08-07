@@ -1,17 +1,10 @@
-# 🌙 BTST Report — 07 Aug 2026 | 08:13 PM (Manual Override)
+# 🌙 BTST Report — 07 Aug 2026 | 11:57 PM (Manual Override)
 
-> **System:** 1200+ Mega Universe + Options F&O Filter + Liquidity & Risk Gates
+> **System:** 1200+ Mega Universe + Pre-Breakout Coils + Liquidity Gates
 
 ## 📊 Validated Setups (Equities & Options)
 
 | # | Stock | Setup Type | Price | Qty | Risk (₹) | Eq SL | Eq Tgts | Option | Prem | Prem Tgts |
 | :--- | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| 1 | **ASHOKLEY (↑)** | 🔥 Squeeze Blast (⭐ 2x Size) | ₹177.5 | **563** | ₹2477.2 | ₹173.1 | 189.2/196.4/208.1 | **180 CE** | ₹2.73 | 10.5/17.1/28.6 |
-| 2 | **IIFL (↑)** | 🔥 Squeeze Blast (⭐ 2x Size) | ₹611.75 | **163** | ₹3023.65 | ₹593.2 | 644.4/664.5/697.2 | **N/A (Cash)** | ₹- | -/-/- |
-| 3 | **M&M (↑)** | 🔥 Squeeze Blast (⭐ 2x Size) | ₹3502.0 | **28** | ₹2282.0 | ₹3420.5 | 3664.5/3765.0/3927.5 | **3500 CE** | ₹89.61 | 199.6/285.6/439.6 |
-| 4 | **MARUTI (↑)** | 🔥 Squeeze Blast (⭐ 2x Size) | ₹14037.0 | **7** | ₹1955.8 | ₹13757.6 | 14507.1/14797.5/15267.6 | **14000 CE** | ₹266.24 | 599.7/857.1/1310.6 |
-| 5 | **RBLBANK (↑)** | 🔥 Squeeze Blast (⭐ 2x Size) | ₹389.8 | **256** | ₹2406.4 | ₹380.4 | 406.9/417.5/434.6 | **390 CE** | ₹8.01 | 19.8/29.2/45.8 |
-| 6 | **KFINTECH (↑)** | 🔥 Squeeze Blast (⭐ 2x Size) | ₹936.0 | **106** | ₹2840.8 | ₹909.2 | 984.5/1014.4/1062.9 | **N/A (Cash)** | ₹- | -/-/- |
-| 7 | **ASIANPAINT (↑)** | 🔥 Squeeze Blast (⭐ 2x Size) | ₹2735.0 | **36** | ₹2084.4 | ₹2677.1 | 2843.5/2910.6/3019.1 | **2750 CE** | ₹52.72 | 121.7/177.4/278.8 |
-| 8 | **HAVELLS (↑)** | Volume Breakout | ₹1288.0 | **38** | ₹942.4 | ₹1263.2 | 1328.5/1357.3/1397.9 | **1280 CE** | ₹23.12 | 54.4/81.5/121.6 |
-| 9 | **KESORAMIND (↑)** | Volume Breakout | ₹12.74 | **3924** | ₹1726.56 | ₹12.3 | 13.6/14.1/15.0 | **N/A (Cash)** | ₹- | -/-/- |
+| 1 | **M&M (↑)** | 🔥 Squeeze Blast (⭐ 2x Size) | ₹3502.0 | **28** | ₹2282.0 | ₹3420.5 | 3664.5/3765.0/3927.5 | **3500 CE** | ₹89.61 | 199.6/285.6/439.6 |
+| 2 | **JUBLFOOD (↑)** | Volume Breakout | ₹486.5 | **102** | ₹1428.0 | ₹472.5 | 508.7/524.5/546.7 | **485 CE** | ₹14.67 | 29.6/42.8/63.6 |
