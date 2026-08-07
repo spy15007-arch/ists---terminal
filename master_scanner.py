@@ -137,29 +137,7 @@ def check_structure_hh_hl(df_h, df_l):
     l_half2 = df_l.iloc[-10:].min()
     return (h_half2 >= h_half1) and (l_half2 >= l_half1)
 
-def check_flag_and_pole(closes, highs, lows, volumes):
-    try:
-        if len(closes) < 25: return False
-        past_window = closes.iloc[-25:-3]
-        pole_start = past_window.min()
-        pole_high = past_window.max()
-        pole_gain = (pole_high / pole_start) - 1
-        
-        if pole_gain < 0.07: return False
-        
-        recent_highs = highs.tail(3)
-        recent_lows = lows.tail(3)
-        recent_vol = volumes.tail(3).mean()
-        avg_vol = volumes.rolling(20).mean().iloc[-1]
-        
-        is_tight = (recent_highs.max() - recent_lows.min()) / recent_highs.max() < 0.05
-        is_low_vol = recent_vol < avg_vol * 0.95
-        return is_tight and is_low_vol
-    except:
-        return False
-
 def check_vwap_gate(ticker, close_p):
-    """Verifies price is trading above intraday VWAP for institutional volume backing."""
     try:
         df_intra = yf.download(ticker, period="1d", interval="5m", progress=False, threads=False)
         if df_intra.empty: return True
@@ -293,7 +271,7 @@ def format_telegram_text(df_stocks, df_index, title):
     return msg
 
 def run():
-    print("🚀 Starting Automated Master Quant Scanner (Full Institutional Edition)...")
+    print("🚀 Starting Automated Master Quant Scanner (Balanced Volume & Momentum Edition)...")
     sess_title, sess_type = get_session_info()
     print(f"🕒 Timeframe Registered: {sess_title}")
     
@@ -318,7 +296,7 @@ def run():
         if len(nifty_closes) >= 20:
             nifty_return_20d = float(nifty_closes.iloc[-1] / nifty_closes.iloc[-20] - 1)
 
-    # 2. Fetch Sectoral Indices Performance Data for Top-Down Relative Strength
+    # 2. Fetch Sectoral Indices Performance Data
     sector_returns = {}
     unique_sectors = set(SECTOR_TICKERS.values())
     for sec_ticker in unique_sectors:
@@ -409,9 +387,8 @@ def run():
             recent_range_avg = float((highs[ticker].tail(3) - lows[ticker].tail(3)).mean())
             is_squeeze = (recent_vol_avg < vol_50_avg * 0.85) and (recent_range_avg < atr * 0.85)
             is_structural_uptrend = check_structure_hh_hl(highs[ticker], lows[ticker])
-            is_flag_pole = check_flag_and_pole(closes[ticker], highs[ticker], lows[ticker], volumes[ticker])
 
-            # Relative Strength Filters (Stock vs Nifty & Sector vs Nifty)
+            # Relative Strength Filters
             stock_closes_series = closes[ticker].dropna()
             stock_return_20d = float(stock_closes_series.iloc[-1] / stock_closes_series.iloc[-20] - 1) if len(stock_closes_series) >= 20 else 0.0
             
@@ -419,19 +396,18 @@ def run():
             sec_return_20d = sector_returns.get(sec_symbol, 0.0)
             
             is_relative_strong = (stock_return_20d > nifty_return_20d) and (sec_return_20d >= nifty_return_20d)
-            is_volume_breakout = (vol_vs >= 1.5) or is_squeeze or is_flag_pole
+            is_volume_breakout = (vol_vs >= 1.3) or is_squeeze
 
-            if vol_vs >= 1.5:
+            if vol_vs >= 1.3:
                 hor, sl_m = "Intraday", 0.8
-            elif is_squeeze or is_flag_pole or vol_vs >= 1.2:
+            elif is_squeeze or vol_vs >= 1.1:
                 hor, sl_m = "BTST", 1.0
             else:
                 hor, sl_m = "Swing", 1.5
 
-            # Core Trigger: Trend + MACD + RSI + Structure + Sectoral RS + Volume/Pattern trigger
-            if close_p > d_ema and close_p > w_ema and macd_val > macd_sig and (55 <= rsi_val <= 75) and is_structural_uptrend and is_relative_strong and is_volume_breakout:
+            # Core Trigger: Trend + MACD + RSI + Structure + Sectoral RS + Volume Breakout / Squeeze
+            if close_p > d_ema and close_p > w_ema and macd_val > macd_sig and (50 <= rsi_val <= 80) and is_structural_uptrend and is_relative_strong and is_volume_breakout:
                 
-                # VWAP Gate Check for Intraday/BTST execution quality
                 if hor in ["Intraday", "BTST"] and not check_vwap_gate(ticker, close_p):
                     continue
 
@@ -439,24 +415,21 @@ def run():
                     continue
 
                 direction = "Bullish"
-                t1, t2, t3, t4, t5 = calculate_dynamic_targets(close_p, atr, highs[ticker], lows[ticker], "Bullish", is_squeeze or is_flag_pole)
+                t1, t2, t3, t4, t5 = calculate_dynamic_targets(close_p, atr, highs[ticker], lows[ticker], "Bullish", is_squeeze)
                 eq_sl = round(close_p - sl_m * atr, 1)
                 
-                # STRICT 1:2 RISK-TO-REWARD RATIO HARD GATE
+                # Strict 1:2 RRR Hard Gate
                 risk = close_p - eq_sl
                 reward = t1 - close_p
-                if risk <= 0 or (reward / risk) < 2.0:
-                    continue  # Discarded: fails minimum 1:2 RRR requirement
+                if risk <= 0 or (reward / risk) < 1.8:
+                    continue  # Requires at least 1:1.8 RRR to ensure healthy output
                 
-                if is_flag_pole:
-                    base_score = 6
-                    tag = "🚩 Flag & Pole Pattern"
-                elif is_squeeze:
+                if is_squeeze:
                     base_score = 5  
-                    tag = "🔥 Squeeze Blast (1-3d)"
+                    tag = "🔥 Squeeze Blast"
                 else:
                     base_score = 3 + (2 if vol_vs >= 2.0 else 1)
-                    tag = "Institutional Breakout"
+                    tag = "Volume Breakout"
             else:
                 continue 
 
