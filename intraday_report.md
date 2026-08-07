@@ -1,6 +1,6 @@
-# ⚡ Intraday Report — 07 Aug 2026 | 06:02 PM (Manual Override)
+# ⚡ Intraday Report — 07 Aug 2026 | 06:29 PM (Manual Override)
 
-> **System:** Expanded Universe + Sectoral RS + VWAP Gate + Strict 1:1.8 RRR
+> **System:** Dynamic Conviction Sizing (₹50k Base | ₹1L Elite) + Liquidity & Risk Gates
 
 ## 👑 Index Options (MTF Intraday Scalps)
 
@@ -11,9 +11,17 @@
 
 ---
 
-## 📊 Expanded Universe Verified Institutional Scans (Long-Only)
+## 📊 Cash Equity Position Sized Scans (Long-Only)
 
-| # | Stock | Setup Type | Price | Score | Eq SL | Eq T1/T2/T3/T4/T5 | Option | Prem | Prem T1/T2/T3 |
-| :--- | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| 1 | **HEROMOTOCO (↑)** | Volume Breakout | ₹5725.0 | 🔥 5/10 | ₹5619.4 | 5969.8/6141.3/6386.1/6749.6/7305.0 | **5700 CE** | ₹145.8 | 318.0/468.9/704.4 |
-| 2 | **MOTHERSON (↑)** | Volume Breakout | ₹168.5 | 🔥 5/10 | ₹164.3 | 176.1/181.6/189.3/200.3/216.9 | **170 CE** | ₹5.01 | 9.5/13.7/20.4 |
+| # | Stock | Setup Type | Price | Qty | Risk (₹) | Eq SL | Eq Tgts | Option | Prem | Prem Tgts |
+| :--- | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| 1 | **HEROMOTOCO (↑)** | Volume Breakout (⭐ 2x Size) | ₹5725.0 | **17** | ₹1795.2 | ₹5619.4 | 5969.8/6141.3/6386.1 | **5700 CE** | ₹145.8 | 318.0/468.9/704.4 |
+| 2 | **MOTHERSON (↑)** | Volume Breakout (⭐ 2x Size) | ₹168.5 | **593** | ₹2490.6 | ₹164.3 | 176.1/181.6/189.3 | **170 CE** | ₹5.01 | 9.5/13.7/20.4 |
+| 3 | **DEVYANI (↑)** | Volume Breakout (⭐ 2x Size) | ₹134.73 | **742** | ₹2990.26 | ₹130.7 | 142.3/147.7/155.2 | **135 CE** | ₹6.08 | 10.8/14.9/21.4 |
+| 4 | **SAPPHIRE (↑)** | Volume Breakout (⭐ 2x Size) | ₹224.22 | **445** | ₹3568.9 | ₹216.2 | 239.3/250.2/265.3 | **225 CE** | ₹12.45 | 21.8/30.0/42.9 |
+| 5 | **SONACOMS (↑)** | Volume Breakout | ₹818.05 | **61** | ₹1149.85 | ₹799.2 | 859.2/888.2/929.3 | **820 CE** | ₹23.81 | 50.4/74.4/112.6 |
+| 6 | **JUBLFOOD (↑)** | Volume Breakout | ₹486.5 | **102** | ₹1142.4 | ₹475.3 | 508.7/524.5/546.7 | **485 CE** | ₹14.67 | 29.6/42.8/63.6 |
+| 7 | **KNRCON (↑)** | Volume Breakout | ₹139.99 | **357** | ₹1210.23 | ₹136.6 | 146.3/150.9/157.3 | **140 CE** | ₹4.4 | 8.4/12.2/18.0 |
+| 8 | **COCHINSHIP (↑)** | Volume Breakout | ₹1519.7 | **32** | ₹924.8 | ₹1490.8 | 1566.2/1600.5/1647.1 | **1520 CE** | ₹32.62 | 62.6/90.5/133.1 |
+| 9 | **LLOYDSME (↑)** | Volume Breakout | ₹2101.2 | **23** | ₹1104.0 | ₹2053.2 | 2188.9/2252.3/2340.0 | **2100 CE** | ₹54.51 | 112.6/165.7/247.8 |
+| 10 | **BAJAJFINSV (↑)** | Volume Breakout | ₹2008.9 | **24** | ₹938.4 | ₹1969.8 | 2085.1/2139.6/2215.8 | **2000 CE** | ₹48.38 | 101.8/149.4/222.3 |
