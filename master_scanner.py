@@ -13,6 +13,9 @@ warnings.filterwarnings('ignore')
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
 
+# --- PORTFOLIO SETTINGS ---
+MAX_CAPITAL_PER_TRADE = 50000  # Based on your ₹3L total, using ₹50k per stock
+
 def send_telegram_message(message):
     if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
         print("⚠️ Telegram credentials not found in environment variables. Skipping push.")
@@ -259,7 +262,7 @@ def get_index_options_ideas():
 def generate_tabular_markdown(df_stocks, df_index, title, filename, include_index=False):
     with open(filename, "w", encoding="utf-8") as f:
         f.write(f"# {title}\n\n")
-        f.write("> **System:** Nifty 500 Universe + Liquidity Filter + RS Filter + VWAP Gate + Strict 1:1.6 RRR\n\n")
+        f.write("> **System:** Nifty 500 Universe + Auto Position Sizing (₹50k) + Liquidity & Risk Gates\n\n")
         
         if df_stocks.empty and df_index.empty:
             f.write("*Market conditions did not trigger any quantitative setups meeting institutional gates for this timeframe.*\n")
@@ -276,14 +279,14 @@ def generate_tabular_markdown(df_stocks, df_index, title, filename, include_inde
             f.write("\n---\n\n")
 
         if not df_stocks.empty:
-            f.write("## 📊 Nifty 500 Verified Institutional Scans (Long-Only)\n\n")
-            f.write("| # | Stock | Setup Type | Price | Score | Eq SL | Eq T1/T2/T3/T4/T5 | Option | Prem | Prem T1/T2/T3 |\n")
-            f.write("| :--- | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |\n")
+            f.write("## 📊 Cash Equity Position Sized Scans (Long-Only)\n\n")
+            f.write("| # | Stock | Setup Type | Price | Qty (₹50k) | Risk (₹) | Eq SL | Eq Tgts | Option | Prem | Prem Tgts |\n")
+            f.write("| :--- | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |\n")
             for idx, r in df_stocks.reset_index().iterrows():
                 badge = f"🔥 {r['Score']}/10" if r['Score'] >= 4 else f"{r['Score']}/10"
-                eq_tgts = f"{r['EqT1']}/{r['EqT2']}/{r['EqT3']}/{r['EqT4']}/{r['EqT5']}"
+                eq_tgts = f"{r['EqT1']}/{r['EqT2']}/{r['EqT3']}"
                 prem_tgts = f"{r['PT1']}/{r['PT2']}/{r['PT3']}" if r['Prem'] != "-" else "-/-/-"
-                f.write(f"| {idx+1} | **{r['Stock']}** | {r['Tag']} | ₹{r['Entry']} | {badge} | ₹{r['EqSL']} | {eq_tgts} | **{r['Opt']}** | ₹{r['Prem']} | {prem_tgts} |\n")
+                f.write(f"| {idx+1} | **{r['Stock']}** | {r['Tag']} | ₹{r['Entry']} | **{r['Qty']}** | ₹{r['Risk']} | ₹{r['EqSL']} | {eq_tgts} | **{r['Opt']}** | ₹{r['Prem']} | {prem_tgts} |\n")
 
 def format_telegram_text(df_stocks, df_index, title):
     msg = f"🚨 *{title}* 🚨\n\n"
@@ -294,10 +297,11 @@ def format_telegram_text(df_stocks, df_index, title):
             msg += f"• {r['Stock']} @ ₹{r['Entry']}\n  {r['Opt']} @ ₹{r['Prem']}\n  Opt Targets: {r['PT1']}/{r['PT2']}/{r['PT3']}\n\n"
     
     if not df_stocks.empty:
-        msg += "📊 *TOP VERIFIED INSTITUTIONAL SETUPS (Long-Only)*\n"
+        msg += "📊 *TOP POSITION SIZED SETUPS (₹50k Base)*\n"
         for idx, r in df_stocks.head(15).reset_index().iterrows():
             msg += f"{idx+1}. {r['Stock']} | *{r['Tag']}* @ ₹{r['Entry']}\n"
-            msg += f"   Eq Tgts: {r['EqT1']}/{r['EqT2']}/{r['EqT3']}\n"
+            msg += f"   🛒 *Qty:* {r['Qty']} shares | 📉 *Risk:* ₹{r['Risk']}\n"
+            msg += f"   Eq SL: ₹{r['EqSL']} | Eq Tgts: {r['EqT1']}/{r['EqT2']}/{r['EqT3']}\n"
             if str(r['Opt']) != "N/A (Cash)":
                 msg += f"   Option: {r['Opt']} @ ₹{r['Prem']}\n"
                 msg += f"   Opt Tgts: {r['PT1']}/{r['PT2']}/{r['PT3']}\n"
@@ -310,7 +314,7 @@ def format_telegram_text(df_stocks, df_index, title):
     return msg
 
 def run():
-    print("🚀 Starting Automated Master Quant Scanner (Nifty 500 Universe Edition)...")
+    print("🚀 Starting Automated Master Quant Scanner (Capital Allocation Edition)...")
     sess_title, sess_type = get_session_info()
     print(f"🕒 Timeframe Registered: {sess_title}")
     
@@ -395,7 +399,7 @@ def run():
             vol_today = float(last_vol[ticker])
             vol_50_avg = float(last_vol_50[ticker])
 
-            # LIQUIDITY PROTECTION GATE: Rejects any stock trading less than 250,000 shares (prevents massive slippage traps)
+            # LIQUIDITY PROTECTION GATE
             if pd.isna(close_p) or close_p <= 0 or vol_today < 250000 or vol_50_avg < 250000: 
                 continue
             
@@ -410,7 +414,7 @@ def run():
             is_squeeze = (recent_vol_avg < vol_50_avg * 0.85) and (recent_range_avg < atr * 0.85)
             is_structural_uptrend = check_structure_hh_hl(highs[ticker], lows[ticker])
 
-            # RELAXED RELATIVE STRENGTH: The individual stock MUST beat the Nifty.
+            # RELAXED RELATIVE STRENGTH
             stock_closes_series = closes[ticker].dropna()
             stock_return_20d = float(stock_closes_series.iloc[-1] / stock_closes_series.iloc[-20] - 1) if len(stock_closes_series) >= 20 else 0.0
             
@@ -424,7 +428,6 @@ def run():
             else:
                 hor, sl_m = "Swing", 1.5
 
-            # Core Trigger: Trend + MACD + RSI + Structure + Stock RS + Volume Breakout / Squeeze
             if close_p > d_ema and close_p > w_ema and macd_val > macd_sig and (45 <= rsi_val <= 85) and is_structural_uptrend and is_relative_strong and is_volume_breakout:
                 
                 if hor in ["Intraday", "BTST"] and not check_vwap_gate(ticker, close_p):
@@ -436,6 +439,10 @@ def run():
                 direction = "Bullish"
                 t1, t2, t3, t4, t5 = calculate_dynamic_targets(close_p, atr, highs[ticker], lows[ticker], "Bullish", is_squeeze)
                 eq_sl = round(close_p - sl_m * atr, 1)
+                
+                # --- AUTOMATED POSITION SIZING & RISK MATH ---
+                cash_qty = int(MAX_CAPITAL_PER_TRADE / close_p)
+                trade_risk = round(cash_qty * (close_p - eq_sl), 2)
                 
                 # Strict 1:1.6 RRR Hard Gate
                 risk = close_p - eq_sl
@@ -461,6 +468,7 @@ def run():
             
             valid_setups.append({
                 'Stock': f"{symbol} (↑)", 'Horizon': hor, 'Tag': tag, 'Entry': round(close_p, 2), 
+                'Qty': cash_qty, 'Risk': trade_risk,
                 'RSI': round(rsi_val,1), 'EqSL': eq_sl, 'EqT1': t1, 'EqT2': t2, 'EqT3': t3, 'EqT4': t4, 'EqT5': t5, 
                 'Opt': opt, 'Prem': prem, 'PT1': pt1, 'PT2': pt2, 'PT3': pt3, 'Score': base_score
             })
