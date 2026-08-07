@@ -32,38 +32,74 @@ def send_telegram_message(message):
     except Exception as e:
         print(f"❌ Error sending Telegram message: {e}")
 
-# --- MASSIVE MOMENTUM UNIVERSE (F&O + Top Nifty 200/500 Cash Equities) ---
-EXTENDED_UNIVERSE = [
-    # Top Momentum Mid/Small & Large Caps
-    "ZOMATO", "JIOFIN", "DMART", "VBL", "CHOLAFIN", "LODHA", "SUZLON", "NHPC", "BSE", "CDSL", 
-    "ANGELONE", "CAMS", "KALYANKJIL", "KPITTECH", "TATAELXSI", "SONACOMS", "RVNL", "IREDA", 
-    "IRFC", "HUDCO", "NBCC", "PRESTIGE", "BRIGADE", "SOBHA", "POONAWALLA", "DIXON", "KAYNES", 
-    "CGPOWER", "TIINDIA", "APARINDS", "MAZDOCK", "COCHINSHIP", "GRSE", "BDL", "CYIENT", "BSOFT", 
-    "ZENSARTECH", "RITES", "RAILTEL", "IRCON", "TEJASNET", "OLECTRA", "JBMAUTO", "ACTIONCONST", 
-    "PRAJIND", "TRIDENT", "WELCORP", "JSL", "RADICO", "SULA", "AWL", "ADANIENSOL", "ADANIGREEN", "ADANIPOWER", 
-    "NETWEB", "MEESHO", "BEL", "LTTS", "TCS", "INFY", "RELIANCE", "MARUTI", "APOLLOHOSP", "TATACONSUM",
-    
-    # Core F&O Universe
-    "AARTIIND", "ABB", "ABBOTINDIA", "ABCAPITAL", "ABFRL", "ACC", "ADANIENT", "ADANIPORTS", "ALKEM", 
-    "AMBUJACEM", "APOLLOTYRE", "ASHOKLEY", "ASIANPAINT", "ASTRAL", "ATUL", "AUBANK", "AUROPHARMA", 
-    "AXISBANK", "BAJAJ-AUTO", "BAJAJFINSV", "BAJFINANCE", "BALKRISIND", "BALRAMCHIN", "BANDHANBNK", 
-    "BANKBARODA", "BATAINDIA", "BERGEPAINT", "BHARATFORG", "BHARTIARTL", "BHEL", "BIOCON", "BOSCHLTD", 
-    "BPCL", "BRITANNIA", "CANBK", "CANFINHOME", "CHAMBLFERT", "CIPLA", "COALINDIA", "COFORGE", "COLPAL", 
-    "CONCOR", "COROMANDEL", "CROMPTON", "CUB", "CUMMINSIND", "DABUR", "DALBHARAT", "DEEPAKNTR", "DIVISLAB", 
-    "DLF", "DRREDDY", "EICHERMOT", "ESCORTS", "EXIDEIND", "FEDERALBNK", "GAIL", "GLENMARK", "GMRINFRA", 
-    "GNFC", "GODREJCP", "GODREJPROP", "GRANULES", "GRASIM", "GUJGASLTD", "HAL", "HAVELLS", "HCLTECH", 
-    "HDFCAMC", "HDFCBANK", "HDFCLIFE", "HEROMOTOCO", "HINDALCO", "HINDCOPPER", "HINDPETRO", "HINDUNILVR", 
-    "ICICIBANK", "ICICIGI", "ICICIPRULI", "IDEA", "IDFCFIRSTB", "IEX", "IGL", "INDHOTEL", "INDIACEM", 
-    "INDIAMART", "INDIGO", "INDUSINDBK", "IOC", "IPCALAB", "IRCTC", "ITC", "JINDALSTEL", "JSWSTEEL", 
-    "JUBLFOOD", "KOTAKBANK", "LALPATHLAB", "LAURUSLABS", "LICHSGFIN", "LT", "LTIM", "LUPIN", "M&M", 
-    "M&MFIN", "MANAPPURAM", "MARICO", "MCDOWELL-N", "MCX", "METROPOLIS", "MFSL", "MGL", "MOTHERSON", 
-    "MPHASIS", "MRF", "MUTHOOTFIN", "NATIONALUM", "NAUKRI", "NAVINFLUOR", "NESTLEIND", "NMDC", "NTPC", 
-    "OBEROIRLTY", "OFSS", "ONGC", "PAGEIND", "PEL", "PETRONET", "PFC", "PIDILITIND", "PIIND", "PNB", 
-    "POLYCAB", "POWERGRID", "PVRINOX", "RAMCOCEM", "RBLBANK", "RECLTD", "SAIL", "SBICARD", "SBILIFE", 
-    "SBIN", "SHREECEM", "SHRIRAMFIN", "SIEMENS", "SRF", "SUNPHARMA", "SUNTV", "SYNGENE", "TATACHEM", 
-    "TATACOMM", "TATAMOTORS", "TATAPOWER", "TATASTEEL", "TECHM", "TITAN", "TORNTPHARM", "TRENT", 
-    "TVSMOTOR", "UBL", "ULTRACEMCO", "UPL", "VEDL", "VOLTAS", "WIPRO", "ZEEL", "ZYDUSLIFE"
-]
+# --- MEGA NIFTY 500 UNIVERSE ---
+raw_symbols = (
+    "360ONE 3MINDIA AARTIIND AAVAS ABBOTINDIA ABCAPITAL ABFRL ACC ACCELYA ACTIONCONST ADANIENSOL ADANIENT ADANIGREEN "
+    "ADANIPORTS ADANIPOWER AEGISCHEM AFFLE AJANTPHARM ALKEM ALKYLAMINE ALLCARGO ALOKINDS AMARAJABAT AMBER AMBUJACEM "
+    "ANANDAMAC ANANDRATHI ANGELONE ANUPAM ANURAS APARINDS APLAPOLLO APOLLOHOSP APOLLOPIPE APOLLOTYRE APTUS APL ASANUMA "
+    "ASAHIINDIA ASHOKLEY ASHOKA ASIANPAINT ASTERDM ASTRAL ASTRAZEN ATGL ATUL AUBANK AUROPHARMA AVANTIFEED AWHCL AWL "
+    "AXISBANK BAJAJ-AUTO BAJAJCON BAJAJELEC BAJAJFINSV BAJFINANCE BALAMINES BALKRISIND BALRAMCHIN BANDHANBNK BANKBARODA "
+    "BANKINDIA MAHABANK BATAINDIA BDL BEL BEML BERGEPAINT BHARATFORG BHARATRAS BHARTIARTL BHEL BIOCON BIRLACORPN "
+    "BSOFT BLS BLUEDART BLUESTARCO BOMBAYBURM BOSCHLTD BPCL BRIGADE BRITANNIA BSE CAMS CANBK CANFINHOME CARBORUNIV "
+    "CASTROLIND CCL CDSL CEATLTD CENTRALBK CENTURYPLY CENTURYTEX CERA CESC CGPOWER CHALET CHAMBLFERT CHEMPLASTS CHENNPETRO "
+    "CHOLAFIN CHOLAHLD CIGNITITEC CIPLA CLEAN CLEDUCATE COALINDIA COCHINSHIP COFORGE COLPAL COMPINFO CONCOR COROMANDEL "
+    "CRAFTSMAN CREDITACC CRISIL CROMPTON CUB CUMMINSIND CYIENT DABUR DALBHARAT DATAPATTNS DEEPAKFERT DEEPAKNTR DELHIVERY "
+    "DELTAORP DEVYANI DIVISLAB DIXON DLF DMART DOLLAR DRREDDY EIDPARRY EICHERMOT ELGIEQUIP EMAMILTD ENDURANCE ENGINERSIN "
+    "EPL EQUITASBNK ERIS ESCORTS EXIDEIND FDC FEDERALBNK FACT FINEORG FINCABLES FINPIPE FSL FIVESTAR FORTIS GAIL GALAXYSURF "
+    "GARFIBRES GATI GENUSPOWER GICRE GILLETTE GLAND GLENMARK GMMPFAUDLR GMRINFRA GNFC GODFRYPHLP GODREJAGRO GODREJCP "
+    "GODREJIND GODREJPROP GOCOLORS GRANULES GRAPHITE GRASIM GRINDWELL GRSE GUJALKALI GUJGASLTD GNFC GSFC HAL HAPPSTMNDS "
+    "HATHWAY HAVELLS HCLTECH HDFCAMC HDFCBANK HDFCLIFE HEG HEIDELBERG HEROMOTOCO HIKAL HIL HINDALCO HINDCOPPER HINDPETRO "
+    "HINDUNILVR HINDZINC HITACHIQM HOMEFIRST HONAUT HUDCO ICICIBANK ICICIGI ICICIPRULI ISEC IDBI IDEA IDFC IDFCFIRSTB "
+    "IEX IGL IIFL INDHOTEL INDIACEM INDIAGLYCO INDIAMART INDIANB IEX INDIGO INDIGOPNTS INDOSTAR INDUSINDBK INDUSTOWER "
+    "INFIBEAM INFY INOXLEISUR INOXWIND INTELLECT IOC IPAC IPCALAB IRB IRCON IRCTC IREDA IRFC ISEC ITC ITDCEM ITI "
+    "J&KBANK JAGRAN JAICORPLTD JAMNAAUTO JINDALSAW JINDALSTEL JIOFIN JKCEMENT JKIL JKLAKSHMI JKPAPER JKTYRE JMFINANCIL "
+    "JSWENERGY JSWSTEEL JTEKTINDIA JUBLFOOD JUBLINGREA JUBLPHARMA JUSTDIAL JYOTHYLAB KAJARIACER KALPATPOWR KALYANKJIL "
+    "KANSAINER KARURVYSYA KAYNES KEC KEI KENNAMETAL KNRCON KOTAKBANK KPITTECH KPRMILL KRBL KSB L&TFH LALPATHLAB LAOPALA "
+    "LATENTVIEW LAURUSLABS LEMONTREE LICHSGFIN LICI LINDEINDIA LLOYDSME LT LTIM LTTS LUPIN LUXIND M&M M&MFIN MACPOWER "
+    "MAHABANK MAHLIFE MAHLOG MAHSCOOTER MAITHANALL MANAPPURAM MARICO MARUTI MASTEK MATRIMONY MAXHEALTH MAZDOCK MCDOWELL-N "
+    "MCX MEDPLUS MEESHO METROPOLIS MFSL MGL MHRIL MINDAIND MINDACORP MOLDTKPAC MOTHERSON MOTILALOFS MPHASIS MRF MRPL "
+    "MTARTECH MUKANDLTD MUTHOOTFIN NATCOPHARM NATIONALUM NAUKRI NAVINFLUOR NAZARA NBCC NCC NEOGEN NESCO NESTLEIND NETWORK18 "
+    "NETWEB NH NHPC NIACL NIITLTD NILKAMAL NLCINDIA NMDC NOCIL NTPC NUVOCO OBEROIRLTY OFSS OIL OLECTRA OMAXE ONGC ORIENTELEC "
+    "PAGEIND PATANJALI PCBL PEL PERSISTENT PETRONET PFC PFIZER PGHL PHENIXLTD PIDILITIND PIIND PNB PNCINFRA POLYCAB "
+    "POONAWALLA POWERGRID POWERINDIA PRAJIND PRESTIGE PRINCEPIPE PRSMJOHNS PTC PVRINOX QUESS RADICO RAILTEL RAIN RAJESHEXPO "
+    "RALLIS RAMCOCEM RATNAMANI RAYMOND RBA RBLBANK RCF RECLTD REDINGTON RELAXO RELIANCE RITES ROLEXRINGS ROUTE RSYSTEMS "
+    "RVNL SAFARI SAIL SAPPHIRE SAREGAMA SBICARD SBILIFE SBIN SCHAEFFLER SFL SHARDACROP SHOOPERS SHREECEM SHRIRAMFIN "
+    "SHYAMMETL SIEMENS SIS SJVN SKFINDIA SOBHA SOLARINDS SOLARA SONACOMS SOUTHBANK SPARC STAR STARHEALTH STCINDIA STLTECH "
+    "SUBROS SUDARSCHEM SUMICHEM SUNDARMFIN SUNDRMFAST SUNPHARMA SUNTECK SUNTV SUPRAJIT SUPREMEIND SULA SUZLON SWANENERGY "
+    "SYMPHONY SYNGENE TATACHEM TATACOMM TATACONSUM TATAELXSI TATAINVEST TATAMETALI TATAMOTORS TATAPOWER TATASTEEL TCS "
+    "TECHM TEJASNET THERMAX TIMKEN TINPLATE TITAN TORNTPHARM TORNTPOWER TRENT TRIDENT TRIVENI TTKPRESTIG TV18BRDCST "
+    "TVSMOTOR UBL UCOBANK ULTRACEMCO UNIONBANK UNO MINDA UPL UTIAMC VAIBHAVGBL VAKRANGEE VARROC VBL VEDL VENKEYS VESUVIUS "
+    "VGUARD VINATIORGA VIPIND VOLTAS VRLLOG WELCORP WELENT WESCG WELSPUNIND WHIRLPOOL WIPRO WONDERLA YESBANK ZEELEARN "
+    "ZEEL ZENSARTECH ZOMATO ZYDUSLIFE ZYDUSWELL"
+)
+EXTENDED_UNIVERSE = list(set(raw_symbols.split()))
+
+# --- SECTORAL MAPPING ---
+SECTOR_MAP = {
+    'IT': ["TCS", "INFY", "TECHM", "HCLTECH", "WIPRO", "COFORGE", "LTIM", "MPHASIS", "OFSS", "NAUKRI", "LTTS", "NETWEB", "BSOFT", "CYIENT", "KPITTECH", "PERSISTENT"],
+    'AUTO': ["MARUTI", "M&M", "HEROMOTOCO", "BAJAJ-AUTO", "EICHERMOT", "TVSMOTOR", "APOLLOTYRE", "ASHOKLEY", "BALKRISIND", "MOTHERSON", "TATAELXSI", "SONACOMS", "BOSCHLTD", "TIINDIA"],
+    'PHARMA': ["SUNPHARMA", "DRREDDY", "CIPLA", "DIVISLAB", "LUPIN", "AUROPHARMA", "ALKEM", "ZYDUSLIFE", "GLENMARK", "METROPOLIS", "LALPATHLAB", "IPCALAB", "BIOCON", "TORNTPHARM", "APOLLOHOSP", "MAXHEALTH"],
+    'BANKFIN': ["HDFCBANK", "ICICIBANK", "AXISBANK", "KOTAKBANK", "SBIN", "INDUSINDBK", "BANKBARODA", "PNB", "AUBANK", "FEDERALBNK", "CHOLAFIN", "BAJFINANCE", "BAJFINSV", "SBICARD", "MUTHOOTFIN", "RECLTD", "PFC", "ABCAPITAL", "CANBK", "CANFINHOME", "LICHSGFIN", "MANAPPURAM", "MFSL", "SBILIFE", "ICICIGI", "ICICIPRULI", "HDFCAMC", "HDFCLIFE", "IDFCFIRSTB", "RBLBANK", "SHRIRAMFIN", "JIOFIN", "BSE", "CDSL", "ANGELONE", "IREDA", "IRFC"],
+    'METAL': ["TATASTEEL", "HINDALCO", "JINDALSTEL", "VEDL", "SAIL", "NATIONALUM", "HINDCOPPER", "WELCORP", "JSL"],
+    'ENERGY': ["RELIANCE", "ONGC", "BPCL", "IOC", "HINDPETRO", "GAIL", "NTPC", "POWERGRID", "COALINDIA", "TATAPOWER", "ADANIENT", "ADANIPORTS", "ADANIENSOL", "ADANIGREEN", "ADANIPOWER", "SUZLON", "NHPC", "SJVN"],
+    'FMCG': ["HINDUNILVR", "ITC", "BRITANNIA", "NESTLEIND", "DABUR", "MARICO", "TATACONSUM", "COLPAL", "GODREJCP", "MEESHO", "DIXON", "BEL", "VBL", "DMART", "ZOMATO"]
+}
+
+SECTOR_TICKERS = {
+    'IT': '^CNXIT',
+    'AUTO': '^CNXAUTO',
+    'PHARMA': '^CNXPHARMA',
+    'BANKFIN': '^NSEBANK',
+    'METAL': '^CNXMETAL',
+    'ENERGY': '^CNXENERGY',
+    'FMCG': '^CNXFMCG'
+}
+
+def get_sector_symbol(symbol):
+    for sec, syms in SECTOR_MAP.items():
+        if symbol in syms:
+            return SECTOR_TICKERS.get(sec, '^NSEI')
+    return '^NSEI'
 
 def get_session_info():
     now_ist = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=5, minutes=30)
@@ -223,7 +259,7 @@ def get_index_options_ideas():
 def generate_tabular_markdown(df_stocks, df_index, title, filename, include_index=False):
     with open(filename, "w", encoding="utf-8") as f:
         f.write(f"# {title}\n\n")
-        f.write("> **System:** Mega Universe + RS Filter + VWAP Gate + Strict 1:1.6 RRR\n\n")
+        f.write("> **System:** Nifty 500 Universe + Liquidity Filter + RS Filter + VWAP Gate + Strict 1:1.6 RRR\n\n")
         
         if df_stocks.empty and df_index.empty:
             f.write("*Market conditions did not trigger any quantitative setups meeting institutional gates for this timeframe.*\n")
@@ -240,7 +276,7 @@ def generate_tabular_markdown(df_stocks, df_index, title, filename, include_inde
             f.write("\n---\n\n")
 
         if not df_stocks.empty:
-            f.write("## 📊 Mega Universe Verified Institutional Scans (Long-Only)\n\n")
+            f.write("## 📊 Nifty 500 Verified Institutional Scans (Long-Only)\n\n")
             f.write("| # | Stock | Setup Type | Price | Score | Eq SL | Eq T1/T2/T3/T4/T5 | Option | Prem | Prem T1/T2/T3 |\n")
             f.write("| :--- | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |\n")
             for idx, r in df_stocks.reset_index().iterrows():
@@ -274,7 +310,7 @@ def format_telegram_text(df_stocks, df_index, title):
     return msg
 
 def run():
-    print("🚀 Starting Automated Master Quant Scanner (Mega Universe Edition)...")
+    print("🚀 Starting Automated Master Quant Scanner (Nifty 500 Universe Edition)...")
     sess_title, sess_type = get_session_info()
     print(f"🕒 Timeframe Registered: {sess_title}")
     
@@ -357,10 +393,11 @@ def run():
                 close_p = float(closes[ticker].iloc[-1])
 
             vol_today = float(last_vol[ticker])
-            if pd.isna(close_p) or close_p <= 0 or vol_today < 1000: continue
-            
             vol_50_avg = float(last_vol_50[ticker])
-            if pd.isna(vol_50_avg) or vol_50_avg <= 0: continue
+
+            # LIQUIDITY PROTECTION GATE: Rejects any stock trading less than 250,000 shares (prevents massive slippage traps)
+            if pd.isna(close_p) or close_p <= 0 or vol_today < 250000 or vol_50_avg < 250000: 
+                continue
             
             rsi_val, macd_val, macd_sig = float(last_rsi[ticker]), float(last_macd[ticker]), float(last_macd_signal[ticker])
             d_ema, w_ema, atr = float(last_ema_50[ticker]), float(last_ema_50_weekly[ticker]), float(last_atr[ticker])
@@ -373,7 +410,7 @@ def run():
             is_squeeze = (recent_vol_avg < vol_50_avg * 0.85) and (recent_range_avg < atr * 0.85)
             is_structural_uptrend = check_structure_hh_hl(highs[ticker], lows[ticker])
 
-            # RELAXED RELATIVE STRENGTH: The individual stock MUST beat the Nifty, regardless of its sector's drag.
+            # RELAXED RELATIVE STRENGTH: The individual stock MUST beat the Nifty.
             stock_closes_series = closes[ticker].dropna()
             stock_return_20d = float(stock_closes_series.iloc[-1] / stock_closes_series.iloc[-20] - 1) if len(stock_closes_series) >= 20 else 0.0
             
@@ -400,7 +437,7 @@ def run():
                 t1, t2, t3, t4, t5 = calculate_dynamic_targets(close_p, atr, highs[ticker], lows[ticker], "Bullish", is_squeeze)
                 eq_sl = round(close_p - sl_m * atr, 1)
                 
-                # Strict 1:1.6 RRR Hard Gate (Allows great swings to pass while rejecting poor risk setups)
+                # Strict 1:1.6 RRR Hard Gate
                 risk = close_p - eq_sl
                 reward = t1 - close_p
                 if risk <= 0 or (reward / risk) < 1.6:
@@ -431,9 +468,9 @@ def run():
 
     df_all = pd.DataFrame(valid_setups).drop_duplicates(subset=['Stock']).sort_values(by=['Score', 'RSI'], ascending=[False, False]) if valid_setups else pd.DataFrame()
 
-    df_intra = df_all[df_all['Horizon'] == 'Intraday'].head(10) if not df_all.empty else pd.DataFrame()
-    df_btst = df_all[df_all['Horizon'] == 'BTST'].head(15) if not df_all.empty else pd.DataFrame()
-    df_swing = df_all[df_all['Horizon'] == 'Swing'].head(25) if not df_all.empty else pd.DataFrame()
+    df_intra = df_all[df_all['Horizon'] == 'Intraday'].head(15) if not df_all.empty else pd.DataFrame()
+    df_btst = df_all[df_all['Horizon'] == 'BTST'].head(20) if not df_all.empty else pd.DataFrame()
+    df_swing = df_all[df_all['Horizon'] == 'Swing'].head(30) if not df_all.empty else pd.DataFrame()
 
     generate_tabular_markdown(df_intra, df_index, f"⚡ Intraday Report — {sess_title}", "intraday_report.md", include_index=True)
     generate_tabular_markdown(df_btst, pd.DataFrame(), f"🌙 BTST Report — {sess_title}", "btst_report.md", include_index=False)
