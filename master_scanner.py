@@ -111,6 +111,30 @@ def check_structure_hh_hl(df_h, df_l):
     l_half2 = df_l.iloc[-10:].min()
     return (h_half2 >= h_half1) and (l_half2 >= l_half1)
 
+def check_flag_and_pole(closes, highs, lows, volumes):
+    """Algorithmic Flag & Pole Pattern Recognition."""
+    try:
+        if len(closes) < 25: return False
+        past_window = closes.iloc[-25:-3]
+        pole_start = past_window.min()
+        pole_high = past_window.max()
+        pole_gain = (pole_high / pole_start) - 1
+        
+        # Requires at least 7-8% impulsive gain (Pole)
+        if pole_gain < 0.07: return False
+        
+        # Requires tight price contraction and low volume in recent 3 days (Flag)
+        recent_highs = highs.tail(3)
+        recent_lows = lows.tail(3)
+        recent_vol = volumes.tail(3).mean()
+        avg_vol = volumes.rolling(20).mean().iloc[-1]
+        
+        is_tight = (recent_highs.max() - recent_lows.min()) / recent_highs.max() < 0.05
+        is_low_vol = recent_vol < avg_vol * 0.95
+        return is_tight and is_low_vol
+    except:
+        return False
+
 def validate_mtf_confluence(ticker):
     """Validates 4-Hour price action alignment for precision options entry."""
     try:
@@ -180,10 +204,10 @@ def get_index_options_ideas():
 def generate_tabular_markdown(df_stocks, df_index, title, filename, include_index=False):
     with open(filename, "w", encoding="utf-8") as f:
         f.write(f"# {title}\n\n")
-        f.write("> **System:** MTF Hierarchy + Volume Spike Breakout Filter + Dynamic Targets\n\n")
+        f.write("> **System:** MTF Hierarchy + Relative Strength Filter + Flag & Pole Recognition\n\n")
         
         if df_stocks.empty and df_index.empty:
-            f.write("*Market conditions did not trigger any multi-timeframe quantitative setups for this timeframe.*\n")
+            f.write("*Market conditions did not trigger any quantitative setups for this timeframe.*\n")
             return
 
         if include_index and not df_index.empty:
@@ -197,7 +221,7 @@ def generate_tabular_markdown(df_stocks, df_index, title, filename, include_inde
             f.write("\n---\n\n")
 
         if not df_stocks.empty:
-            f.write("## 📊 F&O Volume-Verified Breakout & MTF Scans (Long-Only)\n\n")
+            f.write("## 📊 F&O Relative Strength & Pattern Scans (Long-Only)\n\n")
             f.write("| # | Stock | Setup Type | Price | Score | Eq SL | Eq T1/T2/T3/T4/T5 | Option | Prem | Prem T1/T2/T3 |\n")
             f.write("| :--- | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |\n")
             for idx, r in df_stocks.reset_index().iterrows():
@@ -215,7 +239,7 @@ def format_telegram_text(df_stocks, df_index, title):
             msg += f"• {r['Stock']} @ ₹{r['Entry']}\n  {r['Opt']} @ ₹{r['Prem']}\n  Opt Targets: {r['PT1']}/{r['PT2']}/{r['PT3']}\n\n"
     
     if not df_stocks.empty:
-        msg += "📊 *TOP VOLUME-VERIFIED MTF SETUPS (Long-Only)*\n"
+        msg += "📊 *TOP RELATIVE STRENGTH & PATTERN SETUPS (Long-Only)*\n"
         for idx, r in df_stocks.head(15).reset_index().iterrows():
             msg += f"{idx+1}. {r['Stock']} | *{r['Tag']}* @ ₹{r['Entry']}\n"
             msg += f"   Eq Tgts: {r['EqT1']}/{r['EqT2']}/{r['EqT3']}\n"
@@ -226,12 +250,12 @@ def format_telegram_text(df_stocks, df_index, title):
                 msg += f"   Option: N/A (Cash Equity Only)\n"
             msg += "\n"
     else:
-        msg += "No high-conviction volume-verified setups triggered for this scan."
+        msg += "No high-conviction relative strength setups triggered for this scan."
         
     return msg
 
 def run():
-    print("🚀 Starting Automated Master Quant Scanner (Volume Spike Breakout Edition)...")
+    print("🚀 Starting Automated Master Quant Scanner (Relative Strength & Flag/Pole Edition)...")
     sess_title, sess_type = get_session_info()
     print(f"🕒 Timeframe Registered: {sess_title}")
     
@@ -246,6 +270,13 @@ def run():
     else:
         df_index = pd.DataFrame()
     
+    # Fetch Nifty 50 Benchmark for Relative Strength Filter
+    nifty_df = yf.download("^NSEI", period="6mo", interval="1d", progress=False)
+    nifty_return_20d = 0.0
+    if not nifty_df.empty and len(nifty_df['Close']) >= 20:
+        nifty_closes = nifty_df['Close'].squeeze()
+        nifty_return_20d = float(nifty_closes.iloc[-1] / nifty_closes.iloc[-20] - 1)
+
     tickers = [f"{s}.NS" for s in STATIC_FNO]
     data = yf.download(tickers, period="6mo", interval="1d", progress=False, threads=True)
     
@@ -312,32 +343,40 @@ def run():
             recent_range_avg = float((highs[ticker].tail(3) - lows[ticker].tail(3)).mean())
             is_squeeze = (recent_vol_avg < vol_50_avg * 0.85) and (recent_range_avg < atr * 0.85)
             is_structural_uptrend = check_structure_hh_hl(highs[ticker], lows[ticker])
+            is_flag_pole = check_flag_and_pole(closes[ticker], highs[ticker], lows[ticker], volumes[ticker])
 
-            # EXPLICIT VOLUME SPIKE MULTIPLIER FILTER: Must have at least 1.5x volume expansion relative to adjusted 50-period average
-            is_volume_breakout = (vol_vs >= 1.5) or is_squeeze
+            # Relative Strength Filter: Stock's 20d return must outperform Nifty 50's 20d return
+            stock_closes_series = closes[ticker].dropna()
+            stock_return_20d = float(stock_closes_series.iloc[-1] / stock_closes_series.iloc[-20] - 1) if len(stock_closes_series) >= 20 else 0.0
+            is_relative_strong = stock_return_20d > nifty_return_20d
+
+            is_volume_breakout = (vol_vs >= 1.5) or is_squeeze or is_flag_pole
 
             if vol_vs >= 1.5:
                 hor, sl_m = "Intraday", 0.8
-            elif is_squeeze or vol_vs >= 1.2:
+            elif is_squeeze or is_flag_pole or vol_vs >= 1.2:
                 hor, sl_m = "BTST", 1.0
             else:
                 hor, sl_m = "Swing", 1.5
 
-            # Core conditions: Trend + MACD + RSI + Structure + Mandatory Volume Spike
-            if close_p > d_ema and close_p > w_ema and macd_val > macd_sig and (55 <= rsi_val <= 75) and is_structural_uptrend and is_volume_breakout:
+            # Core conditions: Trend + MACD + RSI + Structure + Relative Strength + Volume/Pattern trigger
+            if close_p > d_ema and close_p > w_ema and macd_val > macd_sig and (55 <= rsi_val <= 75) and is_structural_uptrend and is_relative_strong and is_volume_breakout:
                 if not validate_mtf_confluence(ticker):
                     continue
 
                 direction = "Bullish"
-                t1, t2, t3, t4, t5 = calculate_dynamic_targets(close_p, atr, highs[ticker], lows[ticker], "Bullish", is_squeeze)
+                t1, t2, t3, t4, t5 = calculate_dynamic_targets(close_p, atr, highs[ticker], lows[ticker], "Bullish", is_squeeze or is_flag_pole)
                 eq_sl = round(close_p - sl_m * atr, 1)
                 
-                if is_squeeze:
+                if is_flag_pole:
+                    base_score = 6
+                    tag = "🚩 Flag & Pole Pattern"
+                elif is_squeeze:
                     base_score = 5  
                     tag = "🔥 Squeeze Blast (1-3d)"
                 else:
                     base_score = 3 + (2 if vol_vs >= 2.0 else 1)
-                    tag = "Volume Breakout"
+                    tag = "RS Volume Breakout"
             else:
                 continue 
 
