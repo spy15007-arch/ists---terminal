@@ -222,7 +222,7 @@ def get_index_options_ideas():
 def generate_tabular_markdown(df_stocks, df_index, title, filename, include_index=False):
     with open(filename, "w", encoding="utf-8") as f:
         f.write(f"# {title}\n\n")
-        f.write("> **System:** 1200+ Mega Universe + Pre-Breakout Coils + Liquidity Gates\n\n")
+        f.write("> **System:** 1200+ Mega Universe + Pre-Breakout Coils + Retest Math + 10-Point Score\n\n")
         if df_stocks.empty and df_index.empty:
             f.write("*Market conditions did not trigger any quantitative setups meeting institutional gates for this timeframe.*\n")
             return
@@ -235,12 +235,12 @@ def generate_tabular_markdown(df_stocks, df_index, title, filename, include_inde
             f.write("\n---\n\n")
         if not df_stocks.empty:
             f.write("## 📊 Validated Setups (Equities & Options)\n\n")
-            f.write("| # | Stock | Setup Type | Price | Qty | Risk (₹) | Eq SL | Eq Tgts | Option | Prem | Prem Tgts |\n")
-            f.write("| :--- | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |\n")
+            f.write("| # | Stock | Setup Type | Price | Score /10 | Qty | Risk (₹) | Eq SL | Eq Tgts | Option | Prem | Prem Tgts |\n")
+            f.write("| :--- | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |\n")
             for idx, r in df_stocks.reset_index().iterrows():
-                badge = f"🔥 {r['Score']}/10" if r['Score'] >= 4 else f"{r['Score']}/10"
+                badge = f"🔥 {r['Score']}/10" if r['Score'] >= 8 else f"{r['Score']}/10"
                 prem_tgts = f"{r['PT1']}/{r['PT2']}/{r['PT3']}" if str(r['Prem']) != "-" else "-/-/-"
-                f.write(f"| {idx+1} | **{r['Stock']}** | {r['Tag']} | ₹{r['Entry']} | **{r['Qty']}** | ₹{r['Risk']} | ₹{r['EqSL']} | {r['EqT1']}/{r['EqT2']}/{r['EqT3']} | **{r['Opt']}** | ₹{r['Prem']} | {prem_tgts} |\n")
+                f.write(f"| {idx+1} | **{r['Stock']}** | {r['Tag']} | ₹{r['Entry']} | {badge} | **{r['Qty']}** | ₹{r['Risk']} | ₹{r['EqSL']} | {r['EqT1']}/{r['EqT2']}/{r['EqT3']} | **{r['Opt']}** | ₹{r['Prem']} | {prem_tgts} |\n")
 
 def format_telegram_text(df_stocks, df_index, title):
     msg = f"🚨 *{title}* 🚨\n\n"
@@ -251,7 +251,7 @@ def format_telegram_text(df_stocks, df_index, title):
     if not df_stocks.empty:
         msg += "📊 *TOP POSITION SIZED SETUPS*\n"
         for idx, r in df_stocks.head(15).reset_index().iterrows():
-            msg += f"{idx+1}. {r['Stock']} | *{r['Tag']}* @ ₹{r['Entry']}\n   🛒 *Qty:* {r['Qty']} shares | 📉 *Risk:* ₹{r['Risk']}\n   Eq SL: ₹{r['EqSL']} | Eq Tgts: {r['EqT1']}/{r['EqT2']}/{r['EqT3']}\n"
+            msg += f"{idx+1}. {r['Stock']} | *{r['Tag']}* @ ₹{r['Entry']}\n   🏆 *Score:* {r['Score']}/10 | 🛒 *Qty:* {r['Qty']} | 📉 *Risk:* ₹{r['Risk']}\n   Eq SL: ₹{r['EqSL']} | Eq Tgts: {r['EqT1']}/{r['EqT2']}/{r['EqT3']}\n"
             if "N/A" not in str(r['Opt']): msg += f"   Option: {r['Opt']} @ ₹{r['Prem']}\n   Opt Tgts: {r['PT1']}/{r['PT2']}/{r['PT3']}\n"
             else: msg += f"   Option: N/A (Cash Equity Only)\n"
             msg += "\n"
@@ -259,7 +259,7 @@ def format_telegram_text(df_stocks, df_index, title):
     return msg
 
 def run():
-    print("🚀 Starting Automated Master Quant Scanner (1200+ Universe & Pre-Breakout Edition)...")
+    print("🚀 Starting Automated Master Quant Scanner (Retest Swing + 10-Point Score Edition)...")
     sess_title, sess_type = get_session_info()
     now_ist = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=5, minutes=30)
     
@@ -322,16 +322,22 @@ def run():
             vol_vs = round(vol_today / adjusted_vol_50, 2)
 
             recent_vol_avg, recent_range_avg = float(volumes[ticker].tail(3).mean()), float((highs[ticker].tail(3) - lows[ticker].tail(3)).mean())
-            dist_to_20d_high = (float(highs[ticker].tail(20).max()) - close_p) / close_p
+            recent_20d_high = float(highs[ticker].tail(20).max())
+            
+            dist_to_20d_high = (recent_20d_high - close_p) / close_p
+            dist_to_20ema = (close_p - d_ema20) / d_ema20 if d_ema20 > 0 else 0
 
             is_squeeze = (recent_vol_avg < vol_50_avg * 0.85) and (recent_range_avg < atr * 0.85)
             is_relative_strong = (float(closes[ticker].dropna().iloc[-1] / closes[ticker].dropna().iloc[-20] - 1) > nifty_return_20d) if len(closes[ticker].dropna()) >= 20 else False
+            
+            # --- NEW HORIZON LOGIC (PRE-BREAKOUT vs RETEST) ---
             is_pre_breakout = (0.002 <= dist_to_20d_high <= 0.035) and (close_p > d_ema20) and (vol_vs <= 1.25)
+            is_swing_retest = (0.025 <= dist_to_20d_high <= 0.15) and (0.0 <= dist_to_20ema <= 0.04) and (vol_vs <= 1.0)
 
-            if is_pre_breakout: hor, sl_m = "Pre-Breakout", 1.0
-            elif vol_vs >= 1.5: hor, sl_m = "Intraday", 0.8
-            elif is_squeeze or vol_vs >= 1.2: hor, sl_m = "BTST", 1.0
-            elif vol_vs >= 0.8: hor, sl_m = "Swing", 1.5
+            if is_pre_breakout: hor, sl_m, tag = "Pre-Breakout", 1.0, "💥 Pre-Breakout Coil"
+            elif is_swing_retest: hor, sl_m, tag = "Swing", 1.2, "🔄 Breakout Retest"
+            elif vol_vs >= 1.5: hor, sl_m, tag = "Intraday", 0.8, "🚀 Volume Breakout"
+            elif is_squeeze or vol_vs >= 1.2: hor, sl_m, tag = "BTST", 1.0, "🔥 Squeeze Blast"
             else: continue
 
             if close_p > d_ema and close_p > w_ema and macd_val > macd_sig and (45 <= rsi_val <= 85) and is_relative_strong and check_structure_hh_hl(highs[ticker], lows[ticker]):
@@ -344,12 +350,28 @@ def run():
                 risk, reward = close_p - eq_sl, (t2 - close_p) if hor in ["Swing", "Pre-Breakout"] else (t1 - close_p)
                 if risk <= 0 or (reward / risk) < 1.5: continue
                 
-                if is_pre_breakout: base_score, tag = 6, "💥 Pre-Breakout Coil"
-                elif is_squeeze: base_score, tag = 5, "🔥 Squeeze Blast"
-                else: base_score, tag = 3 + (2 if vol_vs >= 2.0 else 1), "Volume Breakout"
-
-                is_high_conviction = (base_score >= 5) 
-                if is_high_conviction and not is_pre_breakout: tag += " (⭐ 2x Size)"
+                # --- STRICT 10-POINT GRADING SYSTEM ---
+                score = 0
+                if close_p > d_ema: score += 1
+                if close_p > w_ema: score += 1
+                if 55 <= rsi_val <= 70: score += 2
+                elif 45 <= rsi_val <= 85: score += 1
+                if macd_val > macd_sig: score += 1
+                if macd_val > 0: score += 1
+                if is_relative_strong: score += 1
+                if is_relative_strong and (float(closes[ticker].dropna().iloc[-1] / closes[ticker].dropna().iloc[-20] - 1) > nifty_return_20d + 0.02): score += 1
+                if hor == "Swing" and vol_vs < 0.8: score += 2
+                elif hor == "Swing" and vol_vs <= 1.0: score += 1
+                elif hor == "Pre-Breakout" and is_squeeze: score += 2
+                elif hor == "Pre-Breakout": score += 1
+                elif hor == "Intraday" and vol_vs >= 2.0: score += 2
+                elif hor == "Intraday": score += 1
+                elif hor == "BTST" and is_squeeze: score += 2
+                elif hor == "BTST": score += 1
+                final_score = min(10, score)
+                
+                is_high_conviction = (final_score >= 8) 
+                if is_high_conviction and not is_pre_breakout and not is_swing_retest: tag += " (⭐ 2x Size)"
                 cash_qty = int((BASE_CAPITAL_PER_TRADE * HIGH_CONVICTION_MULTIPLIER if is_high_conviction else BASE_CAPITAL_PER_TRADE) / close_p)
 
             else: continue 
@@ -365,13 +387,12 @@ def run():
                 'Stock': f"{symbol} (↑)", 'RawStock': symbol, 'Horizon': hor, 'Tag': tag, 'Entry': round(close_p, 2), 
                 'Qty': cash_qty, 'Risk': round(cash_qty * (close_p - eq_sl), 2), 'RSI': round(rsi_val,1), 'Vol vs 50d': vol_vs,
                 'EqSL': eq_sl, 'EqT1': t1, 'EqT2': t2, 'EqT3': t3, 'EqT4': t4, 'EqT5': t5, 
-                'Opt': opt, 'Prem': prem, 'PT1': pt1, 'PT2': pt2, 'PT3': pt3, 'Score': base_score
+                'Opt': opt, 'Prem': prem, 'PT1': pt1, 'PT2': pt2, 'PT3': pt3, 'Score': final_score
             })
         except: continue
 
     df_all = pd.DataFrame(valid_setups).drop_duplicates(subset=['Stock']).sort_values(by=['Score', 'RSI'], ascending=[False, False]) if valid_setups else pd.DataFrame()
 
-    # --- CSV EXPORTS FOR STREAMLIT ---
     if not df_all.empty: df_all.to_csv("all_setups.csv", index=False)
     else: pd.DataFrame(columns=['Stock','RawStock','Horizon','Tag','Entry','Qty','Risk','RSI','Vol vs 50d','EqSL','EqT1','EqT2','EqT3','EqT4','EqT5','Opt','Prem','PT1','PT2','PT3','Score']).to_csv("all_setups.csv", index=False)
     
@@ -386,12 +407,12 @@ def run():
     generate_tabular_markdown(df_pre, pd.DataFrame(), f"💥 Soon to Breakout Report (2-3 Days) — {sess_title}", "prebreakout_report.md", False)
     generate_tabular_markdown(df_intra, df_index, f"⚡ Intraday Report — {sess_title}", "intraday_report.md", True)
     generate_tabular_markdown(df_btst, pd.DataFrame(), f"🌙 BTST Report — {sess_title}", "btst_report.md", False)
-    generate_tabular_markdown(df_swing, pd.DataFrame(), f"📈 Swing Trade Report — {sess_title}", "swing_report.md", False)
+    generate_tabular_markdown(df_swing, pd.DataFrame(), f"📈 Swing Trade (Retest) Report — {sess_title}", "swing_report.md", False)
 
     if not df_pre.empty: send_telegram_message(format_telegram_text(df_pre, pd.DataFrame(), f"💥 Soon to Breakout — {sess_title}"))
     if not df_intra.empty or not df_index.empty: send_telegram_message(format_telegram_text(df_intra, df_index, f"⚡ Intraday Report — {sess_title}"))
     if not df_btst.empty: send_telegram_message(format_telegram_text(df_btst, pd.DataFrame(), f"🌙 BTST Report — {sess_title}"))
-    if not df_swing.empty: send_telegram_message(format_telegram_text(df_swing, pd.DataFrame(), f"📈 Swing Trade Report — {sess_title}"))
+    if not df_swing.empty: send_telegram_message(format_telegram_text(df_swing, pd.DataFrame(), f"📈 Swing Trade (Retest) Report — {sess_title}"))
 
 if __name__ == "__main__":
     run()
