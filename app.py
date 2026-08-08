@@ -6,7 +6,7 @@ import os
 from streamlit_autorefresh import st_autorefresh
 
 st.set_page_config(page_title="ISTS Pro Dashboard", page_icon="📈", layout="wide")
-st_autorefresh(interval=60000, limit=None, key="live_chart_refresh") # Auto-refresh UI every 60 seconds
+st_autorefresh(interval=60000, limit=None, key="live_chart_refresh") 
 
 @st.cache_data(ttl=60)
 def load_report(filepath):
@@ -30,20 +30,20 @@ if page == "Dashboard":
     col1, col2, col3, col4 = st.columns(4)
     col1.metric("Market Status", "MTF ALIGNED", "NSE Live Feed")
     col2.metric("Scan Universe", "1200+ Equities", "Liquidity Protected")
-    col3.metric("Math Engine", "Retest / Pre-Breakout", "10-Point Grader")
+    col3.metric("Math Engine", "Retest + RSI Div", "10-Point Grader")
     col4.metric("Strategy", "Scaled ATR Vectors", "Scalp/Swing/Pre")
 
 elif page == "Scan Market":
     st.title("🚀 Master Quant Scanner")
     st.markdown("Displays Live 1200+ Universe Scans executed securely via GitHub Engine.")
 
-    # Load pre-computed CSV Data instantly
     df_all_setups = load_csv("all_setups.csv")
     df_index_setups = load_csv("index_setups.csv")
 
     st.markdown("---")
     st.subheader("📊 Full Market Scan by Horizon")
-    tab1, tab2, tab3, tab4 = st.tabs(["💥 Soon to Breakout (2-3 Days)", "⚡ Intraday", "🌙 BTST (Best 10-15)", "📈 Swing (Retest)"])
+    # Updated Tab limits text to Top 25
+    tab1, tab2, tab3, tab4 = st.tabs(["💥 Soon to Breakout (Top 25)", "⚡ Intraday (Top 25)", "🌙 BTST (Top 25)", "📈 Swing Retest (Top 25)"])
     
     with tab1: st.markdown(load_report("prebreakout_report.md"), unsafe_allow_html=True)
     with tab2: st.markdown(load_report("intraday_report.md"), unsafe_allow_html=True)
