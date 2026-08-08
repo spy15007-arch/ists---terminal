@@ -21,7 +21,6 @@ def load_csv(filepath):
     if os.path.exists(filepath): return pd.read_csv(filepath)
     return pd.DataFrame()
 
-# Sidebar Navigation
 st.sidebar.title("ISTS Pro Terminal")
 page = st.sidebar.radio("Navigation", ["Dashboard", "Scan Market", "Budget Scanner (< ₹500)"])
 
@@ -31,20 +30,20 @@ if page == "Dashboard":
     col1, col2, col3, col4 = st.columns(4)
     col1.metric("Market Status", "MTF ALIGNED", "NSE Live Feed")
     col2.metric("Scan Universe", "1200+ Equities", "Liquidity Protected")
-    col3.metric("Math Engine", "Black-Scholes", "Pre-Breakout Coils")
+    col3.metric("Math Engine", "Retest / Pre-Breakout", "10-Point Grader")
     col4.metric("Strategy", "Scaled ATR Vectors", "Scalp/Swing/Pre")
 
 elif page == "Scan Market":
     st.title("🚀 Master Quant Scanner")
     st.markdown("Displays Live 1200+ Universe Scans executed securely via GitHub Engine.")
 
-    # Load pre-computed CSV Data
+    # Load pre-computed CSV Data instantly
     df_all_setups = load_csv("all_setups.csv")
     df_index_setups = load_csv("index_setups.csv")
 
     st.markdown("---")
     st.subheader("📊 Full Market Scan by Horizon")
-    tab1, tab2, tab3, tab4 = st.tabs(["💥 Soon to Breakout (2-3 Days)", "⚡ Intraday", "🌙 BTST (Best 10-15)", "📈 Swing (Top 25)"])
+    tab1, tab2, tab3, tab4 = st.tabs(["💥 Soon to Breakout (2-3 Days)", "⚡ Intraday", "🌙 BTST (Best 10-15)", "📈 Swing (Retest)"])
     
     with tab1: st.markdown(load_report("prebreakout_report.md"), unsafe_allow_html=True)
     with tab2: st.markdown(load_report("intraday_report.md"), unsafe_allow_html=True)
@@ -128,7 +127,7 @@ elif page == "Budget Scanner (< ₹500)":
             st.success(f"Found {len(budget_res)} quant setups under ₹{budget_limit}!")
             
             st.subheader(f"🏆 Top Budget Quant Setups Under ₹{budget_limit}")
-            b_cols = ['#', 'Stock', 'Horizon', 'Entry', 'EqSL', 'EqT1', 'EqT2', 'EqT3', 'Opt', 'Prem']
+            b_cols = ['#', 'Stock', 'Horizon', 'Score', 'Entry', 'EqSL', 'EqT1', 'EqT2', 'EqT3', 'Opt', 'Prem']
             st.dataframe(budget_res[b_cols], use_container_width=True, hide_index=True)
 
             st.markdown("---")
@@ -140,6 +139,7 @@ elif page == "Budget Scanner (< ₹500)":
             with col1:
                 st.markdown(f"**Stock:** `{selected_stock}`")
                 st.markdown(f"**Entry Price:** ₹{stock_row['Entry']}")
+                st.markdown(f"**Score / 10:** 🔥 {stock_row['Score']}")
                 st.markdown(f"**Option Recommendation:** `{stock_row['Opt']}` at ₹{stock_row['Prem']}")
             with col2:
                 trade_capital = st.number_input("Allocated Capital (₹)", min_value=5000, value=50000, step=5000)
