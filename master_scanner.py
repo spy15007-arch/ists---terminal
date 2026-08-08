@@ -157,6 +157,24 @@ def check_structure_hh_hl(df_h, df_l):
     l_half1, l_half2 = df_l.iloc[-20:-10].min(), df_l.iloc[-10:].min()
     return (h_half2 >= h_half1) and (l_half2 >= l_half1)
 
+def check_bullish_divergence(closes, rsi):
+    try:
+        if len(closes) < 30: return False
+        w1_c = closes.iloc[-25:-10]
+        w2_c = closes.iloc[-10:]
+        
+        p1_idx = w1_c.idxmin()
+        p2_idx = w2_c.idxmin()
+        
+        p1, p2 = w1_c.min(), w2_c.min()
+        r1, r2 = rsi.loc[p1_idx], rsi.loc[p2_idx]
+        
+        # Regular (Reversal) or Hidden (Continuation) Divergence
+        if (p2 < p1 and r2 > r1) or (p2 > p1 and r2 < r1):
+            return True
+    except: pass
+    return False
+
 def check_vwap_gate(ticker, close_p):
     try:
         df_intra = yf.download(ticker, period="1d", interval="5m", progress=False, threads=False)
@@ -222,7 +240,7 @@ def get_index_options_ideas():
 def generate_tabular_markdown(df_stocks, df_index, title, filename, include_index=False):
     with open(filename, "w", encoding="utf-8") as f:
         f.write(f"# {title}\n\n")
-        f.write("> **System:** 1200+ Mega Universe + Pre-Breakout Coils + Retest Math + 10-Point Score\n\n")
+        f.write("> **System:** 1200+ Mega Universe + Pre-Breakout Coils + RSI Divergence Tracking\n\n")
         if df_stocks.empty and df_index.empty:
             f.write("*Market conditions did not trigger any quantitative setups meeting institutional gates for this timeframe.*\n")
             return
@@ -259,11 +277,10 @@ def format_telegram_text(df_stocks, df_index, title):
     return msg
 
 def run():
-    print("🚀 Starting Automated Master Quant Scanner (Retest Swing + 10-Point Score Edition)...")
+    print("🚀 Starting Automated Master Quant Scanner (RSI Divergence & Top 25 Limits)...")
     sess_title, sess_type = get_session_info()
     now_ist = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=5, minutes=30)
     
-    # --- TIME DILATION FIX FOR WEEKENDS & EOD ---
     market_open = now_ist.replace(hour=9, minute=15, second=0, microsecond=0)
     market_close = now_ist.replace(hour=15, minute=30, second=0, microsecond=0)
     if now_ist.weekday() >= 5 or now_ist > market_close or now_ist < market_open: minutes_elapsed = 375.0
@@ -330,15 +347,20 @@ def run():
             is_squeeze = (recent_vol_avg < vol_50_avg * 0.85) and (recent_range_avg < atr * 0.85)
             is_relative_strong = (float(closes[ticker].dropna().iloc[-1] / closes[ticker].dropna().iloc[-20] - 1) > nifty_return_20d) if len(closes[ticker].dropna()) >= 20 else False
             
-            # --- NEW HORIZON LOGIC (PRE-BREAKOUT vs RETEST) ---
             is_pre_breakout = (0.002 <= dist_to_20d_high <= 0.035) and (close_p > d_ema20) and (vol_vs <= 1.25)
             is_swing_retest = (0.025 <= dist_to_20d_high <= 0.15) and (0.0 <= dist_to_20ema <= 0.04) and (vol_vs <= 1.0)
+            
+            # --- RSI DIVERGENCE CHECK ---
+            is_rsi_div = check_bullish_divergence(closes[ticker].dropna(), rsi_daily[ticker].dropna())
 
             if is_pre_breakout: hor, sl_m, tag = "Pre-Breakout", 1.0, "💥 Pre-Breakout Coil"
             elif is_swing_retest: hor, sl_m, tag = "Swing", 1.2, "🔄 Breakout Retest"
             elif vol_vs >= 1.5: hor, sl_m, tag = "Intraday", 0.8, "🚀 Volume Breakout"
             elif is_squeeze or vol_vs >= 1.2: hor, sl_m, tag = "BTST", 1.0, "🔥 Squeeze Blast"
             else: continue
+            
+            if is_rsi_div:
+                tag += " (📉 +RSI Div)"
 
             if close_p > d_ema and close_p > w_ema and macd_val > macd_sig and (45 <= rsi_val <= 85) and is_relative_strong and check_structure_hh_hl(highs[ticker], lows[ticker]):
                 if hor in ["Intraday", "BTST"] and not check_vwap_gate(ticker, close_p): continue
@@ -350,7 +372,6 @@ def run():
                 risk, reward = close_p - eq_sl, (t2 - close_p) if hor in ["Swing", "Pre-Breakout"] else (t1 - close_p)
                 if risk <= 0 or (reward / risk) < 1.5: continue
                 
-                # --- STRICT 10-POINT GRADING SYSTEM ---
                 score = 0
                 if close_p > d_ema: score += 1
                 if close_p > w_ema: score += 1
@@ -360,6 +381,7 @@ def run():
                 if macd_val > 0: score += 1
                 if is_relative_strong: score += 1
                 if is_relative_strong and (float(closes[ticker].dropna().iloc[-1] / closes[ticker].dropna().iloc[-20] - 1) > nifty_return_20d + 0.02): score += 1
+                
                 if hor == "Swing" and vol_vs < 0.8: score += 2
                 elif hor == "Swing" and vol_vs <= 1.0: score += 1
                 elif hor == "Pre-Breakout" and is_squeeze: score += 2
@@ -368,10 +390,14 @@ def run():
                 elif hor == "Intraday": score += 1
                 elif hor == "BTST" and is_squeeze: score += 2
                 elif hor == "BTST": score += 1
+                
+                # Boost score if divergence found
+                if is_rsi_div: score += 2
+                
                 final_score = min(10, score)
                 
                 is_high_conviction = (final_score >= 8) 
-                if is_high_conviction and not is_pre_breakout and not is_swing_retest: tag += " (⭐ 2x Size)"
+                if is_high_conviction and not is_pre_breakout and not is_swing_retest and not is_rsi_div: tag += " (⭐ 2x Size)"
                 cash_qty = int((BASE_CAPITAL_PER_TRADE * HIGH_CONVICTION_MULTIPLIER if is_high_conviction else BASE_CAPITAL_PER_TRADE) / close_p)
 
             else: continue 
@@ -399,20 +425,21 @@ def run():
     if not df_index.empty: df_index.to_csv("index_setups.csv", index=False)
     else: pd.DataFrame(columns=['Stock','RawStock','Horizon','Entry','RSI','EqSL','EqT1','EqT2','EqT3','EqT4','EqT5','Opt','Prem','PT1','PT2','PT3','Score','Tag']).to_csv("index_setups.csv", index=False)
 
-    df_pre = df_all[df_all['Horizon'] == 'Pre-Breakout'].head(15) if not df_all.empty else pd.DataFrame()
-    df_intra = df_all[df_all['Horizon'] == 'Intraday'].head(15) if not df_all.empty else pd.DataFrame()
-    df_btst = df_all[df_all['Horizon'] == 'BTST'].head(20) if not df_all.empty else pd.DataFrame()
-    df_swing = df_all[df_all['Horizon'] == 'Swing'].head(30) if not df_all.empty else pd.DataFrame()
+    # --- TOP 25 LIMITS IMPLEMENTED HERE ---
+    df_pre = df_all[df_all['Horizon'] == 'Pre-Breakout'].head(25) if not df_all.empty else pd.DataFrame()
+    df_intra = df_all[df_all['Horizon'] == 'Intraday'].head(25) if not df_all.empty else pd.DataFrame()
+    df_btst = df_all[df_all['Horizon'] == 'BTST'].head(25) if not df_all.empty else pd.DataFrame()
+    df_swing = df_all[df_all['Horizon'] == 'Swing'].head(25) if not df_all.empty else pd.DataFrame()
 
-    generate_tabular_markdown(df_pre, pd.DataFrame(), f"💥 Soon to Breakout Report (2-3 Days) — {sess_title}", "prebreakout_report.md", False)
-    generate_tabular_markdown(df_intra, df_index, f"⚡ Intraday Report — {sess_title}", "intraday_report.md", True)
-    generate_tabular_markdown(df_btst, pd.DataFrame(), f"🌙 BTST Report — {sess_title}", "btst_report.md", False)
-    generate_tabular_markdown(df_swing, pd.DataFrame(), f"📈 Swing Trade (Retest) Report — {sess_title}", "swing_report.md", False)
+    generate_tabular_markdown(df_pre, pd.DataFrame(), f"💥 Soon to Breakout Report (Top 25) — {sess_title}", "prebreakout_report.md", False)
+    generate_tabular_markdown(df_intra, df_index, f"⚡ Intraday Report (Top 25) — {sess_title}", "intraday_report.md", True)
+    generate_tabular_markdown(df_btst, pd.DataFrame(), f"🌙 BTST Report (Top 25) — {sess_title}", "btst_report.md", False)
+    generate_tabular_markdown(df_swing, pd.DataFrame(), f"📈 Swing Trade Retest Report (Top 25) — {sess_title}", "swing_report.md", False)
 
-    if not df_pre.empty: send_telegram_message(format_telegram_text(df_pre, pd.DataFrame(), f"💥 Soon to Breakout — {sess_title}"))
-    if not df_intra.empty or not df_index.empty: send_telegram_message(format_telegram_text(df_intra, df_index, f"⚡ Intraday Report — {sess_title}"))
-    if not df_btst.empty: send_telegram_message(format_telegram_text(df_btst, pd.DataFrame(), f"🌙 BTST Report — {sess_title}"))
-    if not df_swing.empty: send_telegram_message(format_telegram_text(df_swing, pd.DataFrame(), f"📈 Swing Trade (Retest) Report — {sess_title}"))
+    if not df_pre.empty: send_telegram_message(format_telegram_text(df_pre.head(15), pd.DataFrame(), f"💥 Soon to Breakout — {sess_title}"))
+    if not df_intra.empty or not df_index.empty: send_telegram_message(format_telegram_text(df_intra.head(15), df_index, f"⚡ Intraday Report — {sess_title}"))
+    if not df_btst.empty: send_telegram_message(format_telegram_text(df_btst.head(15), pd.DataFrame(), f"🌙 BTST Report — {sess_title}"))
+    if not df_swing.empty: send_telegram_message(format_telegram_text(df_swing.head(15), pd.DataFrame(), f"📈 Swing Trade (Retest) Report — {sess_title}"))
 
 if __name__ == "__main__":
     run()
