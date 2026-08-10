@@ -1,4 +1,4 @@
-# 🌙 BTST Report (Top 25) — 10 Aug 2026 | 03:52 PM (Manual Override)
+# 🌙 BTST Report (Top 25) — 10 Aug 2026 | 05:26 PM (BTST/Afternoon)
 
 > **System:** 1200+ Mega Universe + Pre-Breakout Coils + RSI Divergence Tracking
 
@@ -12,4 +12,3 @@
 | 4 | **IIFL (↑)** | 🔥 Squeeze Blast (⭐ 2x Size) | ₹625.9 | 🔥 9/10 | **159** | ₹2909.7 | ₹607.6 | 660.1/681.1/715.3 | **N/A (Cash)** | ₹- | -/-/- |
 | 5 | **KESORAMIND (↑)** | 🔥 Squeeze Blast (⭐ 2x Size) | ₹12.6 | 🔥 9/10 | **7936** | ₹3174.4 | ₹12.2 | 13.4/14.0/14.8 | **N/A (Cash)** | ₹- | -/-/- |
 | 6 | **GMMPFAUDLR (↑)** | 🔥 Squeeze Blast (⭐ 2x Size) | ₹993.6 | 🔥 8/10 | **100** | ₹3660.0 | ₹957.0 | 1058.6/1104.4/1169.4 | **N/A (Cash)** | ₹- | -/-/- |
-| 7 | **DEVYANI (↑)** | 🔥 Squeeze Blast (⭐ 2x Size) | ₹133.56 | 🔥 8/10 | **748** | ₹3710.08 | ₹128.6 | 141.2/146.7/154.4 | **N/A (Cash)** | ₹- | -/-/- |
