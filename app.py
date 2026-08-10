@@ -28,9 +28,9 @@ if page == "Dashboard":
     st.title("Institutional Quant Trading System (ISTS Pro)")
     st.markdown("Live Market Top-Down MTF Momentum & Options Engine")
     col1, col2, col3, col4 = st.columns(4)
-    col1.metric("Market Status", "MTF ALIGNED", "NSE Live Feed")
+    col1.metric("Market Status", "15M LIVE TRACKING", "NSE Live Feed")
     col2.metric("Scan Universe", "1200+ Equities", "Liquidity Protected")
-    col3.metric("Math Engine", "Retest + RSI Div", "10-Point Grader")
+    col3.metric("Math Engine", "Retest + RSI Div", "Smart DTE Options")
     col4.metric("Strategy", "Scaled ATR Vectors", "Scalp/Swing/Pre")
 
 elif page == "Scan Market":
@@ -42,7 +42,6 @@ elif page == "Scan Market":
 
     st.markdown("---")
     st.subheader("📊 Full Market Scan by Horizon")
-    # Updated Tab limits text to Top 25
     tab1, tab2, tab3, tab4 = st.tabs(["💥 Soon to Breakout (Top 25)", "⚡ Intraday (Top 25)", "🌙 BTST (Top 25)", "📈 Swing Retest (Top 25)"])
     
     with tab1: st.markdown(load_report("prebreakout_report.md"), unsafe_allow_html=True)
