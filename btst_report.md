@@ -1,4 +1,4 @@
-# 🌙 BTST Report (Top 25) — 10 Aug 2026 | 12:50 PM (Manual Override)
+# 🌙 BTST Report (Top 25) — 10 Aug 2026 | 02:15 PM (Manual Override)
 
 > **System:** 1200+ Mega Universe + Pre-Breakout Coils + RSI Divergence Tracking
 
@@ -6,4 +6,4 @@
 
 | # | Stock | Setup Type | Price | Score /10 | Qty | Risk (₹) | Eq SL | Eq Tgts | Option | Prem | Prem Tgts |
 | :--- | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| 1 | **KRISHANA (↑)** | 🔥 Squeeze Blast (⭐ 2x Size) | ₹184.38 | 🔥 9/10 | **542** | ₹4216.76 | ₹176.6 | 207.6/222.0/245.2 | **N/A (Cash)** | ₹- | -/-/- |
+| 1 | **GMMPFAUDLR (↑)** | 🔥 Squeeze Blast (⭐ 2x Size) | ₹990.7 | 🔥 8/10 | **100** | ₹3660.0 | ₹954.1 | 1055.7/1101.5/1166.5 | **N/A (Cash)** | ₹- | -/-/- |
