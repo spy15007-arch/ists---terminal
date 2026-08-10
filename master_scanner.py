@@ -267,7 +267,7 @@ def format_telegram_text(df_stocks, df_index, title):
             msg += f"• *{r['Stock']}* @ ₹{r['Entry']}\n  {r['Opt']} @ ₹{r['Prem']}\n  Opt Targets: {r['PT1']}/{r['PT2']}/{r['PT3']}\n\n"
     if not df_stocks.empty:
         msg += "📊 *TOP POSITION SIZED SETUPS*\n"
-        for idx, r in df_stocks.head(15).reset_index().iterrows():
+        for idx, r in df_stocks.head(25).reset_index().iterrows():
             msg += f"{idx+1}. *{r['Stock']}* | *{r['Tag']}* @ ₹{r['Entry']}\n   🏆 *Score:* {r['Score']}/10 | 🛒 *Qty:* {r['Qty']} | 📉 *Risk:* ₹{r['Risk']}\n   Eq SL: ₹{r['EqSL']} | Eq Tgts: {r['EqT1']}/{r['EqT2']}/{r['EqT3']}\n"
             if "N/A" not in str(r['Opt']): msg += f"   Option: {r['Opt']} @ ₹{r['Prem']}\n   Opt Tgts: {r['PT1']}/{r['PT2']}/{r['PT3']}\n"
             else: msg += f"   Option: N/A (Cash Equity Only)\n"
@@ -349,7 +349,6 @@ def run():
             is_pre_breakout = (0.002 <= dist_to_20d_high <= 0.035) and (close_p > d_ema20) and (vol_vs <= 1.25)
             is_swing_retest = (0.025 <= dist_to_20d_high <= 0.15) and (0.0 <= dist_to_20ema <= 0.04) and (vol_vs <= 1.0)
             
-            # --- RSI DIVERGENCE CHECK ---
             is_rsi_div = check_bullish_divergence(closes[ticker].dropna(), rsi_daily[ticker].dropna())
 
             if is_pre_breakout: hor, sl_m, tag = "Pre-Breakout", 1.0, "💥 Pre-Breakout Coil"
@@ -358,8 +357,7 @@ def run():
             elif is_squeeze or vol_vs >= 1.2: hor, sl_m, tag = "BTST", 1.0, "🔥 Squeeze Blast"
             else: continue
             
-            if is_rsi_div:
-                tag += " (📉 +RSI Div)"
+            if is_rsi_div: tag += " (📉 +RSI Div)"
 
             if close_p > d_ema and close_p > w_ema and macd_val > macd_sig and (45 <= rsi_val <= 85) and is_relative_strong and check_structure_hh_hl(highs[ticker], lows[ticker]):
                 if hor in ["Intraday", "BTST"] and not check_vwap_gate(ticker, close_p): continue
@@ -390,7 +388,6 @@ def run():
                 elif hor == "BTST" and is_squeeze: score += 2
                 elif hor == "BTST": score += 1
                 
-                # Boost score if divergence found
                 if is_rsi_div: score += 2
                 
                 final_score = min(10, score)
@@ -424,7 +421,6 @@ def run():
     if not df_index.empty: df_index.to_csv("index_setups.csv", index=False)
     else: pd.DataFrame(columns=['Stock','RawStock','Horizon','Entry','RSI','EqSL','EqT1','EqT2','EqT3','EqT4','EqT5','Opt','Prem','PT1','PT2','PT3','Score','Tag']).to_csv("index_setups.csv", index=False)
 
-    # --- TOP 25 LIMITS IMPLEMENTED HERE ---
     df_pre = df_all[df_all['Horizon'] == 'Pre-Breakout'].head(25) if not df_all.empty else pd.DataFrame()
     df_intra = df_all[df_all['Horizon'] == 'Intraday'].head(25) if not df_all.empty else pd.DataFrame()
     df_btst = df_all[df_all['Horizon'] == 'BTST'].head(25) if not df_all.empty else pd.DataFrame()
@@ -435,10 +431,11 @@ def run():
     generate_tabular_markdown(df_btst, pd.DataFrame(), f"🌙 BTST Report (Top 25) — {sess_title}", "btst_report.md", False)
     generate_tabular_markdown(df_swing, pd.DataFrame(), f"📈 Swing Trade Retest Report (Top 25) — {sess_title}", "swing_report.md", False)
 
-    if not df_pre.empty: send_telegram_message(format_telegram_text(df_pre.head(15), pd.DataFrame(), f"💥 Soon to Breakout — {sess_title}"))
-    if not df_intra.empty or not df_index.empty: send_telegram_message(format_telegram_text(df_intra.head(15), df_index, f"⚡ Intraday Report — {sess_title}"))
-    if not df_btst.empty: send_telegram_message(format_telegram_text(df_btst.head(15), pd.DataFrame(), f"🌙 BTST Report — {sess_title}"))
-    if not df_swing.empty: send_telegram_message(format_telegram_text(df_swing.head(15), pd.DataFrame(), f"📈 Swing Trade (Retest) Report — {sess_title}"))
+    # Telegram limit expanded to 25 to match Streamlit limits
+    if not df_pre.empty: send_telegram_message(format_telegram_text(df_pre.head(25), pd.DataFrame(), f"💥 Soon to Breakout — {sess_title}"))
+    if not df_intra.empty or not df_index.empty: send_telegram_message(format_telegram_text(df_intra.head(25), df_index, f"⚡ Intraday Report — {sess_title}"))
+    if not df_btst.empty: send_telegram_message(format_telegram_text(df_btst.head(25), pd.DataFrame(), f"🌙 BTST Report — {sess_title}"))
+    if not df_swing.empty: send_telegram_message(format_telegram_text(df_swing.head(25), pd.DataFrame(), f"📈 Swing Trade (Retest) Report — {sess_title}"))
 
 if __name__ == "__main__":
     run()
