@@ -119,6 +119,16 @@ def black_scholes(S, K, T, r, sigma, opt_type="CE"):
     if opt_type == "CE": return round(S * norm.cdf(d1) - K * math.exp(-r * T) * norm.cdf(d2), 2)
     else: return round(K * math.exp(-r * T) * norm.cdf(-d2) - S * norm.cdf(-d1), 2)
 
+# --- SMART CALENDAR DTE CALCULATOR ---
+def get_index_dte(ticker):
+    now_ist = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=5, minutes=30)
+    today = now_ist.weekday() # 0=Mon, 1=Tue, 2=Wed, 3=Thu, 4=Fri
+    target_day = 2 if "BANK" in ticker else 3 # BankNifty Wed, Nifty Thu
+    days_to_expiry = target_day - today
+    if days_to_expiry < 0: days_to_expiry += 7
+    if days_to_expiry == 0 and now_ist.hour >= 15: days_to_expiry = 7
+    return max(0.5, days_to_expiry)
+
 def calculate_dynamic_targets(close_p, atr, df_h, df_l, direction="Bullish", is_squeeze=False):
     recent_high = float(df_h.tail(20).max())
     recent_low = float(df_l.tail(20).min())
@@ -134,16 +144,22 @@ def calculate_dynamic_targets(close_p, atr, df_h, df_l, direction="Bullish", is_
     if is_squeeze: return round(f_t1, 1), round(f_t2, 1), round(f_t3, 1), round(f_t4, 1), round(f_t5, 1)
     else: return round((a_t1+f_t1)/2, 1), round((a_t2+f_t2)/2, 1), round((a_t3+f_t3)/2, 1), round((a_t4+f_t4)/2, 1), round((a_t5+f_t5)/2, 1)
 
-def generate_quant_option(price, t1, t2, t3, df_h, df_l, df_c, direction="Bullish"):
-    dte = 15 
-    step = 100 if price > 5000 else (50 if price > 2000 else (20 if price > 1000 else (10 if price > 500 else 5)))
+def generate_quant_option(symbol, price, t1, t2, t3, df_h, df_l, df_c, direction="Bullish"):
+    if "^NSE" in symbol:
+        dte = get_index_dte(symbol)
+        step = 100 if "BANK" in symbol else 50
+        vol = 0.14 # Fixed accurate IV for indices
+    else:
+        dte = 15 
+        step = 100 if price > 5000 else (50 if price > 2000 else (20 if price > 1000 else (10 if price > 500 else 5)))
+        try:
+            vol = math.sqrt((1.0 / (4.0 * math.log(2.0))) * ((np.log(df_h/df_l)**2).tail(10).mean())) * math.sqrt(252)
+            if math.isnan(vol) or vol == 0: vol = np.log(df_c/df_c.shift(1)).tail(10).std() * math.sqrt(252)
+            if math.isnan(vol) or vol == 0: vol = 0.2
+        except: vol = 0.2
+    
     atm = int(round(price / step) * step)
     opt_type = "CE" if direction == "Bullish" else "PE"
-    try:
-        vol = math.sqrt((1.0 / (4.0 * math.log(2.0))) * ((np.log(df_h/df_l)**2).tail(10).mean())) * math.sqrt(252)
-        if math.isnan(vol) or vol == 0: vol = np.log(df_c/df_c.shift(1)).tail(10).std() * math.sqrt(252)
-        if math.isnan(vol) or vol == 0: vol = 0.2
-    except: vol = 0.2
     
     c_prem = black_scholes(price, atm, dte/365.0, 0.07, vol, opt_type)
     pt1 = black_scholes(t1, atm, dte/365.0, 0.07, vol, opt_type)
@@ -162,13 +178,10 @@ def check_bullish_divergence(closes, rsi):
         if len(closes) < 30: return False
         w1_c = closes.iloc[-25:-10]
         w2_c = closes.iloc[-10:]
-        
         p1_idx = w1_c.idxmin()
         p2_idx = w2_c.idxmin()
-        
         p1, p2 = w1_c.min(), w2_c.min()
         r1, r2 = rsi.loc[p1_idx], rsi.loc[p2_idx]
-        
         if (p2 < p1 and r2 > r1) or (p2 > p1 and r2 < r1):
             return True
     except: pass
@@ -195,43 +208,51 @@ def validate_mtf_confluence(ticker):
     except: pass
     return True
 
+# --- FIXED INTRADAY INDEX TRACKER (15-Min Live Data) ---
 def get_index_options_ideas():
     indices = {'^NSEI': 'NIFTY 50', '^NSEBANK': 'BANK NIFTY'}
     results = []
     for ticker, name in indices.items():
         try:
-            data = yf.Ticker(ticker).history(period="6mo")
+            # Shifted to 15m intervals for accurate live intraday trend
+            data = yf.download(ticker, period="5d", interval="15m", progress=False, threads=False)
             if data.empty: continue
+            if isinstance(data.columns, pd.MultiIndex): data.columns = data.columns.get_level_values(0)
+            
             df_c, df_h, df_l = data['Close'].dropna(), data['High'].dropna(), data['Low'].dropna()
             if df_c.empty: continue
             
             close_p = float(df_c.iloc[-1])
-            ema_50 = float(df_c.ewm(span=50).mean().iloc[-1])
+            ema_20_15m = float(df_c.ewm(span=20).mean().iloc[-1])
+            
             hl = df_h - df_l
             tr = pd.concat([hl, (df_h - df_c.shift(1)).abs(), (df_l - df_c.shift(1)).abs()], axis=1).max(axis=1)
-            atr = float(tr.ewm(alpha=1/14).mean().iloc[-1])
+            atr_15m = float(tr.ewm(alpha=1/14).mean().iloc[-1])
             
             delta = df_c.diff()
             gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
             loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
             rsi_val = float((100 - (100 / (1 + (gain / loss)))).iloc[-1])
             
-            if close_p > ema_50:
+            # Live momentum check: Above 15m 20-EMA = Call. Below = Put.
+            if close_p > ema_20_15m:
                 direction = "Bullish (Call)"
-                t1, t2, t3, t4, t5 = calculate_dynamic_targets(close_p, atr, df_h, df_l, "Bullish", is_squeeze=False)
-                eq_sl = round(close_p - 0.8 * atr, 1)
+                t1, t2, t3 = round(close_p + 1.5 * atr_15m, 1), round(close_p + 3.0 * atr_15m, 1), round(close_p + 4.5 * atr_15m, 1)
+                t4, t5 = round(close_p + 6.0 * atr_15m, 1), round(close_p + 7.5 * atr_15m, 1)
+                eq_sl = round(close_p - 1.5 * atr_15m, 1)
             else:
                 direction = "Bearish (Put)"
-                t1, t2, t3, t4, t5 = calculate_dynamic_targets(close_p, atr, df_h, df_l, "Bearish", is_squeeze=False)
-                eq_sl = round(close_p + 0.8 * atr, 1)
+                t1, t2, t3 = round(close_p - 1.5 * atr_15m, 1), round(close_p - 3.0 * atr_15m, 1), round(close_p - 4.5 * atr_15m, 1)
+                t4, t5 = round(close_p - 6.0 * atr_15m, 1), round(close_p - 7.5 * atr_15m, 1)
+                eq_sl = round(close_p + 1.5 * atr_15m, 1)
             
-            opt, prem, pt1, pt2, pt3 = generate_quant_option(close_p, t1, t2, t3, df_h, df_l, df_c, direction.split(" ")[0])
+            opt, prem, pt1, pt2, pt3 = generate_quant_option(ticker, close_p, t1, t2, t3, df_h, df_l, df_c, direction.split(" ")[0])
             tv_sym = "NIFTY" if name == "NIFTY 50" else "BANKNIFTY"
             results.append({
                 'Stock': f"{name} {direction}", 'RawStock': tv_sym, 'Horizon': 'Intraday', 'Entry': round(close_p, 2),
                 'RSI': round(rsi_val, 1), 'EqSL': eq_sl,
                 'EqT1': t1, 'EqT2': t2, 'EqT3': t3, 'EqT4': t4, 'EqT5': t5,
-                'Opt': opt, 'Prem': prem, 'PT1': pt1, 'PT2': pt2, 'PT3': pt3, 'Score': 10, 'Tag': 'Index MTF Scalp'
+                'Opt': opt, 'Prem': prem, 'PT1': pt1, 'PT2': pt2, 'PT3': pt3, 'Score': 10, 'Tag': 'Index 15m Scalp'
             })
         except Exception as e: pass
     return pd.DataFrame(results)
@@ -245,10 +266,10 @@ def generate_tabular_markdown(df_stocks, df_index, title, filename, include_inde
             return
         if include_index and not df_index.empty:
             f.write("## 👑 Index Options (MTF Intraday Scalps)\n\n")
-            f.write("| # | Index Direction | Price | Score | Eq SL | Eq T1/T2/T3/T4/T5 | Option | Prem | Prem T1/T2/T3 |\n")
+            f.write("| # | Index Direction | Price | Score | Eq SL | Eq T1/T2/T3 | Option | Prem | Prem T1/T2/T3 |\n")
             f.write("| :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |\n")
             for idx, r in df_index.reset_index().iterrows():
-                f.write(f"| {idx+1} | **{r['Stock']}** | ₹{r['Entry']} | 🔥 {r['Score']}/10 | ₹{r['EqSL']} | {r['EqT1']}/{r['EqT2']}/{r['EqT3']}/{r['EqT4']}/{r['EqT5']} | **{r['Opt']}** | ₹{r['Prem']} | {r['PT1']}/{r['PT2']}/{r['PT3']} |\n")
+                f.write(f"| {idx+1} | **{r['Stock']}** | ₹{r['Entry']} | 🔥 {r['Score']}/10 | ₹{r['EqSL']} | {r['EqT1']}/{r['EqT2']}/{r['EqT3']} | **{r['Opt']}** | ₹{r['Prem']} | {r['PT1']}/{r['PT2']}/{r['PT3']} |\n")
             f.write("\n---\n\n")
         if not df_stocks.empty:
             f.write("## 📊 Validated Setups (Equities & Options)\n\n")
@@ -276,7 +297,7 @@ def format_telegram_text(df_stocks, df_index, title):
     return msg
 
 def run():
-    print("🚀 Starting Automated Master Quant Scanner (RSI Divergence & Top 25 Limits)...")
+    print("🚀 Starting Automated Master Quant Scanner (Live 15m Index & Smart Options DTE)...")
     sess_title, sess_type = get_session_info()
     now_ist = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=5, minutes=30)
     
@@ -389,7 +410,6 @@ def run():
                 elif hor == "BTST": score += 1
                 
                 if is_rsi_div: score += 2
-                
                 final_score = min(10, score)
                 
                 is_high_conviction = (final_score >= 8) 
@@ -401,7 +421,7 @@ def run():
             df_h, df_l, df_c = highs[ticker].dropna(), lows[ticker].dropna(), closes[ticker].dropna()
             
             if symbol in STATIC_FNO:
-                try: opt, prem, pt1, pt2, pt3 = generate_quant_option(close_p, t1, t2, t3, df_h, df_l, df_c, "Bullish")
+                try: opt, prem, pt1, pt2, pt3 = generate_quant_option(f"{symbol}.NS", close_p, t1, t2, t3, df_h, df_l, df_c, "Bullish")
                 except: opt, prem, pt1, pt2, pt3 = "N/A (Data Err)", "-", "-", "-", "-"
             else: opt, prem, pt1, pt2, pt3 = "N/A (Cash)", "-", "-", "-", "-"
             
@@ -431,7 +451,6 @@ def run():
     generate_tabular_markdown(df_btst, pd.DataFrame(), f"🌙 BTST Report (Top 25) — {sess_title}", "btst_report.md", False)
     generate_tabular_markdown(df_swing, pd.DataFrame(), f"📈 Swing Trade Retest Report (Top 25) — {sess_title}", "swing_report.md", False)
 
-    # Telegram limit expanded to 25 to match Streamlit limits
     if not df_pre.empty: send_telegram_message(format_telegram_text(df_pre.head(25), pd.DataFrame(), f"💥 Soon to Breakout — {sess_title}"))
     if not df_intra.empty or not df_index.empty: send_telegram_message(format_telegram_text(df_intra.head(25), df_index, f"⚡ Intraday Report — {sess_title}"))
     if not df_btst.empty: send_telegram_message(format_telegram_text(df_btst.head(25), pd.DataFrame(), f"🌙 BTST Report — {sess_title}"))
