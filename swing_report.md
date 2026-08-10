@@ -1,4 +1,4 @@
-# 📈 Swing Trade Retest Report (Top 25) — 10 Aug 2026 | 02:15 PM (Manual Override)
+# 📈 Swing Trade Retest Report (Top 25) — 10 Aug 2026 | 02:30 PM (BTST/Afternoon)
 
 > **System:** 1200+ Mega Universe + Pre-Breakout Coils + RSI Divergence Tracking
 
@@ -6,6 +6,7 @@
 
 | # | Stock | Setup Type | Price | Score /10 | Qty | Risk (₹) | Eq SL | Eq Tgts | Option | Prem | Prem Tgts |
 | :--- | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| 1 | **PARAS (↑)** | 🔄 Breakout Retest (📉 +RSI Div) | ₹1267.5 | 🔥 10/10 | **78** | ₹5241.6 | ₹1200.3 | 1325.7/1370.3/1428.5 | **N/A (Cash)** | ₹- | -/-/- |
-| 2 | **SCI (↑)** | 🔄 Breakout Retest | ₹297.15 | 🔥 9/10 | **336** | ₹4082.4 | ₹285.0 | 312.6/323.8/339.2 | **N/A (Cash)** | ₹- | -/-/- |
-| 3 | **TATAINVEST (↑)** | 🔄 Breakout Retest | ₹688.0 | 🔥 9/10 | **145** | ₹2885.5 | ₹668.1 | 712.2/729.8/754.0 | **N/A (Cash)** | ₹- | -/-/- |
+| 1 | **SCI (↑)** | 🔄 Breakout Retest | ₹297.3 | 🔥 10/10 | **336** | ₹4099.2 | ₹285.1 | 312.8/323.9/339.4 | **N/A (Cash)** | ₹- | -/-/- |
+| 2 | **ASIANPAINT (↑)** | 🔄 Breakout Retest | ₹2756.4 | 🔥 10/10 | **36** | ₹2473.2 | ₹2687.7 | 2833.6/2890.0/2967.1 | **2750 CE** | ₹63.14 | 113.6/159.0/228.8 |
+| 3 | **PARAS (↑)** | 🔄 Breakout Retest (📉 +RSI Div) | ₹1266.0 | 🔥 10/10 | **78** | ₹5241.6 | ₹1198.8 | 1324.2/1368.8/1427.0 | **N/A (Cash)** | ₹- | -/-/- |
+| 4 | **AUBANK (↑)** | 🔄 Breakout Retest | ₹1067.7 | 🔥 9/10 | **93** | ₹3022.5 | ₹1035.2 | 1106.6/1134.8/1173.7 | **1060 CE** | ₹26.69 | 54.7/79.6/117.1 |

@@ -1,19 +1,13 @@
-# ⚡ Intraday Report (Top 25) — 10 Aug 2026 | 02:15 PM (Manual Override)
+# ⚡ Intraday Report (Top 25) — 10 Aug 2026 | 02:30 PM (BTST/Afternoon)
 
 > **System:** 1200+ Mega Universe + Pre-Breakout Coils + RSI Divergence Tracking
-
-## 👑 Index Options (MTF Intraday Scalps)
-
-| # | Index Direction | Price | Score | Eq SL | Eq T1/T2/T3 | Option | Prem | Prem T1/T2/T3 |
-| :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| 1 | **NIFTY 50 Bullish (Call)** | ₹24589.65 | 🔥 10/10 | ₹24554.6 | 24624.7/24659.7/24694.7 | **24600 CE** | ₹126.41 | 145.0/165.1/186.7 |
-| 2 | **BANK NIFTY Bearish (Put)** | ₹57638.2 | 🔥 10/10 | ₹57758.1 | 57518.3/57398.3/57278.4 | **57600 PE** | ₹209.24 | 268.9/338.2/416.6 |
-
----
 
 ## 📊 Validated Setups (Equities & Options)
 
 | # | Stock | Setup Type | Price | Score /10 | Qty | Risk (₹) | Eq SL | Eq Tgts | Option | Prem | Prem Tgts |
 | :--- | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| 1 | **BECTORFOOD (↑)** | 🚀 Volume Breakout (⭐ 2x Size) | ₹234.98 | 🔥 9/10 | **425** | ₹3349.0 | ₹227.1 | 252.6/265.0/282.6 | **N/A (Cash)** | ₹- | -/-/- |
-| 2 | **KNRCON (↑)** | 🚀 Volume Breakout (⭐ 2x Size) | ₹143.45 | 🔥 8/10 | **697** | ₹2474.35 | ₹139.9 | 150.5/155.5/162.6 | **N/A (Cash)** | ₹- | -/-/- |
+| 1 | **PTC (↑)** | 🚀 Volume Breakout (⭐ 2x Size) | ₹177.9 | 🔥 9/10 | **562** | ₹2191.8 | ₹174.0 | 186.7/192.9/201.6 | **N/A (Cash)** | ₹- | -/-/- |
+| 2 | **CASTROLIND (↑)** | 🚀 Volume Breakout (⭐ 2x Size) | ₹193.35 | 🔥 9/10 | **517** | ₹956.45 | ₹191.5 | 196.5/198.8/202.0 | **N/A (Cash)** | ₹- | -/-/- |
+| 3 | **BLS (↑)** | 🚀 Volume Breakout (⭐ 2x Size) | ₹260.28 | 🔥 9/10 | **384** | ₹2526.72 | ₹253.7 | 271.3/279.4/290.4 | **N/A (Cash)** | ₹- | -/-/- |
+| 4 | **VGUARD (↑)** | 🚀 Volume Breakout (⭐ 2x Size) | ₹321.95 | 🔥 9/10 | **310** | ₹2774.5 | ₹313.0 | 335.9/346.3/360.2 | **N/A (Cash)** | ₹- | -/-/- |
+| 5 | **BECTORFOOD (↑)** | 🚀 Volume Breakout (⭐ 2x Size) | ₹234.39 | 🔥 9/10 | **426** | ₹3361.14 | ₹226.5 | 252.0/264.4/282.0 | **N/A (Cash)** | ₹- | -/-/- |
