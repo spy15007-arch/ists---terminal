@@ -30,7 +30,7 @@ if page == "Dashboard":
     col1, col2, col3, col4 = st.columns(4)
     col1.metric("Market Status", "15M LIVE TRACKING", "NSE Live Feed")
     col2.metric("Scan Universe", "1200+ Equities", "Liquidity Protected")
-    col3.metric("Math Engine", "Retest + RSI Div", "Smart DTE Options")
+    col3.metric("Math Engine", "200 MA Retest + Div", "Smart DTE Options")
     col4.metric("Strategy", "Scaled ATR Vectors", "Scalp/Swing/Pre")
 
 elif page == "Scan Market":
