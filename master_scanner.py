@@ -169,7 +169,6 @@ def check_bullish_divergence(closes, rsi):
         p1, p2 = w1_c.min(), w2_c.min()
         r1, r2 = rsi.loc[p1_idx], rsi.loc[p2_idx]
         
-        # Regular (Reversal) or Hidden (Continuation) Divergence
         if (p2 < p1 and r2 > r1) or (p2 > p1 and r2 < r1):
             return True
     except: pass
@@ -265,11 +264,11 @@ def format_telegram_text(df_stocks, df_index, title):
     if not df_index.empty:
         msg += "👑 *INDEX ALERTS (MTF)*\n"
         for _, r in df_index.iterrows():
-            msg += f"• {r['Stock']} @ ₹{r['Entry']}\n  {r['Opt']} @ ₹{r['Prem']}\n  Opt Targets: {r['PT1']}/{r['PT2']}/{r['PT3']}\n\n"
+            msg += f"• *{r['Stock']}* @ ₹{r['Entry']}\n  {r['Opt']} @ ₹{r['Prem']}\n  Opt Targets: {r['PT1']}/{r['PT2']}/{r['PT3']}\n\n"
     if not df_stocks.empty:
         msg += "📊 *TOP POSITION SIZED SETUPS*\n"
         for idx, r in df_stocks.head(15).reset_index().iterrows():
-            msg += f"{idx+1}. {r['Stock']} | *{r['Tag']}* @ ₹{r['Entry']}\n   🏆 *Score:* {r['Score']}/10 | 🛒 *Qty:* {r['Qty']} | 📉 *Risk:* ₹{r['Risk']}\n   Eq SL: ₹{r['EqSL']} | Eq Tgts: {r['EqT1']}/{r['EqT2']}/{r['EqT3']}\n"
+            msg += f"{idx+1}. *{r['Stock']}* | *{r['Tag']}* @ ₹{r['Entry']}\n   🏆 *Score:* {r['Score']}/10 | 🛒 *Qty:* {r['Qty']} | 📉 *Risk:* ₹{r['Risk']}\n   Eq SL: ₹{r['EqSL']} | Eq Tgts: {r['EqT1']}/{r['EqT2']}/{r['EqT3']}\n"
             if "N/A" not in str(r['Opt']): msg += f"   Option: {r['Opt']} @ ₹{r['Prem']}\n   Opt Tgts: {r['PT1']}/{r['PT2']}/{r['PT3']}\n"
             else: msg += f"   Option: N/A (Cash Equity Only)\n"
             msg += "\n"
