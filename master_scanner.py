@@ -278,7 +278,11 @@ def generate_tabular_markdown(df_stocks, df_index, title, filename, include_inde
             f.write("| :--- | :--- | :--- | :---: | :---: | :---: | :---: | :--- |\n")
             for idx, r in df_stocks.reset_index().iterrows():
                 badge = f"🔥 {r['Score']}/10"
-                opt_info = f"**{r['Opt']}**<br>Buy Above: ₹{r['Prem']}<br>TGT: {r['PT1']}/{r['PT2']}/{r['PT3']}/{r['PT4']}/{r['PT5']}+<br>SL: ₹{r['OptSL']}" if str(r['Prem']) != "-" else "Cash Equity Only"
+                # Safe fallback so targets are NEVER blank
+                if str(r['Prem']) != "-" and str(r['PT1']) != "-":
+                    opt_info = f"**{r['Opt']}**<br>Buy Above: ₹{r['Prem']}<br>TGT: {r['PT1']}/{r['PT2']}/{r['PT3']}/{r['PT4']}/{r['PT5']}+<br>SL: ₹{r['OptSL']}"
+                else:
+                    opt_info = f"Cash Equity Only<br>Eq Tgts: ₹{r['EqT1']}/₹{r['EqT2']}/₹{r['EqT3']}"
                 f.write(f"| {idx+1} | **{r['Stock']}** | {r['Tag']} | ₹{r['Entry']} | {badge} | {r['Qty']} | ₹{r['Risk']} | {opt_info} |\n")
 
 def format_telegram_text(df_stocks, df_index, title):
@@ -300,17 +304,19 @@ def format_telegram_text(df_stocks, df_index, title):
             msg += f"{idx+1}. *{stock_clean}* | *{r['Tag']}* (Score: *{r['Score']}/10*)\n"
             msg += f"   🛒 Qty: {r['Qty']} | 📉 Risk: ₹{r['Risk']}\n"
             msg += f"   Eq Entry: ₹{r['Entry']} | SL: ₹{r['EqSL']}\n"
-            if "N/A" not in str(r['Opt']) and str(r['Prem']) != "-":
+            if "N/A" not in str(r['Opt']) and str(r['Prem']) != "-" and str(r['PT1']) != "-":
                 msg += f"   🔹 *{stock_clean} {r['Opt']}*\n"
                 msg += f"      Buy Above {r['Prem']}\n"
                 msg += f"      TGT // {r['PT1']}/{r['PT2']}/{r['PT3']}/{r['PT4']}/{r['PT5']}+\n"
                 msg += f"      SL {r['OptSL']}\n"
+            else:
+                msg += f"   🔹 *Equity Targets:* ₹{r['EqT1']} / ₹{r['EqT2']} / ₹{r['EqT3']}\n"
             msg += "\n"
     else: msg += "No setups cleared the institutional gates for this scan."
     return msg
 
 def run():
-    print("🚀 Starting Automated Master Quant Scanner (200 MA Retest & Pro Signals)...")
+    print("🚀 Starting Automated Master Quant Scanner (Robust Target Fallback)...")
     sess_title, sess_type = get_session_info()
     now_ist = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=5, minutes=30)
     
@@ -321,7 +327,6 @@ def run():
     
     df_index = get_index_options_ideas() if sess_type in ["Intraday", "Manual"] else pd.DataFrame()
     
-    # 1-year history needed for accurate 200 MA calculation
     nifty_df = yf.download("^NSEI", period="1y", interval="1d", progress=False)
     nifty_return_20d = 0.0
     if not nifty_df.empty:
