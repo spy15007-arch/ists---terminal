@@ -1,4 +1,4 @@
-# ⚡ Intraday Report (Top 25) — 10 Aug 2026 | 11:07 PM (Manual Override)
+# ⚡ Intraday Report (Top 25) — 11 Aug 2026 | 07:00 AM (Manual Override)
 
 > **System:** 1200+ Mega Universe + 200 MA Retest Tracking
 
@@ -6,8 +6,8 @@
 
 | # | Index Signal | Price | Option | Buy Above | TGT // T1/T2/T3/T4/T5+ | SL |
 | :--- | :--- | :---: | :---: | :---: | :---: | :---: |
-| 1 | **NIFTY 50 Bullish (Call)** | ₹24583.8 | **24600 CE** | ₹123.46 | 136.2/149.6/163.8/178.8/194.5+ | ₹111.6 |
-| 2 | **BANK NIFTY Bullish (Call)** | ₹57686.95 | **57700 CE** | ₹243.04 | 285.6/332.4/383.2/437.8/496.1+ | ₹204.7 |
+| 1 | **NIFTY 50 Bullish (Call)** | ₹24583.8 | **24600 CE** | ₹98.3 | 110.9/124.4/138.8/154.2/170.4+ | ₹86.7 |
+| 2 | **BANK NIFTY Bullish (Call)** | ₹57686.95 | **57700 CE** | ₹167.65 | 210.4/259.0/313.2/372.5/436.3+ | ₹130.8 |
 
 ---
 
