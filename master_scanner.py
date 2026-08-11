@@ -283,31 +283,34 @@ def get_index_options_ideas():
 def generate_tabular_markdown(df_stocks, df_index, title, filename, include_index=False):
     with open(filename, "w", encoding="utf-8") as f:
         f.write(f"# {title}\n\n")
-        f.write("> **System:** 1200+ Mega Universe + Expanded Volatility Targets\n\n")
+        f.write("> **System:** 1200+ Mega Universe + Clean Cash vs F&O Separation\n\n")
         if df_stocks.empty and df_index.empty:
             f.write("*Market conditions did not trigger any quantitative setups meeting institutional gates for this timeframe.*\n")
             return
         if include_index and not df_index.empty:
             f.write("## 👑 Index Options (15M Scalps)\n\n")
-            f.write("| # | Index Signal | Price | Option | Buy Above | TGT // T1/T2/T3/T4/T5+ | SL |\n")
+            f.write("| # | Index Signal | Price | Option | Buy Above | Targets | SL |\n")
             f.write("| :--- | :--- | :---: | :---: | :---: | :---: | :---: |\n")
             for idx, r in df_index.reset_index().iterrows():
-                tgts = f"{r['PT1']}/{r['PT2']}/{r['PT3']}/{r['PT4']}/{r['PT5']}+"
+                tgts = f"T1: ₹{r['PT1']}<br>T2: ₹{r['PT2']}<br>T3: ₹{r['PT3']}<br>T4: ₹{r['PT4']}<br>T5: ₹{r['PT5']}+"
                 f.write(f"| {idx+1} | **{r['Stock']}** | ₹{r['Entry']} | **{r['Opt']}** | ₹{r['Prem']} | {tgts} | ₹{r['OptSL']} |\n")
             f.write("\n---\n\n")
         if not df_stocks.empty:
             f.write("## 📊 Validated Setups & Options\n\n")
-            f.write("| # | Stock | Setup Type | Price | Score | Qty | Risk | Option Signal (Buy/TGT/SL) |\n")
+            f.write("| # | Stock | Setup Type | Price | Score | Qty | Risk | Execution Strategy & Targets |\n")
             f.write("| :--- | :--- | :--- | :---: | :---: | :---: | :---: | :--- |\n")
             for idx, r in df_stocks.reset_index().iterrows():
                 badge = f"🔥 {r['Score']}/10"
                 opt_str = str(r['Opt'])
                 prem_str = str(r['Prem'])
-                if "N/A" not in opt_str and prem_str != "-" and prem_str != "nan":
-                    opt_info = f"**{r['Opt']}**<br>Buy Above: ₹{r['Prem']}<br>TGT: {r['PT1']}/{r['PT2']}/{r['PT3']}/{r['PT4']}/{r['PT5']}+<br>SL: ₹{r['OptSL']}"
+                
+                # Strict check: If stock is in F&O, show option signals. If Cash, show ONLY equity targets.
+                if "N/A (Cash)" not in opt_str and "N/A" not in opt_str and prem_str != "-" and prem_str != "nan":
+                    strat_info = f"<b>Option Strategy:</b> {r['Opt']}<br><b>Buy Above:</b> ₹{r['Prem']}<br><b>Option Targets:</b><br>• T1: ₹{r['PT1']}<br>• T2: ₹{r['PT2']}<br>• T3: ₹{r['PT3']}<br>• T4: ₹{r['PT4']}<br>• T5: ₹{r['PT5']}+<br><b>Option SL:</b> ₹{r['OptSL']}"
                 else:
-                    opt_info = f"Cash Equity Only<br><b>Equity Targets:</b> ₹{r['EqT1']} / ₹{r['EqT2']} / ₹{r['EqT3']}"
-                f.write(f"| {idx+1} | **{r['Stock']}** | {r['Tag']} | ₹{r['Entry']} | {badge} | {r['Qty']} | ₹{r['Risk']} | {opt_info} |\n")
+                    strat_info = f"<b>Mode:</b> Cash Equity Only<br><b>Equity Targets:</b><br>• T1: ₹{r['EqT1']}<br>• T2: ₹{r['EqT2']}<br>• T3: ₹{r['EqT3']}<br>• T4: ₹{r['EqT4']}<br>• T5: ₹{r['EqT5']}"
+                
+                f.write(f"| {idx+1} | **{r['Stock']}** | {r['Tag']} | ₹{r['Entry']} | {badge} | {r['Qty']} | ₹{r['Risk']} | {strat_info} |\n")
 
 def format_telegram_text(df_stocks, df_index, title):
     msg = f"🚨 *{title}* 🚨\n\n"
@@ -318,7 +321,7 @@ def format_telegram_text(df_stocks, df_index, title):
             ce_pe = r['Opt']
             msg += f"*{idx_name} {ce_pe}*\n"
             msg += f"Buy Above {r['Prem']}\n"
-            msg += f"TGT // {r['PT1']}/{r['PT2']}/{r['PT3']}/{r['PT4']}/{r['PT5']}+\n"
+            msg += f"TGT // T1:{r['PT1']} | T2:{r['PT2']} | T3:{r['PT3']} | T4:{r['PT4']} | T5:{r['PT5']}+\n"
             msg += f"SL {r['OptSL']}\n\n"
             
     if not df_stocks.empty:
@@ -334,16 +337,16 @@ def format_telegram_text(df_stocks, df_index, title):
             if "N/A" not in opt_str and prem_str != "-" and prem_str != "nan":
                 msg += f"   🔹 *{stock_clean} {r['Opt']}*\n"
                 msg += f"      Buy Above {r['Prem']}\n"
-                msg += f"      TGT // {r['PT1']}/{r['PT2']}/{r['PT3']}/{r['PT4']}/{r['PT5']}+\n"
+                msg += f"      Targets: T1:{r['PT1']} | T2:{r['PT2']} | T3:{r['PT3']} | T4:{r['PT4']} | T5:{r['PT5']}+\n"
                 msg += f"      SL {r['OptSL']}\n"
             else:
-                msg += f"   🎯 *Eq Targets:* ₹{r['EqT1']} / ₹{r['EqT2']} / ₹{r['EqT3']}\n"
+                msg += f"   🎯 *Eq Targets:* T1:{r['EqT1']} | T2:{r['EqT2']} | T3:{r['EqT3']} | T4:{r['EqT4']} | T5:{r['EqT5']}\n"
             msg += "\n"
     else: msg += "No setups cleared the institutional gates for this scan."
     return msg
 
 def run():
-    print("🚀 Starting Automated Master Quant Scanner (Expanded Volatility Targets)...")
+    print("🚀 Starting Automated Master Quant Scanner (Clean Cash vs F&O Separation)...")
     sess_title, sess_type = get_session_info()
     now_ist = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=5, minutes=30)
     
