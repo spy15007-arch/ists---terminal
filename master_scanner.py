@@ -131,17 +131,40 @@ def get_index_dte(ticker):
 def calculate_dynamic_targets(close_p, atr, df_h, df_l, direction="Bullish", is_squeeze=False):
     recent_high = float(df_h.tail(20).max())
     recent_low = float(df_l.tail(20).min())
-    diff = max(1.0, recent_high - recent_low)
+    diff = max(2.0, recent_high - recent_low)
     
     if direction == "Bullish":
-        f_t1, f_t2, f_t3, f_t4, f_t5 = close_p + diff * 0.382, close_p + diff * 0.618, close_p + diff * 1.000, close_p + diff * 1.618, close_p + diff * 2.618
-        a_t1, a_t2, a_t3, a_t4, a_t5 = close_p + 0.8 * atr, close_p + 1.6 * atr, close_p + 2.4 * atr, close_p + 3.2 * atr, close_p + 4.0 * atr
+        f_t1 = close_p + diff * 0.618
+        f_t2 = close_p + diff * 1.000
+        f_t3 = close_p + diff * 1.618
+        f_t4 = close_p + diff * 2.618
+        f_t5 = close_p + diff * 4.236
+        
+        a_t1 = close_p + 1.5 * atr
+        a_t2 = close_p + 3.0 * atr
+        a_t3 = close_p + 5.0 * atr
+        a_t4 = close_p + 7.5 * atr
+        a_t5 = close_p + 10.0 * atr
     else:
-        f_t1, f_t2, f_t3, f_t4, f_t5 = close_p - diff * 0.382, close_p - diff * 0.618, close_p - diff * 1.000, close_p - diff * 1.618, close_p - diff * 2.618
-        a_t1, a_t2, a_t3, a_t4, a_t5 = close_p - 0.8 * atr, close_p - 1.6 * atr, close_p - 2.4 * atr, close_p - 3.2 * atr, close_p - 4.0 * atr
+        f_t1 = close_p - diff * 0.618
+        f_t2 = close_p - diff * 1.000
+        f_t3 = close_p - diff * 1.618
+        f_t4 = close_p - diff * 2.618
+        f_t5 = close_p - diff * 4.236
+        
+        a_t1 = close_p - 1.5 * atr
+        a_t2 = close_p - 3.0 * atr
+        a_t3 = close_p - 5.0 * atr
+        a_t4 = close_p - 7.5 * atr
+        a_t5 = close_p - 10.0 * atr
 
-    if is_squeeze: return round(f_t1, 1), round(f_t2, 1), round(f_t3, 1), round(f_t4, 1), round(f_t5, 1)
-    else: return round((a_t1+f_t1)/2, 1), round((a_t2+f_t2)/2, 1), round((a_t3+f_t3)/2, 1), round((a_t4+f_t4)/2, 1), round((a_t5+f_t5)/2, 1)
+    return (
+        round((a_t1 + f_t1) / 2, 1), 
+        round((a_t2 + f_t2) / 2, 1), 
+        round((a_t3 + f_t3) / 2, 1), 
+        round((a_t4 + f_t4) / 2, 1), 
+        round((a_t5 + f_t5) / 2, 1)
+    )
 
 def generate_quant_option(symbol, price, t1, t2, t3, t4, t5, eq_sl, df_h, df_l, df_c, direction="Bullish"):
     if "^NSE" in symbol or symbol in ["NIFTY", "BANKNIFTY"]:
@@ -237,12 +260,12 @@ def get_index_options_ideas():
             
             if close_p > ema_20_15m:
                 direction = "Bullish"
-                t1, t2, t3, t4, t5 = round(close_p + 1.0*atr_15m, 1), round(close_p + 2.0*atr_15m, 1), round(close_p + 3.0*atr_15m, 1), round(close_p + 4.0*atr_15m, 1), round(close_p + 5.0*atr_15m, 1)
-                eq_sl = round(close_p - 1.0 * atr_15m, 1)
+                t1, t2, t3, t4, t5 = round(close_p + 1.5*atr_15m, 1), round(close_p + 3.0*atr_15m, 1), round(close_p + 5.0*atr_15m, 1), round(close_p + 7.5*atr_15m, 1), round(close_p + 10.0*atr_15m, 1)
+                eq_sl = round(close_p - 1.5 * atr_15m, 1)
             else:
                 direction = "Bearish"
-                t1, t2, t3, t4, t5 = round(close_p - 1.0*atr_15m, 1), round(close_p - 2.0*atr_15m, 1), round(close_p - 3.0*atr_15m, 1), round(close_p - 4.0*atr_15m, 1), round(close_p - 5.0*atr_15m, 1)
-                eq_sl = round(close_p + 1.0 * atr_15m, 1)
+                t1, t2, t3, t4, t5 = round(close_p - 1.5*atr_15m, 1), round(close_p - 3.0*atr_15m, 1), round(close_p - 5.0*atr_15m, 1), round(close_p - 7.5*atr_15m, 1), round(close_p - 10.0*atr_15m, 1)
+                eq_sl = round(close_p + 1.5 * atr_15m, 1)
             
             opt, prem, pt1, pt2, pt3, pt4, pt5, opt_sl = generate_quant_option(ticker, close_p, t1, t2, t3, t4, t5, eq_sl, df_h, df_l, df_c, direction)
             tv_sym = "NIFTY" if name == "NIFTY 50" else "BANKNIFTY"
@@ -260,7 +283,7 @@ def get_index_options_ideas():
 def generate_tabular_markdown(df_stocks, df_index, title, filename, include_index=False):
     with open(filename, "w", encoding="utf-8") as f:
         f.write(f"# {title}\n\n")
-        f.write("> **System:** 1200+ Mega Universe + 200 MA Retest Tracking\n\n")
+        f.write("> **System:** 1200+ Mega Universe + Expanded Volatility Targets\n\n")
         if df_stocks.empty and df_index.empty:
             f.write("*Market conditions did not trigger any quantitative setups meeting institutional gates for this timeframe.*\n")
             return
@@ -278,11 +301,12 @@ def generate_tabular_markdown(df_stocks, df_index, title, filename, include_inde
             f.write("| :--- | :--- | :--- | :---: | :---: | :---: | :---: | :--- |\n")
             for idx, r in df_stocks.reset_index().iterrows():
                 badge = f"🔥 {r['Score']}/10"
-                # Safe fallback so targets are NEVER blank
-                if str(r['Prem']) != "-" and str(r['PT1']) != "-":
+                opt_str = str(r['Opt'])
+                prem_str = str(r['Prem'])
+                if "N/A" not in opt_str and prem_str != "-" and prem_str != "nan":
                     opt_info = f"**{r['Opt']}**<br>Buy Above: ₹{r['Prem']}<br>TGT: {r['PT1']}/{r['PT2']}/{r['PT3']}/{r['PT4']}/{r['PT5']}+<br>SL: ₹{r['OptSL']}"
                 else:
-                    opt_info = f"Cash Equity Only<br>Eq Tgts: ₹{r['EqT1']}/₹{r['EqT2']}/₹{r['EqT3']}"
+                    opt_info = f"Cash Equity Only<br><b>Equity Targets:</b> ₹{r['EqT1']} / ₹{r['EqT2']} / ₹{r['EqT3']}"
                 f.write(f"| {idx+1} | **{r['Stock']}** | {r['Tag']} | ₹{r['Entry']} | {badge} | {r['Qty']} | ₹{r['Risk']} | {opt_info} |\n")
 
 def format_telegram_text(df_stocks, df_index, title):
@@ -304,19 +328,22 @@ def format_telegram_text(df_stocks, df_index, title):
             msg += f"{idx+1}. *{stock_clean}* | *{r['Tag']}* (Score: *{r['Score']}/10*)\n"
             msg += f"   🛒 Qty: {r['Qty']} | 📉 Risk: ₹{r['Risk']}\n"
             msg += f"   Eq Entry: ₹{r['Entry']} | SL: ₹{r['EqSL']}\n"
-            if "N/A" not in str(r['Opt']) and str(r['Prem']) != "-" and str(r['PT1']) != "-":
+            
+            opt_str = str(r['Opt'])
+            prem_str = str(r['Prem'])
+            if "N/A" not in opt_str and prem_str != "-" and prem_str != "nan":
                 msg += f"   🔹 *{stock_clean} {r['Opt']}*\n"
                 msg += f"      Buy Above {r['Prem']}\n"
                 msg += f"      TGT // {r['PT1']}/{r['PT2']}/{r['PT3']}/{r['PT4']}/{r['PT5']}+\n"
                 msg += f"      SL {r['OptSL']}\n"
             else:
-                msg += f"   🔹 *Equity Targets:* ₹{r['EqT1']} / ₹{r['EqT2']} / ₹{r['EqT3']}\n"
+                msg += f"   🎯 *Eq Targets:* ₹{r['EqT1']} / ₹{r['EqT2']} / ₹{r['EqT3']}\n"
             msg += "\n"
     else: msg += "No setups cleared the institutional gates for this scan."
     return msg
 
 def run():
-    print("🚀 Starting Automated Master Quant Scanner (Robust Target Fallback)...")
+    print("🚀 Starting Automated Master Quant Scanner (Expanded Volatility Targets)...")
     sess_title, sess_type = get_session_info()
     now_ist = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=5, minutes=30)
     
