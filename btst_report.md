@@ -1,9 +1,9 @@
-# 🌙 BTST Report (Top 25) — 11 Aug 2026 | 12:10 PM (Intraday)
+# 🌙 BTST Report (Top 25) — 11 Aug 2026 | 01:00 PM (Manual Override)
 
-> **System:** 1200+ Mega Universe + 200 MA Retest Tracking
+> **System:** 1200+ Mega Universe + Expanded Volatility Targets
 
 ## 📊 Validated Setups & Options
 
 | # | Stock | Setup Type | Price | Score | Qty | Risk | Option Signal (Buy/TGT/SL) |
 | :--- | :--- | :--- | :---: | :---: | :---: | :---: | :--- |
-| 1 | **DIVISLAB (↑)** | 🔥 Squeeze Blast (⭐ 2x Size) | ₹8485.0 | 🔥 9/10 | 11 | ₹2052.6 | **8500 CE**<br>Buy Above: ₹202.87<br>TGT: 586.9/893.3/1424.7/2298.2/3712.7+<br>SL: ₹120.0 |
+| 1 | **APLAPOLLO (↑)** | 🔥 Squeeze Blast (⭐ 2x Size) | ₹2011.2 | 🔥 8/10 | 49 | ₹2352.0 | Cash Equity Only<br><b>Equity Targets:</b> ₹2120.7 / ₹2202.1 / ₹2323.6 |
