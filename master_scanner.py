@@ -133,30 +133,31 @@ def calculate_dynamic_targets(close_p, atr, df_h, df_l, direction="Bullish", is_
     recent_low = float(df_l.tail(20).min())
     diff = max(2.0, recent_high - recent_low)
     
+    # Scaled realistic targets (shorter structural steps for cleaner, highly achievable scalps)
     if direction == "Bullish":
-        f_t1 = close_p + diff * 0.618
-        f_t2 = close_p + diff * 1.000
-        f_t3 = close_p + diff * 1.618
-        f_t4 = close_p + diff * 2.618
-        f_t5 = close_p + diff * 4.236
+        f_t1 = close_p + diff * 0.236
+        f_t2 = close_p + diff * 0.382
+        f_t3 = close_p + diff * 0.618
+        f_t4 = close_p + diff * 1.000
+        f_t5 = close_p + diff * 1.618
         
-        a_t1 = close_p + 1.5 * atr
-        a_t2 = close_p + 3.0 * atr
-        a_t3 = close_p + 5.0 * atr
-        a_t4 = close_p + 7.5 * atr
-        a_t5 = close_p + 10.0 * atr
+        a_t1 = close_p + 0.8 * atr
+        a_t2 = close_p + 1.6 * atr
+        a_t3 = close_p + 2.4 * atr
+        a_t4 = close_p + 3.2 * atr
+        a_t5 = close_p + 4.0 * atr
     else:
-        f_t1 = close_p - diff * 0.618
-        f_t2 = close_p - diff * 1.000
-        f_t3 = close_p - diff * 1.618
-        f_t4 = close_p - diff * 2.618
-        f_t5 = close_p - diff * 4.236
+        f_t1 = close_p - diff * 0.236
+        f_t2 = close_p - diff * 0.382
+        f_t3 = close_p - diff * 0.618
+        f_t4 = close_p - diff * 1.000
+        f_t5 = close_p - diff * 1.618
         
-        a_t1 = close_p - 1.5 * atr
-        a_t2 = close_p - 3.0 * atr
-        a_t3 = close_p - 5.0 * atr
-        a_t4 = close_p - 7.5 * atr
-        a_t5 = close_p - 10.0 * atr
+        a_t1 = close_p - 0.8 * atr
+        a_t2 = close_p - 1.6 * atr
+        a_t3 = close_p - 2.4 * atr
+        a_t4 = close_p - 3.2 * atr
+        a_t5 = close_p - 4.0 * atr
 
     return (
         round((a_t1 + f_t1) / 2, 1), 
@@ -260,12 +261,12 @@ def get_index_options_ideas():
             
             if close_p > ema_20_15m:
                 direction = "Bullish"
-                t1, t2, t3, t4, t5 = round(close_p + 1.5*atr_15m, 1), round(close_p + 3.0*atr_15m, 1), round(close_p + 5.0*atr_15m, 1), round(close_p + 7.5*atr_15m, 1), round(close_p + 10.0*atr_15m, 1)
-                eq_sl = round(close_p - 1.5 * atr_15m, 1)
+                t1, t2, t3, t4, t5 = round(close_p + 0.8*atr_15m, 1), round(close_p + 1.6*atr_15m, 1), round(close_p + 2.4*atr_15m, 1), round(close_p + 3.2*atr_15m, 1), round(close_p + 4.0*atr_15m, 1)
+                eq_sl = round(close_p - 1.0 * atr_15m, 1)
             else:
                 direction = "Bearish"
-                t1, t2, t3, t4, t5 = round(close_p - 1.5*atr_15m, 1), round(close_p - 3.0*atr_15m, 1), round(close_p - 5.0*atr_15m, 1), round(close_p - 7.5*atr_15m, 1), round(close_p - 10.0*atr_15m, 1)
-                eq_sl = round(close_p + 1.5 * atr_15m, 1)
+                t1, t2, t3, t4, t5 = round(close_p - 0.8*atr_15m, 1), round(close_p - 1.6*atr_15m, 1), round(close_p - 2.4*atr_15m, 1), round(close_p - 3.2*atr_15m, 1), round(close_p - 4.0*atr_15m, 1)
+                eq_sl = round(close_p + 1.0 * atr_15m, 1)
             
             opt, prem, pt1, pt2, pt3, pt4, pt5, opt_sl = generate_quant_option(ticker, close_p, t1, t2, t3, t4, t5, eq_sl, df_h, df_l, df_c, direction)
             tv_sym = "NIFTY" if name == "NIFTY 50" else "BANKNIFTY"
@@ -283,7 +284,7 @@ def get_index_options_ideas():
 def generate_tabular_markdown(df_stocks, df_index, title, filename, include_index=False):
     with open(filename, "w", encoding="utf-8") as f:
         f.write(f"# {title}\n\n")
-        f.write("> **System:** 1200+ Mega Universe + Clean Cash vs F&O Separation\n\n")
+        f.write("> **System:** 1200+ Mega Universe + Dual Equity & Option Target Display\n\n")
         if df_stocks.empty and df_index.empty:
             f.write("*Market conditions did not trigger any quantitative setups meeting institutional gates for this timeframe.*\n")
             return
@@ -304,11 +305,12 @@ def generate_tabular_markdown(df_stocks, df_index, title, filename, include_inde
                 opt_str = str(r['Opt'])
                 prem_str = str(r['Prem'])
                 
-                # Strict check: If stock is in F&O, show option signals. If Cash, show ONLY equity targets.
+                # Show BOTH Equity Targets AND Option Targets for F&O stocks so you can compare or trade either side safely
+                eq_block = f"<b>Equity Targets:</b> T1:₹{r['EqT1']} | T2:₹{r['EqT2']} | T3:₹{r['EqT3']}"
                 if "N/A (Cash)" not in opt_str and "N/A" not in opt_str and prem_str != "-" and prem_str != "nan":
-                    strat_info = f"<b>Option Strategy:</b> {r['Opt']}<br><b>Buy Above:</b> ₹{r['Prem']}<br><b>Option Targets:</b><br>• T1: ₹{r['PT1']}<br>• T2: ₹{r['PT2']}<br>• T3: ₹{r['PT3']}<br>• T4: ₹{r['PT4']}<br>• T5: ₹{r['PT5']}+<br><b>Option SL:</b> ₹{r['OptSL']}"
+                    strat_info = f"<b>Option:</b> {r['Opt']} (Buy > ₹{r['Prem']})<br><b>Opt Targets:</b> T1:₹{r['PT1']} | T2:₹{r['PT2']} | T3:₹{r['PT3']}<br>{eq_block}"
                 else:
-                    strat_info = f"<b>Mode:</b> Cash Equity Only<br><b>Equity Targets:</b><br>• T1: ₹{r['EqT1']}<br>• T2: ₹{r['EqT2']}<br>• T3: ₹{r['EqT3']}<br>• T4: ₹{r['EqT4']}<br>• T5: ₹{r['EqT5']}"
+                    strat_info = f"<b>Mode:</b> Cash Equity Only<br>{eq_block}"
                 
                 f.write(f"| {idx+1} | **{r['Stock']}** | {r['Tag']} | ₹{r['Entry']} | {badge} | {r['Qty']} | ₹{r['Risk']} | {strat_info} |\n")
 
@@ -321,32 +323,28 @@ def format_telegram_text(df_stocks, df_index, title):
             ce_pe = r['Opt']
             msg += f"*{idx_name} {ce_pe}*\n"
             msg += f"Buy Above {r['Prem']}\n"
-            msg += f"TGT // T1:{r['PT1']} | T2:{r['PT2']} | T3:{r['PT3']} | T4:{r['PT4']} | T5:{r['PT5']}+\n"
+            msg += f"TGT // T1:{r['PT1']} | T2:{r['PT2']} | T3:{r['PT3']}\n"
             msg += f"SL {r['OptSL']}\n\n"
             
     if not df_stocks.empty:
-        msg += "📊 *TOP POSITION SIZED SETUPS & OPTIONS*\n"
+        msg += "📊 *TOP POSITION SIZED SETUPS*\n"
         for idx, r in df_stocks.head(25).reset_index().iterrows():
             stock_clean = r['Stock'].replace(" (↑)", "")
             msg += f"{idx+1}. *{stock_clean}* | *{r['Tag']}* (Score: *{r['Score']}/10*)\n"
             msg += f"   🛒 Qty: {r['Qty']} | 📉 Risk: ₹{r['Risk']}\n"
-            msg += f"   Eq Entry: ₹{r['Entry']} | SL: ₹{r['EqSL']}\n"
+            msg += f"   Entry: ₹{r['Entry']} | SL: ₹{r['EqSL']}\n"
             
             opt_str = str(r['Opt'])
             prem_str = str(r['Prem'])
             if "N/A" not in opt_str and prem_str != "-" and prem_str != "nan":
-                msg += f"   🔹 *{stock_clean} {r['Opt']}*\n"
-                msg += f"      Buy Above {r['Prem']}\n"
-                msg += f"      Targets: T1:{r['PT1']} | T2:{r['PT2']} | T3:{r['PT3']} | T4:{r['PT4']} | T5:{r['PT5']}+\n"
-                msg += f"      SL {r['OptSL']}\n"
-            else:
-                msg += f"   🎯 *Eq Targets:* T1:{r['EqT1']} | T2:{r['EqT2']} | T3:{r['EqT3']} | T4:{r['EqT4']} | T5:{r['EqT5']}\n"
-            msg += "\n"
+                msg += f"   🔹 *Option:* {r['Opt']} @ Buy > ₹{r['Prem']}\n"
+                msg += f"      Opt Tgts: T1:{r['PT1']} | T2:{r['PT2']} | T3:{r['PT3']}\n"
+            msg += f"   🎯 *Eq Targets:* T1:{r['EqT1']} | T2:{r['EqT2']} | T3:{r['EqT3']}\n\n"
     else: msg += "No setups cleared the institutional gates for this scan."
     return msg
 
 def run():
-    print("🚀 Starting Automated Master Quant Scanner (Clean Cash vs F&O Separation)...")
+    print("🚀 Starting Automated Master Quant Scanner (Dual Targets & Balanced Scalp Vectors)...")
     sess_title, sess_type = get_session_info()
     now_ist = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=5, minutes=30)
     
