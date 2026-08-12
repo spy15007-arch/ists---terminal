@@ -1,4 +1,4 @@
-# 🌙 BTST Report (Top 25) — 11 Aug 2026 | 05:59 PM (BTST/Afternoon)
+# 🌙 BTST Report (Top 25) — 12 Aug 2026 | 10:52 AM (Manual Override)
 
 > **System:** 1200+ Mega Universe + Dual Equity & Option Target Display
 
