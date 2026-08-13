@@ -1,4 +1,4 @@
-# 🌙 BTST Report (Top 25) — 13 Aug 2026 | 09:43 PM (Manual Override)
+# 🌙 BTST Report (Top 25) — 13 Aug 2026 | 11:32 PM (Manual Override)
 
 > **System:** 1200+ Mega Universe + Clean Cash vs F&O Separation
 
