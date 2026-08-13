@@ -304,9 +304,10 @@ def generate_tabular_markdown(df_stocks, df_index, title, filename, include_inde
                 opt_str = str(r['Opt'])
                 prem_str = str(r['Prem'])
                 
-                eq_block = f"<b>Equity Targets:</b> T1:₹{r['EqT1']} | T2:₹{r['EqT2']} | T3:₹{r['EqT3']}"
+                # Removed the pipe (|) characters and replaced them with slashes (//) so the Markdown table doesn't break!
+                eq_block = f"<b>Equity Targets:</b> T1:₹{r['EqT1']} // T2:₹{r['EqT2']} // T3:₹{r['EqT3']}"
                 if "N/A (Cash)" not in opt_str and "N/A" not in opt_str and prem_str != "-" and prem_str != "nan":
-                    strat_info = f"{eq_block}<br><b>Option:</b> {r['Opt']} (Buy > ₹{r['Prem']})<br><b>Opt Targets:</b> T1:₹{r['PT1']} | T2:₹{r['PT2']} | T3:₹{r['PT3']}"
+                    strat_info = f"{eq_block}<br><b>Option:</b> {r['Opt']} (Buy > ₹{r['Prem']})<br><b>Opt Targets:</b> T1:₹{r['PT1']} // T2:₹{r['PT2']} // T3:₹{r['PT3']}"
                 else:
                     strat_info = f"<b>Mode:</b> Cash Equity Only<br>{eq_block}"
                 
