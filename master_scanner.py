@@ -133,7 +133,6 @@ def calculate_dynamic_targets(close_p, atr, df_h, df_l, direction="Bullish", is_
     recent_low = float(df_l.tail(20).min())
     diff = max(2.0, recent_high - recent_low)
     
-    # Scaled realistic targets (shorter structural steps for cleaner, highly achievable scalps)
     if direction == "Bullish":
         f_t1 = close_p + diff * 0.236
         f_t2 = close_p + diff * 0.382
@@ -284,7 +283,7 @@ def get_index_options_ideas():
 def generate_tabular_markdown(df_stocks, df_index, title, filename, include_index=False):
     with open(filename, "w", encoding="utf-8") as f:
         f.write(f"# {title}\n\n")
-        f.write("> **System:** 1200+ Mega Universe + Dual Equity & Option Target Display\n\n")
+        f.write("> **System:** 1200+ Mega Universe + Clean Cash vs F&O Separation\n\n")
         if df_stocks.empty and df_index.empty:
             f.write("*Market conditions did not trigger any quantitative setups meeting institutional gates for this timeframe.*\n")
             return
@@ -305,7 +304,6 @@ def generate_tabular_markdown(df_stocks, df_index, title, filename, include_inde
                 opt_str = str(r['Opt'])
                 prem_str = str(r['Prem'])
                 
-                # Show BOTH Equity Targets AND Option Targets for F&O stocks so you can compare or trade either side safely
                 eq_block = f"<b>Equity Targets:</b> T1:₹{r['EqT1']} | T2:₹{r['EqT2']} | T3:₹{r['EqT3']}"
                 if "N/A (Cash)" not in opt_str and "N/A" not in opt_str and prem_str != "-" and prem_str != "nan":
                     strat_info = f"<b>Option:</b> {r['Opt']} (Buy > ₹{r['Prem']})<br><b>Opt Targets:</b> T1:₹{r['PT1']} | T2:₹{r['PT2']} | T3:₹{r['PT3']}<br>{eq_block}"
@@ -344,7 +342,7 @@ def format_telegram_text(df_stocks, df_index, title):
     return msg
 
 def run():
-    print("🚀 Starting Automated Master Quant Scanner (Dual Targets & Balanced Scalp Vectors)...")
+    print("🚀 Starting Automated Master Quant Scanner...")
     sess_title, sess_type = get_session_info()
     now_ist = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=5, minutes=30)
     
@@ -433,7 +431,15 @@ def run():
             
             if is_rsi_div: tag += " (📉 +RSI Div)"
 
-            if close_p > d_ema and close_p > w_ema and macd_val > macd_sig and (45 <= rsi_val <= 85) and is_relative_strong and check_structure_hh_hl(highs[ticker], lows[ticker]):
+            # RELAXED RULES FOR TIGHT BASES: Pre-Breakout & 200 MA Retest don't strictly require positive MACD or hyper RS
+            is_base_setup = hor in ["Pre-Breakout", "Swing"]
+            
+            trend_cond = close_p > d_ema and close_p > w_ema and check_structure_hh_hl(highs[ticker], lows[ticker])
+            momentum_cond = (macd_val > macd_sig) if not is_base_setup else True 
+            rsi_cond = (45 <= rsi_val <= 85)
+            rs_cond = is_relative_strong if not is_base_setup else True 
+
+            if trend_cond and momentum_cond and rsi_cond and rs_cond:
                 if hor in ["Intraday", "BTST"] and not check_vwap_gate(ticker, close_p): continue
                 if not validate_mtf_confluence(ticker): continue
 
