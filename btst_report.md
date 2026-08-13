@@ -1,5 +1,5 @@
-# 🌙 BTST Report (Top 25) — 12 Aug 2026 | 05:05 PM (BTST/Afternoon)
+# 🌙 BTST Report (Top 25) — 13 Aug 2026 | 02:56 PM (Manual Override)
 
-> **System:** 1200+ Mega Universe + Dual Equity & Option Target Display
+> **System:** 1200+ Mega Universe + Clean Cash vs F&O Separation
 
 *Market conditions did not trigger any quantitative setups meeting institutional gates for this timeframe.*
