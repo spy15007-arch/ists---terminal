@@ -306,7 +306,7 @@ def generate_tabular_markdown(df_stocks, df_index, title, filename, include_inde
                 
                 eq_block = f"<b>Equity Targets:</b> T1:₹{r['EqT1']} | T2:₹{r['EqT2']} | T3:₹{r['EqT3']}"
                 if "N/A (Cash)" not in opt_str and "N/A" not in opt_str and prem_str != "-" and prem_str != "nan":
-                    strat_info = f"<b>Option:</b> {r['Opt']} (Buy > ₹{r['Prem']})<br><b>Opt Targets:</b> T1:₹{r['PT1']} | T2:₹{r['PT2']} | T3:₹{r['PT3']}<br>{eq_block}"
+                    strat_info = f"{eq_block}<br><b>Option:</b> {r['Opt']} (Buy > ₹{r['Prem']})<br><b>Opt Targets:</b> T1:₹{r['PT1']} | T2:₹{r['PT2']} | T3:₹{r['PT3']}"
                 else:
                     strat_info = f"<b>Mode:</b> Cash Equity Only<br>{eq_block}"
                 
@@ -332,12 +332,15 @@ def format_telegram_text(df_stocks, df_index, title):
             msg += f"   🛒 Qty: {r['Qty']} | 📉 Risk: ₹{r['Risk']}\n"
             msg += f"   Entry: ₹{r['Entry']} | SL: ₹{r['EqSL']}\n"
             
+            # Print Eq Targets BEFORE Option strategy
+            msg += f"   🎯 *Eq Targets:* T1:{r['EqT1']} | T2:{r['EqT2']} | T3:{r['EqT3']}\n"
+            
             opt_str = str(r['Opt'])
             prem_str = str(r['Prem'])
             if "N/A" not in opt_str and prem_str != "-" and prem_str != "nan":
                 msg += f"   🔹 *Option:* {r['Opt']} @ Buy > ₹{r['Prem']}\n"
                 msg += f"      Opt Tgts: T1:{r['PT1']} | T2:{r['PT2']} | T3:{r['PT3']}\n"
-            msg += f"   🎯 *Eq Targets:* T1:{r['EqT1']} | T2:{r['EqT2']} | T3:{r['EqT3']}\n\n"
+            msg += "\n"
     else: msg += "No setups cleared the institutional gates for this scan."
     return msg
 
