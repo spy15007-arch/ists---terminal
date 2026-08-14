@@ -1,16 +1,6 @@
 Stock,RawStock,Horizon,Tag,Entry,Qty,Risk,RSI,Vol vs 50d,EqSL,EqT1,EqT2,EqT3,EqT4,EqT5,Opt,Prem,PT1,PT2,PT3,PT4,PT5,OptSL,Score
-OIL (↑),OIL,Pre-Breakout,💥 Pre-Breakout Coil (📉 +RSI Div),479.8,208,2641.6,69.5,0.49,467.1,491.6,500.8,512.5,528.4,551.0,N/A (Cash),-,-,-,-,-,-,-,10
-M&M (↑),M&M,Pre-Breakout,💥 Pre-Breakout Coil,3428.2,29,2163.4,69.3,0.85,3353.6,3507.1,3567.2,3646.1,3755.3,3913.5,3450 CE,64.62,109.7,152.6,217.7,318.5,473.8,34.8,10
-GAEL (↑),GAEL,Swing,🔄 Breakout Retest,170.18,587,4860.36,64.3,0.4,161.9,178.4,184.6,192.8,204.4,221.5,N/A (Cash),-,-,-,-,-,-,-,10
-BAJFINANCE (↑),BAJFINANCE,Swing,🔄 Breakout Retest (📉 +RSI Div),1090.8,91,3057.6,64.2,0.26,1057.2,1122.7,1146.6,1178.5,1223.1,1288.4,1100 CE,21.58,39.9,57.4,84.7,126.9,191.6,9.3,10
-IIFL (↑),IIFL,Pre-Breakout,💥 Pre-Breakout Coil,635.95,157,2771.05,84.6,1.01,618.3,653.6,667.2,684.9,709.1,744.0,N/A (Cash),-,-,-,-,-,-,-,9
-ORIENTELEC (↑),ORIENTELEC,Pre-Breakout,💥 Pre-Breakout Coil,190.27,525,3396.75,81.8,0.26,183.8,195.8,200.3,205.9,213.3,223.7,N/A (Cash),-,-,-,-,-,-,-,9
-SHALPAINTS (↑),SHALPAINTS,Pre-Breakout,💥 Pre-Breakout Coil,87.04,1148,5785.92,73.9,0.42,82.0,94.0,99.1,106.0,116.0,131.0,N/A (Cash),-,-,-,-,-,-,-,9
-360ONE (↑),360ONE,Pre-Breakout,💥 Pre-Breakout Coil,1183.0,84,2704.8,68.5,0.33,1150.8,1211.5,1234.0,1262.4,1300.5,1354.2,N/A (Cash),-,-,-,-,-,-,-,9
-MAZDOCK (↑),MAZDOCK,Pre-Breakout,💥 Pre-Breakout Coil,2571.0,38,2352.2,81.4,1.12,2509.1,2633.4,2681.4,2743.8,2829.4,2952.6,N/A (Cash),-,-,-,-,-,-,-,8
-KRISHANA (↑),KRISHANA,Pre-Breakout,💥 Pre-Breakout Coil,188.94,529,4041.56,80.0,0.36,181.3,198.8,206.0,215.9,229.9,250.7,N/A (Cash),-,-,-,-,-,-,-,8
-DIVISLAB (↑),DIVISLAB,Pre-Breakout,💥 Pre-Breakout Coil,8500.0,11,2124.1,79.9,0.76,8306.9,8754.6,8941.6,9196.3,9560.7,10102.5,8500 CE,193.17,355.7,504.5,733.6,1087.1,1627.0,106.8,8
-HCLTECH (↑),HCLTECH,Pre-Breakout,💥 Pre-Breakout Coil,1370.0,72,2340.0,75.4,0.21,1337.5,1404.7,1431.1,1465.9,1514.0,1583.9,1360 CE,34.38,58.1,79.8,111.5,158.2,227.8,18.3,8
-AUBANK (↑),AUBANK,Pre-Breakout,💥 Pre-Breakout Coil,1098.0,91,2420.6,74.2,0.87,1071.4,1125.9,1147.3,1175.2,1213.9,1269.9,1100 CE,22.68,39.8,56.2,80.6,117.5,173.1,11.4,8
-CARBORUNIV (↑),CARBORUNIV,Pre-Breakout,💥 Pre-Breakout Coil,1184.6,84,3670.8,73.1,0.83,1140.9,1221.3,1250.7,1287.4,1336.0,1403.9,N/A (Cash),-,-,-,-,-,-,-,8
-NAM-INDIA (↑),NAM-INDIA,Pre-Breakout,💥 Pre-Breakout Coil,1177.0,42,1293.6,65.2,0.5,1146.2,1205.3,1227.5,1255.8,1294.1,1348.3,N/A (Cash),-,-,-,-,-,-,-,7
+MOTHERSON (↑),MOTHERSON,Pre-Breakout,💥 Pre-Breakout Coil,167.95,595,2766.75,74.9,0.51,163.3,173.3,177.4,182.7,190.3,201.4,170 CE,4.47,7.4,10.2,14.4,21.2,32.0,5.0,9
+GAEL (↑),GAEL,Swing,🔄 Breakout Retest,171.67,582,4754.94,61.8,0.85,163.5,179.9,185.9,194.1,205.7,222.7,N/A (Cash),-,-,-,-,-,-,-,9
+SAPPHIRE (↑),SAPPHIRE,Pre-Breakout,💥 Pre-Breakout Coil,233.03,429,4517.37,74.5,1.17,222.5,245.3,254.5,266.8,284.0,309.4,N/A (Cash),-,-,-,-,-,-,-,8
+BECTORFOOD (↑),BECTORFOOD,Pre-Breakout,💥 Pre-Breakout Coil,244.04,409,4106.36,74.1,0.39,234.0,255.3,263.8,275.0,290.8,313.7,N/A (Cash),-,-,-,-,-,-,-,8
+PNB (↑),PNB,Pre-Breakout,💥 Pre-Breakout Coil,118.29,845,1850.55,73.7,0.82,116.1,120.6,122.3,124.6,127.8,132.4,120 CE,1.36,2.5,3.6,5.4,8.3,12.8,5.0,8
