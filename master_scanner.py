@@ -11,6 +11,7 @@ warnings.filterwarnings('ignore')
 
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 BASE_CAPITAL_PER_TRADE = 50000  
 HIGH_CONVICTION_MULTIPLIER = 2  
 
@@ -304,7 +305,6 @@ def generate_tabular_markdown(df_stocks, df_index, title, filename, include_inde
                 opt_str = str(r['Opt'])
                 prem_str = str(r['Prem'])
                 
-                # Removed the pipe (|) characters and replaced them with slashes (//) so the Markdown table doesn't break!
                 eq_block = f"<b>Equity Targets:</b> T1:₹{r['EqT1']} // T2:₹{r['EqT2']} // T3:₹{r['EqT3']}"
                 if "N/A (Cash)" not in opt_str and "N/A" not in opt_str and prem_str != "-" and prem_str != "nan":
                     strat_info = f"{eq_block}<br><b>Option:</b> {r['Opt']} (Buy > ₹{r['Prem']})<br><b>Opt Targets:</b> T1:₹{r['PT1']} // T2:₹{r['PT2']} // T3:₹{r['PT3']}"
@@ -332,8 +332,6 @@ def format_telegram_text(df_stocks, df_index, title):
             msg += f"{idx+1}. *{stock_clean}* | *{r['Tag']}* (Score: *{r['Score']}/10*)\n"
             msg += f"   🛒 Qty: {r['Qty']} | 📉 Risk: ₹{r['Risk']}\n"
             msg += f"   Entry: ₹{r['Entry']} | SL: ₹{r['EqSL']}\n"
-            
-            # Print Eq Targets BEFORE Option strategy
             msg += f"   🎯 *Eq Targets:* T1:{r['EqT1']} | T2:{r['EqT2']} | T3:{r['EqT3']}\n"
             
             opt_str = str(r['Opt'])
@@ -344,6 +342,146 @@ def format_telegram_text(df_stocks, df_index, title):
             msg += "\n"
     else: msg += "No setups cleared the institutional gates for this scan."
     return msg
+
+# --- STAGE 2: AUTOMATED 14-PILLAR AI FUNDAMENTAL RESEARCH ENGINE ---
+def generate_ai_deep_dive(top_candidates):
+    if not GEMINI_API_KEY or not top_candidates:
+        with open("deep_dive_analysis.md", "w", encoding="utf-8") as f:
+            f.write("# 🔬 Institutional Deep Dive Analysis\n\n*Pending AI Analysis. Add `GEMINI_API_KEY` to GitHub Secrets to activate.*")
+        return
+
+    print("🤖 Initiating Automated AI 14-Pillar Fundamental & Structural Analysis...")
+    all_dossiers = []
+
+    for candidate in top_candidates[:2]:
+        sym = candidate['RawStock']
+        entry = candidate['Entry']
+        eq_sl = candidate['EqSL']
+        t1, t2, t3 = candidate['EqT1'], candidate['EqT2'], candidate['EqT3']
+        tag = candidate['Tag']
+        score = candidate['Score']
+        
+        # Fetch fundamental snapshot via yfinance
+        try:
+            info = yf.Ticker(f"{sym}.NS").info
+            mcap = info.get('marketCap', 'N/A')
+            pe = info.get('trailingPE', 'N/A')
+            fpe = info.get('forwardPE', 'N/A')
+            pb = info.get('priceToBook', 'N/A')
+            div_y = info.get('dividendYield', 0.0)
+            roe = info.get('returnOnEquity', 'N/A')
+            de = info.get('debtToEquity', 'N/A')
+            sector = info.get('sector', 'N/A')
+            industry = info.get('industry', 'N/A')
+        except:
+            mcap, pe, fpe, pb, div_y, roe, de, sector, industry = "N/A", "N/A", "N/A", "N/A", 0.0, "N/A", "N/A", "N/A", "N/A"
+
+        prompt = f"""
+You are an Elite Institutional Equity Research Analyst. Write an exhaustive, rigorous institutional research report on **{sym} (NSE: {sym})**.
+
+Quantitative Technical Context:
+- Setup Type: {tag} (Score: {score}/10)
+- CMP / Entry: ₹{entry}
+- Structural SL: ₹{eq_sl}
+- Target Vectors: ₹{t1} / ₹{t2} / ₹{t3}
+- Sector / Industry: {sector} / {industry}
+- Valuation Snapshot: P/E: {pe}, Forward P/E: {fpe}, P/B: {pb}, ROE: {roe}, D/E: {de}
+
+You MUST strictly follow this exact 14-section format with rich markdown tables, ASCII charts, and actionable institutional commentary:
+
+# Detailed Stock Analysis: {sym} (NSE: {sym})
+
+---
+
+### 1. Technical Analysis
+(Include a clean ASCII table of Monthly, Weekly, Daily timeframe trends, Stage analysis, support/resistance, RSI, volume profile interpretation, and Technical Draft Parameters table).
+
+---
+
+### 2. Why Did the Stock Fall Earlier?
+(Ranked numbered root causes behind prior cyclical pullbacks or margin compressions).
+
+---
+
+### 3. Has the Company Recovered?
+(ASCII table of Operational/Financial Metrics status, debt status, and order book/margin recovery).
+
+---
+
+### 4. Latest News & Business Developments
+(Key contract wins, capex, or strategic growth catalysts).
+
+---
+
+### 5. Fundamental Analysis
+(Markdown table with Parameter, Latest, Previous, Interpretation, Action).
+
+---
+
+### 6. Shareholding Pattern
+(Markdown table of Promoter, FII, DII, Public holding trajectory & institutional absorption).
+
+---
+
+### 7. Quarterly & Annual Financial Performance
+(Markdown table with Revenue, EBITDA, EBITDA Margin, PAT, EPS YoY).
+
+---
+
+### 8. Five-Year Financial Trend
+(Multi-year CAGR, ROCE trajectory, balance sheet health).
+
+---
+
+### 9. Valuation Summary
+(Historical P/E bands, fair value projections).
+
+---
+
+### 10. Key Risks
+(ASCII risk rating table with mitigation factors).
+
+---
+
+### 11. Key Growth Triggers
+(Bulleted high-impact growth catalysts).
+
+---
+
+### 12. Final Scorecard
+(Markdown table scoring 10 categories /10, and OVERALL SCORE out of 100).
+
+---
+
+### 13. Final Investment View
+(Markdown table covering Short Term 1-3M, Swing 1-8W, Medium Term 6-12M, Long Term 2-5Y).
+
+---
+
+### 14. Executive Summary
+(Crisp executive takeaways, conviction level, and bottom-line verdict).
+"""
+
+        try:
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GEMINI_API_KEY}"
+            payload = {
+                "contents": [{"parts": [{"text": prompt}]}]
+            }
+            res = requests.post(url, json=payload, timeout=60)
+            if res.status_code == 200:
+                data = res.json()
+                ai_text = data['candidates'][0]['content']['parts'][0]['text']
+                all_dossiers.append(ai_text)
+            else:
+                print(f"⚠️ Gemini API error ({res.status_code}): {res.text}")
+        except Exception as e:
+            print(f"⚠️ Error querying Gemini AI for {sym}: {e}")
+
+    with open("deep_dive_analysis.md", "w", encoding="utf-8") as f:
+        if all_dossiers:
+            f.write("\n\n---\n\n".join(all_dossiers))
+        else:
+            f.write("# 🔬 Institutional Deep Dive Analysis\n\n*Analysis pending generation.*")
 
 def run():
     print("🚀 Starting Automated Master Quant Scanner...")
@@ -435,7 +573,6 @@ def run():
             
             if is_rsi_div: tag += " (📉 +RSI Div)"
 
-            # RELAXED RULES FOR TIGHT BASES: Pre-Breakout & 200 MA Retest don't strictly require positive MACD or hyper RS
             is_base_setup = hor in ["Pre-Breakout", "Swing"]
             
             trend_cond = close_p > d_ema and close_p > w_ema and check_structure_hh_hl(highs[ticker], lows[ticker])
@@ -492,17 +629,17 @@ def run():
                 'Stock': f"{symbol} (↑)", 'RawStock': symbol, 'Horizon': hor, 'Tag': tag, 'Entry': round(close_p, 2), 
                 'Qty': cash_qty, 'Risk': round(cash_qty * (close_p - eq_sl), 2), 'RSI': round(rsi_val,1), 'Vol vs 50d': vol_vs,
                 'EqSL': eq_sl, 'EqT1': t1, 'EqT2': t2, 'EqT3': t3, 'EqT4': t4, 'EqT5': t5, 
-                'Opt': opt, 'Prem': prem, 'PT1': pt1, 'PT2': pt2, 'PT3': pt3, 'PT4': pt4, 'PT5': pt5, 'OptSL': opt_sl, 'Score': final_score
+                'Opt': opt, 'Prem': prem, 'PT1': pt1, 'PT2': pt2, 'PT3': pt3, 'OptSL': opt_sl, 'Score': final_score
             })
         except: continue
 
     df_all = pd.DataFrame(valid_setups).drop_duplicates(subset=['Stock']).sort_values(by=['Score', 'RSI'], ascending=[False, False]) if valid_setups else pd.DataFrame()
 
     if not df_all.empty: df_all.to_csv("all_setups.csv", index=False)
-    else: pd.DataFrame(columns=['Stock','RawStock','Horizon','Tag','Entry','Qty','Risk','RSI','Vol vs 50d','EqSL','EqT1','EqT2','EqT3','EqT4','EqT5','Opt','Prem','PT1','PT2','PT3','PT4','PT5','OptSL','Score']).to_csv("all_setups.csv", index=False)
+    else: pd.DataFrame(columns=['Stock','RawStock','Horizon','Tag','Entry','Qty','Risk','RSI','Vol vs 50d','EqSL','EqT1','EqT2','EqT3','EqT4','EqT5','Opt','Prem','PT1','PT2','PT3','OptSL','Score']).to_csv("all_setups.csv", index=False)
     
     if not df_index.empty: df_index.to_csv("index_setups.csv", index=False)
-    else: pd.DataFrame(columns=['Stock','RawStock','Horizon','Entry','RSI','EqSL','EqT1','EqT2','EqT3','EqT4','EqT5','Opt','Prem','PT1','PT2','PT3','PT4','PT5','OptSL','Score','Tag']).to_csv("index_setups.csv", index=False)
+    else: pd.DataFrame(columns=['Stock','RawStock','Horizon','Entry','RSI','EqSL','EqT1','EqT2','EqT3','EqT4','EqT5','Opt','Prem','PT1','PT2','PT3','OptSL','Score','Tag']).to_csv("index_setups.csv", index=False)
 
     df_pre = df_all[df_all['Horizon'] == 'Pre-Breakout'].head(25) if not df_all.empty else pd.DataFrame()
     df_intra = df_all[df_all['Horizon'] == 'Intraday'].head(25) if not df_all.empty else pd.DataFrame()
@@ -513,6 +650,11 @@ def run():
     generate_tabular_markdown(df_intra, df_index, f"⚡ Intraday Report (Top 25) — {sess_title}", "intraday_report.md", True)
     generate_tabular_markdown(df_btst, pd.DataFrame(), f"🌙 BTST Report (Top 25) — {sess_title}", "btst_report.md", False)
     generate_tabular_markdown(df_swing, pd.DataFrame(), f"📈 Swing Trade Retest Report (Top 25) — {sess_title}", "swing_report.md", False)
+
+    # Trigger Stage 2 AI Fundamental Deep Dive for Top Swing Setups
+    top_swing_candidates = valid_setups if valid_setups else []
+    top_swing_candidates = sorted(top_swing_candidates, key=lambda x: (x['Score'], x['Horizon'] == 'Swing'), reverse=True)
+    generate_ai_deep_dive(top_swing_candidates)
 
     if not df_pre.empty: send_telegram_message(format_telegram_text(df_pre.head(25), pd.DataFrame(), f"💥 Soon to Breakout — {sess_title}"))
     if not df_intra.empty or not df_index.empty: send_telegram_message(format_telegram_text(df_intra.head(25), df_index, f"⚡ Intraday Report — {sess_title}"))
