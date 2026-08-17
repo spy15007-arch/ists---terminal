@@ -332,6 +332,8 @@ def format_telegram_text(df_stocks, df_index, title):
             msg += f"{idx+1}. *{stock_clean}* | *{r['Tag']}* (Score: *{r['Score']}/10*)\n"
             msg += f"   🛒 Qty: {r['Qty']} | 📉 Risk: ₹{r['Risk']}\n"
             msg += f"   Entry: ₹{r['Entry']} | SL: ₹{r['EqSL']}\n"
+            
+            # Print Eq Targets BEFORE Option strategy
             msg += f"   🎯 *Eq Targets:* T1:{r['EqT1']} | T2:{r['EqT2']} | T3:{r['EqT3']}\n"
             
             opt_str = str(r['Opt'])
@@ -656,10 +658,24 @@ def run():
     top_swing_candidates = sorted(top_swing_candidates, key=lambda x: (x['Score'], x['Horizon'] == 'Swing'), reverse=True)
     generate_ai_deep_dive(top_swing_candidates)
 
-    if not df_pre.empty: send_telegram_message(format_telegram_text(df_pre.head(25), pd.DataFrame(), f"💥 Soon to Breakout — {sess_title}"))
-    if not df_intra.empty or not df_index.empty: send_telegram_message(format_telegram_text(df_intra.head(25), df_index, f"⚡ Intraday Report — {sess_title}"))
-    if not df_btst.empty: send_telegram_message(format_telegram_text(df_btst.head(25), pd.DataFrame(), f"🌙 BTST Report — {sess_title}"))
-    if not df_swing.empty: send_telegram_message(format_telegram_text(df_swing.head(25), pd.DataFrame(), f"📈 Swing Trade (Retest) Report — {sess_title}"))
+    # --- STAGE 3: TIME-GATED TELEGRAM ALERTS ---
+    # Intraday & Options: Alert before 2:00 PM (14:00 IST)
+    is_intraday_window = (now_ist.hour < 14) or is_manual 
+    
+    # BTST & Swing Trade: Alert at closing window (After 3:00 PM / 15:00 IST)
+    is_closing_window = (now_ist.hour >= 15) or is_manual
+
+    if not df_pre.empty: 
+        send_telegram_message(format_telegram_text(df_pre.head(25), pd.DataFrame(), f"💥 Soon to Breakout — {sess_title}"))
+        
+    if (not df_intra.empty or not df_index.empty) and is_intraday_window: 
+        send_telegram_message(format_telegram_text(df_intra.head(25), df_index, f"⚡ Intraday Report — {sess_title}"))
+        
+    if not df_btst.empty and is_closing_window: 
+        send_telegram_message(format_telegram_text(df_btst.head(25), pd.DataFrame(), f"🌙 BTST Report — {sess_title}"))
+        
+    if not df_swing.empty and is_closing_window: 
+        send_telegram_message(format_telegram_text(df_swing.head(25), pd.DataFrame(), f"📈 Swing Trade (Retest) Report — {sess_title}"))
 
 if __name__ == "__main__":
     run()
