@@ -1,6 +1,15 @@
-# ⚡ Intraday Report (Top 25) — 17 Aug 2026 | 03:35 PM (BTST/Afternoon)
+# ⚡ Intraday Report (Top 25) — 17 Aug 2026 | 10:20 PM (Manual Override)
 
 > **System:** 1200+ Mega Universe + Clean Cash vs F&O Separation
+
+## 👑 Index Options (15M Scalps)
+
+| # | Index Signal | Price | Option | Buy Above | Targets | SL |
+| :--- | :--- | :---: | :---: | :---: | :---: | :---: |
+| 1 | **NIFTY 50 Bearish (Put)** | ₹24287.65 | **24300 PE** | ₹122.16 | T1: ₹132.4<br>T2: ₹143.0<br>T3: ₹154.2<br>T4: ₹166.0<br>T5: ₹178.2+ | ₹110.2 |
+| 2 | **BANK NIFTY Bearish (Put)** | ₹57497.8 | **57500 PE** | ₹227.88 | T1: ₹266.3<br>T2: ₹308.4<br>T3: ₹354.3<br>T4: ₹403.7<br>T5: ₹456.6+ | ₹185.2 |
+
+---
 
 ## 📊 Validated Setups & Options
 
