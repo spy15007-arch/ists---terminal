@@ -332,8 +332,6 @@ def format_telegram_text(df_stocks, df_index, title):
             msg += f"{idx+1}. *{stock_clean}* | *{r['Tag']}* (Score: *{r['Score']}/10*)\n"
             msg += f"   🛒 Qty: {r['Qty']} | 📉 Risk: ₹{r['Risk']}\n"
             msg += f"   Entry: ₹{r['Entry']} | SL: ₹{r['EqSL']}\n"
-            
-            # Print Eq Targets BEFORE Option strategy
             msg += f"   🎯 *Eq Targets:* T1:{r['EqT1']} | T2:{r['EqT2']} | T3:{r['EqT3']}\n"
             
             opt_str = str(r['Opt'])
@@ -363,7 +361,6 @@ def generate_ai_deep_dive(top_candidates):
         tag = candidate['Tag']
         score = candidate['Score']
         
-        # Fetch fundamental snapshot via yfinance
         try:
             info = yf.Ticker(f"{sym}.NS").info
             mcap = info.get('marketCap', 'N/A')
@@ -465,7 +462,8 @@ You MUST strictly follow this exact 14-section format with rich markdown tables,
 """
 
         try:
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GEMINI_API_KEY}"
+            # Updated to gemini-3.6-flash
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key={GEMINI_API_KEY}"
             payload = {
                 "contents": [{"parts": [{"text": prompt}]}]
             }
@@ -631,17 +629,17 @@ def run():
                 'Stock': f"{symbol} (↑)", 'RawStock': symbol, 'Horizon': hor, 'Tag': tag, 'Entry': round(close_p, 2), 
                 'Qty': cash_qty, 'Risk': round(cash_qty * (close_p - eq_sl), 2), 'RSI': round(rsi_val,1), 'Vol vs 50d': vol_vs,
                 'EqSL': eq_sl, 'EqT1': t1, 'EqT2': t2, 'EqT3': t3, 'EqT4': t4, 'EqT5': t5, 
-                'Opt': opt, 'Prem': prem, 'PT1': pt1, 'PT2': pt2, 'PT3': pt3, 'OptSL': opt_sl, 'Score': final_score
+                'Opt': opt, 'Prem': prem, 'PT1': pt1, 'PT2': pt2, 'PT3': pt3, 'PT4': pt4, 'PT5': pt5, 'OptSL': opt_sl, 'Score': final_score
             })
         except: continue
 
     df_all = pd.DataFrame(valid_setups).drop_duplicates(subset=['Stock']).sort_values(by=['Score', 'RSI'], ascending=[False, False]) if valid_setups else pd.DataFrame()
 
     if not df_all.empty: df_all.to_csv("all_setups.csv", index=False)
-    else: pd.DataFrame(columns=['Stock','RawStock','Horizon','Tag','Entry','Qty','Risk','RSI','Vol vs 50d','EqSL','EqT1','EqT2','EqT3','EqT4','EqT5','Opt','Prem','PT1','PT2','PT3','OptSL','Score']).to_csv("all_setups.csv", index=False)
+    else: pd.DataFrame(columns=['Stock','RawStock','Horizon','Tag','Entry','Qty','Risk','RSI','Vol vs 50d','EqSL','EqT1','EqT2','EqT3','EqT4','EqT5','Opt','Prem','PT1','PT2','PT3','PT4','PT5','OptSL','Score']).to_csv("all_setups.csv", index=False)
     
     if not df_index.empty: df_index.to_csv("index_setups.csv", index=False)
-    else: pd.DataFrame(columns=['Stock','RawStock','Horizon','Entry','RSI','EqSL','EqT1','EqT2','EqT3','EqT4','EqT5','Opt','Prem','PT1','PT2','PT3','OptSL','Score','Tag']).to_csv("index_setups.csv", index=False)
+    else: pd.DataFrame(columns=['Stock','RawStock','Horizon','Entry','RSI','EqSL','EqT1','EqT2','EqT3','EqT4','EqT5','Opt','Prem','PT1','PT2','PT3','PT4','PT5','OptSL','Score','Tag']).to_csv("index_setups.csv", index=False)
 
     df_pre = df_all[df_all['Horizon'] == 'Pre-Breakout'].head(25) if not df_all.empty else pd.DataFrame()
     df_intra = df_all[df_all['Horizon'] == 'Intraday'].head(25) if not df_all.empty else pd.DataFrame()
@@ -659,6 +657,8 @@ def run():
     generate_ai_deep_dive(top_swing_candidates)
 
     # --- STAGE 3: TIME-GATED TELEGRAM ALERTS ---
+    is_manual = (sess_type == "Manual")
+
     # Intraday & Options: Alert before 2:00 PM (14:00 IST)
     is_intraday_window = (now_ist.hour < 14) or is_manual 
     
