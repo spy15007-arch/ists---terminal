@@ -1,5 +1,9 @@
 Stock,RawStock,Horizon,Tag,Entry,Qty,Risk,RSI,Vol vs 50d,EqSL,EqT1,EqT2,EqT3,EqT4,EqT5,Opt,Prem,PT1,PT2,PT3,OptSL,Score
-RADICO (↑),RADICO,Pre-Breakout,💥 Pre-Breakout Coil (📉 +RSI Div),4650.0,21,2240.7,80.2,0.77,4543.3,4767.8,4856.9,4974.7,5138.9,5378.2,N/A (Cash),-,-,-,-,-,10
-QUESS (↑),QUESS,Pre-Breakout,💥 Pre-Breakout Coil (📉 +RSI Div),337.8,296,4203.2,70.4,0.44,323.6,350.5,360.5,373.1,390.1,414.1,N/A (Cash),-,-,-,-,-,10
-M&M (↑),M&M,Pre-Breakout,💥 Pre-Breakout Coil,3428.3,29,2114.1,65.4,0.39,3355.4,3504.6,3562.9,3639.3,3744.7,3897.3,3450 CE,41.92,87.1,132.8,201.9,16.4,10
-MOTHERSON (↑),MOTHERSON,Pre-Breakout,💥 Pre-Breakout Coil,168.3,594,2791.8,75.1,0.5,163.6,173.7,177.7,183.1,190.7,201.8,170 CE,4.65,7.7,10.4,14.7,5.0,9
+OIL (↑),OIL,Pre-Breakout,💥 Pre-Breakout Coil (📉 +RSI Div),474.15,210,2656.5,67.6,0.89,461.5,484.9,493.5,504.3,518.7,538.7,N/A (Cash),-,-,-,-,-,10
+RKFORGE (↑),RKFORGE,Pre-Breakout,💥 Pre-Breakout Coil,741.35,134,3061.9,78.9,0.96,718.5,774.3,798.1,831.1,878.7,950.1,N/A (Cash),-,-,-,-,-,9
+MOTHERSON (↑),MOTHERSON,Pre-Breakout,💥 Pre-Breakout Coil,168.26,594,2649.24,77.2,0.29,163.8,173.6,177.5,182.8,190.3,201.3,170 CE,4.59,7.6,10.2,14.5,5.0,9
+IIFL (↑),IIFL,Pre-Breakout,💥 Pre-Breakout Coil,632.0,158,2622.8,76.2,0.52,615.4,649.7,663.1,680.8,705.3,740.9,N/A (Cash),-,-,-,-,-,9
+NATIONALUM (↑),NATIONALUM,Intraday,🚀 Volume Breakout (⭐ 2x Size),383.4,260,2756.0,67.8,1.65,372.8,399.3,411.2,427.1,449.6,482.7,385 CE,8.89,19.0,28.8,43.6,5.0,9
+POONAWALLA (↑),POONAWALLA,Pre-Breakout,💥 Pre-Breakout Coil,501.45,199,3034.75,64.8,1.15,486.2,514.7,525.2,538.5,556.2,581.1,N/A (Cash),-,-,-,-,-,9
+JUBLFOOD (↑),JUBLFOOD,Pre-Breakout,💥 Pre-Breakout Coil,505.2,197,3053.5,77.8,0.68,489.7,524.7,539.0,558.5,586.2,627.1,510 CE,13.83,25.1,35.6,52.1,7.6,8
+BECTORFOOD (↑),BECTORFOOD,Pre-Breakout,💥 Pre-Breakout Coil,245.23,407,4041.51,76.5,0.62,235.3,255.1,262.7,272.6,286.1,305.5,N/A (Cash),-,-,-,-,-,8
