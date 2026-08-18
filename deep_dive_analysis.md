@@ -1,472 +1,289 @@
-# Detailed Stock Analysis: NATIONALUM (NSE: NATIONALUM)
+# Detailed Stock Analysis: QUESS (NSE: QUESS)
+
+**Coverage Type:** Institutional Equity Research | Tactical & Fundamental Re-Initiation  
+**Sector:** Industrials / Staffing & Employment Services  
+**Date:** October 2024  
+**Current Market Price (CMP):** ₹347.75  
+**Action Rating:** CONVICTION BUY (Pre-Breakout Coil / Divergence Expansion)
 
 ---
 
 ### 1. Technical Analysis
 
-National Aluminium Company Limited (NATIONALUM) presents an exceptional structural setup, currently demonstrating a **10/10 Breakout Retest** pattern on the higher-timeframe charts. The stock has successfully cleared multi-year overhead resistance and completed a low-volume throwback to validate the former resistance as new structural support.
-
-#### Multi-Timeframe Trend & Technical Matrix
-
-| Timeframe | Trend | Stage Analysis | Key Support | Key Resistance | RSI (14) | Volume Profile Interpretation |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Monthly** | Strong Bullish | Stage 2 Markup | ₹330.0 | ₹450.0 | 72.4 | High institutional accumulation; massive volume node at ₹320-₹350 zone. |
-| **Weekly** | Bullish Expansion | Stage 2 Continuation | ₹365.0 | ₹420.0 | 66.8 | Above-average volume on up-weeks; contracting volume on consolidation. |
-| **Daily** | Breakout Retest | Bullish Consolidation | ₹372.9 | ₹404.2 | 58.2 | Perfect retest of breakout level; institutional absorption at ₹380-₹385. |
+Quess Corp is exhibiting a classic **Stage 1 Accumulation to Stage 2 Early Markup transition**, characterized by a high-conviction **Pre-Breakout Coil Structure (Score: 10/10)**. Over a 14-week period, price action has compressed into a tight symmetrical wedge immediately below a major multi-month supply zone. Crucially, while price made lower equal lows near the ₹330–₹335 base, the 14-period Relative Strength Index (RSI) printed distinctly higher lows—forming a potent **Positive RSI Divergence (+RSI Div)** on both Daily and Weekly charts.
 
 ```
-TECHNICAL SCHEMATIC: BREAKOUT RETEST STRUCTURE
-
-Price Axis (₹)
-435.00 |                                                  [Target 3: 431.70]
-416.00 |                                 [Target 2: 415.90]  /
-404.00 |                [Target 1: 404.20]  /               /
-388.35 |---- CMP: 388.35 ----*             /               /
-       |                    / \           /               /
-372.90 |===================*===*=========/===============/==== [Structural SL: 372.90]
-       |  Prior Resistance/ \   Retest
-350.00 |   Breakout Level  \_\___ Completion
-       |_______________________________________________________ Time
+QUESS CORP - TACTICAL BREAKOUT & RSI DIVERGENCE SETUP
+========================================================================================
+Price (INR)
+390.00 |                                                            [Target 3: 384.00]
+380.00 |                                                      /---\
+370.00 |                                        [Target 2: 371.00]
+360.00 |                          [Target 1: 360.80]     /
+350.00 |                    /---\       /--------------/  <-- Dynamic Resistance
+347.75 |.................../.....\...../ <-- Current Price (CMP)
+340.00 |    \             /       \---/ <-- Pre-Breakout Compression Base
+333.70 |-----\-----------/----------- <-- Structural Stop Loss (Pivot Low)
+320.00 |      \_________/
+       +--------------------------------------------------------------------------------
+Volume |    |||||     |||        ||||||||||||||| <-- Volume Spike on Up-days
+       +--------------------------------------------------------------------------------
+RSI    |      /\          /\         /
+(14D)  |     /  \        /  \       /   <-- Bullish Positive RSI Divergence (+RSI Div)
+       |____/____\______/____\_____/
+========================================================================================
 ```
+
+#### Timeframe Trend Breakdown
+
+| Timeframe | Trend Horizon | Key Technical Pattern / Structure | RSI (14) Status | Institutional Bias |
+| :--- | :--- | :--- | :--- | :--- |
+| **Monthly** | Structural (Macro) | Rounding Base / Long-term Double Bottom | 52.4 (Neutral-Bullish) | Accumulation |
+| **Weekly** | Primary Trend | Symmetrical Wedge / Coil Compression | 58.1 (Expanding) | Strongly Bullish |
+| **Daily** | Tactical Setup | Pre-Breakout Squeeze + Bullish Divergence | 63.8 (Breakout Zone) | High Conviction Buy |
+
+#### Key Technical Levels & Volume Profile Analysis
+*   **Point of Control (POC):** High-density volume node established between ₹338.00 and ₹342.00, confirming institutional absorption of retail float.
+*   **Immediate Resistance:** ₹352.00 (Coil upper boundary). A daily candle close above ₹352 triggers accelerated momentum toward T1/T2.
+*   **Structural Support Floor:** ₹333.70 (Invalidation line matching key Fibonacci 61.8% golden retracement level of the tactical leg).
 
 #### Technical Draft Parameters
 
-| Parameter | Quantitative Value | Institutional Context |
+| Parameter | Quantitative Value | Tactical Interpretation |
 | :--- | :--- | :--- |
-| **Setup Type** | 🔄 Breakout Retest | Classic Stage 2 retest with declining sell volume |
-| **Setup Quality Score** | **10 / 10** | High-conviction structural alignment across all timeframes |
-| **CMP / Entry Zone** | **₹388.35** (₹384.00 - ₹389.00) | Optimal entry post-retest confirmation |
-| **Structural Stop-Loss** | **₹372.90** | Below primary pivot level and daily 20-EMA cluster |
-| **Target Vector 1 (T1)** | **₹404.20** | Immediate swing resistance / 0.618 Fibonacci extension |
-| **Target Vector 2 (T2)** | **₹415.90** | Prior macro peak retest zone |
-| **Target Vector 3 (T3)** | **₹431.70** | Major 1.272 Uncharted Fibonacci Expansion Target |
-| **Risk / Reward Ratio** | **1 : 2.80 (to T3)** | Asymmetric institutional risk-reward profile |
+| **Setup Rating** | **10/10** | Perfect confluence of volatility contraction and momentum divergence |
+| **Recommended Entry** | **₹347.75** (or market dip to ₹344–346) | Immediate tactical deployment zone |
+| **Structural Stop Loss** | **₹333.70** | Tight risk boundary (-4.04% downside exposure) |
+| **Target Vector 1** | **₹360.80** | Minor swing high test (+3.75% return) |
+| **Target Vector 2** | **₹371.00** | Major dynamic channel resistance (+6.68% return) |
+| **Target Vector 3** | **₹384.00** | Full Pattern Expansion / Measured Move (+10.42% return) |
+| **Risk-to-Reward Ratio** | **1 : 2.58** (To Target Vector 3) | Highly asymmetric institutional trade profile |
 
 ---
 
 ### 2. Why Did the Stock Fall Earlier?
 
-NATIONALUM experienced significant cyclical drawdowns during previous macroeconomic transitions. The root causes of past sell-offs include:
+Quess Corp experienced a protracted valuation de-rating and stock price pullback over previous cycles due to five distinct operational and structural headwinds:
 
-1. **LME Aluminium Price Collapse**: Global London Metal Exchange (LME) aluminum spot prices dropped from peaks above $3,800/MT down to $2,100-$2,300/MT due to aggressive aggressive monetary tightening by global central banks, slowing growth in China, and European industrial cutbacks.
-2. **Severe Margin Compression via Power & Fuel Costs**: Coal supply shortages from Coal India forced NALCO to procure high-cost auction coal and imported coal, driving up power costs—which constitute ~35-40% of the total smelting cost base—and crushing operating EBITDA margins.
-3. **Delay in Captive Coal Block Operationalization**: Delays in securing clearances and land acquisition for the **Utkal D & E** coal blocks forced reliance on external fuel sources during peak input cost cycles.
-4. **Alumina Spot Price Weakness**: External sales of raw Alumina (a core profit driver for NALCO due to its world-class low refining cost) faced temporary realization slumps due to global refining capacity restarts and freight rate spikes.
-5. **Macro Cyclical Capital Outflows**: Foreign Institutional Investors (FIIs) aggressively de-risked from global cyclical materials and state-owned enterprises (SOEs) during elevated US dollar index ($DXY$) environments.
+1. **Foundit (Formerly Monster.com) Operating Cash Burn:**
+   Heavy capital deployment into the restructuring and digital transformation of Foundit drained consolidated operational cash flows. Marketing spend and product development dragged down overall group margins.
+2. **Global IT Staffing & BPO Headwinds:**
+   The Global Technology Solutions (GTS) and Professional Staffing arms faced acute margin compression due to the global tech slowdown, reduced hiring velocity among US/Europe IT clients, and high-margin bench costs.
+3. **Conglomerate Discount & Capital Allocation Friction:**
+   Investors heavily discounted the company due to its complex corporate structure—operating disparate units ranging from general staffing (low margin, high ROE) to facility management, industrial services, and loss-making digital platforms under a single balance sheet.
+4. **Post-COVID Wage Inflation & Statutory Margin Compression:**
+   Rising minimum wages combined with delayed contractual price pass-throughs to enterprise clients compressed operating margins (EBITDA margins fell from historical 5.5–6.0% levels down to ~4.5%).
+5. **Tax Audit & Section 80JJAA Uncertainty:**
+   Regulatory ambiguities surrounding the quantum and timing of tax deductions under Section 80JJAA created an overhang regarding historical tax liabilities, weighing on institutional fund inflows.
 
 ---
 
 ### 3. Has the Company Recovered?
 
-NATIONALUM has undergone a major fundamental turnaround driven by operational enhancements, captive raw material integration, and structural shifts in global aluminum supply dynamics.
+Yes. Quess Corp has executed a systematic turnaround, resolving key operational bottlenecks and sharpening its capital allocation framework through a landmark demerger strategy.
 
 ```
-OPERATIONAL & FINANCIAL RECOVERY PROFILE
-
-Metric / Driver           Prior Distress Level        Current Status              Recovery Trajectory
--------------------------------------------------------------------------------------------------------
-LME Realization           $2,100 - $2,250 / MT       $2,500 - $2,700 / MT        [██████████░░] Strong Rebound
-Utkal D Coal Block        Non-operational            Fully Operational           [████████████] Complete Integration
-Utkal E Coal Block        Clearance Stage            Mining In Progress          [████████░░░░] Scaling Up
-EBITDA Margins            11.5% - 14.2%              26.0% - 30.5%               [██████████░░] Significant Expansion
-Balance Sheet Debt        Net Debt Trajectory        Net Cash Positive           [████████████] De-risked
-5th Stream Refinery Capex Commissioning Delays       Near Completion (1.0 Mtpa)  [█████████░░░] Advanced Execution
++-----------------------------------------------------------------------------------+
+|                         QUESS CORP: RECOVERY MATRIX                               |
++----------------------------------+-----------------------+------------------------+
+| Metric / Pillar                  | Historical Stress     | Current Recovery Status|
++----------------------------------+-----------------------+------------------------+
+| 1. Foundit Cash Drain            | ~INR 25-30 Cr/Qtr Loss| Burn reduced >60%;     |
+|                                  |                       | Path to EBITDA breakeven|
++----------------------------------+-----------------------+------------------------+
+| 2. General Staffing Headcount    | ~380k Associates      | Record High >560k      |
+|                                  |                       | Market Share Expansion |
++----------------------------------+-----------------------+------------------------+
+| 3. Corporate Structure           | Complex Conglomerate  | 3-Way Demerger Value   |
+|                                  | Discount              | Unlocking Initiated    |
++----------------------------------+-----------------------+------------------------+
+| 4. Leverage Profile              | Moderate Debt / D/E   | Debt/Equity down to    |
+|                                  |                       | 10.66% (~0.11x)        |
++----------------------------------+-----------------------+------------------------+
+| 5. Free Cash Flow (FCF) Conversion| Suspended / Unstable  | FCF/EBITDA Target      |
+|                                  |                       | Re-anchored to >70%    |
++----------------------------------+-----------------------+------------------------+
 ```
 
-#### Key Recovery Indicators
-* **Power Cost Structural Reduction**: The operationalization of the Utkal D coal mine (and imminent ramp-up of Utkal E) guarantees low-cost captive coal supply to its 1,200 MW captive power plant, permanently driving down cash cost per tonne.
-* **Cost Curve Position**: NALCO retains its status as **one of the lowest-cost bauxite miners and alumina producers globally** (Panchpatmali mines), providing a robust margin cushion even during LME down-cycles.
-* **Debt De-leveraging**: Balance sheet leverage remains minimal, with a Debt-to-Equity ratio of **0.28**, backed by substantial cash reserves, enabling self-funded capital expenditure.
+*   **Debt Profile Normalization:** The leverage structure is exceptionally clean, with a **Debt-to-Equity ratio of 10.66% (0.11x)**, virtually eliminating financial leverage risk.
+*   **Margin Bottoming:** General Staffing headcount scale effects, along with price renegotiations in Facility Management (OAM), have stabilized EBITDA margins with an upward trajectory.
 
 ---
 
 ### 4. Latest News & Business Developments
 
-* **Operationalization of Utkal D & E Coal Mines**: Peak coal production capacity of 4 million tonnes per annum (MTPA) is coming online, eliminating high-cost external coal purchases and ensuring 100% fuel security for thermal power plants.
-* **5th Stream Alumina Refinery Expansion (Damanjodi)**: Brownfield expansion adding **1.0 MTPA capacity** to the existing 2.275 MTPA refinery is reaching advanced stages of commissioning, unlocking high-margin export volumes of hydrated alumina.
-* **Strategic Critical Mineral Overseas JV (KABIL)**: Khanij Bidesh India Ltd (KABIL), a JV among NALCO, HCL, and MECL, secured lithium exploration and mining blocks in Argentina (Catamarca province) and is actively negotiating asset acquisitions in Australia.
-* **High Dividend Yield & PSU Wealth Distribution**: NALCO continues its policy of maintaining payout ratios exceeding 40-50% of net profits, offering strong downside support via dividend yield.
+1. **Strategic 3-Way Corporate Demerger (Value Unlocking Catalyst):**
+   Quess Corp's board approved a comprehensive scheme of arrangement to demerge its operations into **three independent, pure-play listed entities**:
+   *   **Quess Corp Ltd** (Workforce Management - General & IT Staffing, Telecom Services).
+   *   **Digitactix Enterprises** (Global Technology Solutions, BPO, Insurtech, Foundit platform).
+   *   **Bluedart/Asset Equivalent Entity** (Operating Asset Management, Facility Management, Industrial Maintenance).
+   *   *Impact:* Eliminates the institutional conglomerate discount, allows focused capital allocation, and unlocks distinct valuation multiples for each business segment.
+
+2. **Aggressive Expansion in EMS and Manufacturing Staffing:**
+   Capitalizing on India’s Electronics Manufacturing Services (EMS) boom under the PLI scheme, Quess has added over 30,000 blue-collar associates in assembly, manufacturing, and logistics hubs over the past four quarters.
+
+3. **Foundit Platform Revamp & Monetization:**
+   Foundit’s Next-Gen AI recruitment platform launched across India and SE Asia, driving candidate match efficiency up by 40% and accelerating SaaS revenue growth while cutting CAC (Customer Acquisition Cost).
 
 ---
 
 ### 5. Fundamental Analysis
 
-| Parameter | Latest Value | Previous Value | Operational Interpretation | Actionable Take |
+```
+========================================================================================
+                          FUNDAMENTAL FINANCIAL SNAPSHOT
+========================================================================================
+```
+
+| Parameter | Latest Reported | Previous Year | Structural Interpretation | Analyst Action / Assessment |
 | :--- | :--- | :--- | :--- | :--- |
-| **Trailing P/E** | **10.25x** | 18.50x | Multiples compressed due to earnings growth outstripping price | Strongly Undervalued vs Historical |
-| **Forward P/E** | **10.01x** | 12.10x | Robust earnings visibility for upcoming FY | High Margin of Safety |
-| **Price to Book (P/B)** | **3.30x** | 2.10x | Re-rating driven by expansion in Return on Equity (ROE) | Justified by Cash Flow Quality |
-| **Debt to Equity (D/E)** | **0.28** | 0.35 | Conservative capital structure; debt manageable via cash flow | Minimal Solvency Risk |
-| **EV / EBITDA** | **5.85x** | 8.20x | Structural discount to global peer group (Alcoa, Hindalco) | Deep Value / Re-rating Potential |
-| **RoCE (%)** | **~24.5%** | ~14.2% | Efficiency gains from lower raw material and power costs | Superior Capital Efficiency |
+| **Trailing P/E** | **20.22x** | 28.5x | Re-rated downwards; attractive entry band | **Strong Buy** |
+| **Forward P/E** | **17.13x** | 21.4x | Factors in projected 18% EPS CAGR | **Accumulate** |
+| **Price-to-Book (P/B)** | **4.45x** | 4.80x | Reflects strong return on tangible equity | **Neutral-Positive** |
+| **Debt-to-Equity (D/E)** | **10.66%** | 18.20% | De-leveraged balance sheet; low interest drag | **Strong Positive** |
+| **Return on Equity (ROE)**| **~18.5%** | 14.20% | RoE expansion driven by asset-light scaling | **Outperform** |
+| **EBITDA Conversion** | **>72%** | 58.00% | High cash conversion capability | **High Quality** |
 
 ---
 
 ### 6. Shareholding Pattern
 
-Institutional ownership in NATIONALUM shows persistent domestic and foreign institutional accumulation over recent quarters, absorbing public float.
-
-| Stakeholder Category | Q3 FY24 (%) | Q4 FY24 (%) | Q1 FY25 (%) | Q2 FY25 (%) | Institutional Trajectory |
+| Stakeholder Category | Q3 FY24 (%) | Q4 FY24 (%) | Q1 FY25 (%) | Q2 FY25 (%) | QoQ Trend / Institutional Absorption |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Promoter (Govt of India)** | 51.28% | 51.28% | 51.28% | 51.28% | Stable sovereign backing; zero promoter pledge. |
-| **FII / FPI** | 11.82% | 12.45% | 14.10% | 15.62% | **Consistent Aggressive Inflows** (+380 bps). |
-| **DII (Mutual Funds/LIC)** | 18.15% | 18.90% | 19.25% | 19.88% | **Steady Accumulation** by domestic long-only funds. |
-| **Public / Retail** | 18.75% | 17.37% | 15.37% | 13.22% | Healthy rotation from retail to strong institutional hands. |
+| **Promoter Group** | 56.65% | 56.65% | 56.65% | 56.65% | Unpledged, absolute control stability |
+| **FII / FPI** | 15.80% | 16.10% | 16.35% | 16.52% | Continuous steady institutional accumulation |
+| **DII (Mutual Funds)** | 20.45% | 20.80% | 21.05% | 21.18% | Systematic buying by domestic long-only funds |
+| **Public / Retail** | 7.10% | 6.45% | 5.95% | 5.65% | Floating stock drying up; absorbed by smart money |
+| **Total** | **100.0%** | **100.0%** | **100.0%** | **100.0%** | High institutional ownership (~37.7%) |
 
 ---
 
 ### 7. Quarterly & Annual Financial Performance
 
-```
-FINANCIAL TRAJECTORY (Quarterly YoY Trend)
+#### Quarterly Financial Trend (INR Crores)
 
-Revenue (₹ Cr)           EBITDA Margin (%)         PAT (₹ Cr)
-  3,800 |                  32% |      *               1,000 |         *
-  3,400 |      *           28% |  *       *             800 |     *       *
-  3,000 |  *       *       24% |          2400          600 |  *       *
-  2,600 |________________  20% |_________________       400 |_______________
-         Q3FY24 Q4FY24 Q1FY25   Q3FY24 Q4FY24 Q1FY25         Q3FY24 Q4FY24 Q1FY25
-```
+| Financial Metric | Q2 FY24 | Q3 FY24 | Q4 FY24 | Q1 FY25 | YoY Growth (%) |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Consolidated Revenue** | ₹4,748 | ₹4,842 | ₹4,910 | ₹5,003 | **+9.1%** |
+| **EBITDA** | ₹168 | ₹181 | ₹192 | ₹204 | **+21.4%** |
+| **EBITDA Margin (%)** | 3.54% | 3.74% | 3.91% | 4.08% | **+54 bps** |
+| **Net Profit (PAT)** | ₹72 | ₹86 | ₹98 | ₹112 | **+55.5%** |
+| **Diluted EPS (₹)** | 4.85 | 5.79 | 6.60 | 7.54 | **+55.5%** |
 
-#### Detailed Financial Breakdown Table
+#### Annual Financial Trajectory (INR Crores)
 
-| Financial Metric | Q1 FY25 | Q4 FY24 | Q1 FY24 | YoY Growth (%) | QoQ Growth (%) | Institutional Take |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Net Revenues (₹ Cr)** | 3,579.05 | 3,579.00 | 3,178.36 | +12.61% | +0.00% | Volume-driven top-line stability |
-| **EBITDA (₹ Cr)** | 1,025.40 | 1,107.20 | 602.15 | **+70.29%** | -7.39% | Structural operating leverage in action |
-| **EBITDA Margin (%)** | **28.65%** | **30.93%** | **18.94%** | **+971 bps** | -228 bps | Expansion via low thermal power costs |
-| **Net Profit (PAT) (₹ Cr)**| 588.42 | 996.74 | 334.20 | **+76.07%** | -40.96% | High net margin conversion |
-| **Diluted EPS (₹)** | **3.20** | **5.42** | **1.82** | **+75.82%** | -40.96% | Strong bottom-line expansion |
+| Financial Metric | FY21 | FY22 | FY23 | FY24 | FY25E (Consensus) |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Total Revenue** | ₹10,837 | ₹13,692 | ₹17,158 | ₹19,100 | ₹21,350 |
+| **EBITDA** | ₹578 | ₹650 | ₹583 | ₹702 | ₹865 |
+| **EBITDA Margin (%)** | 5.33% | 4.75% | 3.40% | 3.68% | 4.05% |
+| **PAT** | ₹74 | ₹251 | ₹223 | ₹295 | ₹410 |
+| **EPS (₹)** | 5.01 | 16.94 | 15.03 | 19.89 | 27.65 |
 
 ---
 
 ### 8. Five-Year Financial Trend
 
-NATIONALUM has transitioned from a cyclical PSU subject to raw material shocks into an integrated low-cost cash generator.
-
-| Performance Indicator | FY20 | FY21 | FY22 | FY23 | FY24 | 5-Yr CAGR / Summary |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Revenue (₹ Cr)** | 8,472 | 8,956 | 14,181 | 14,255 | 13,149 | **+9.19% CAGR** |
-| **EBITDA (₹ Cr)** | 889 | 1,782 | 4,499 | 2,403 | 3,120 | **+28.54% CAGR** |
-| **EBITDA Margin (%)** | 10.49% | 19.90% | 31.72% | 16.86% | 23.73% | +13.24% Expansion |
-| **PAT (₹ Cr)** | 138 | 1,299 | 2,952 | 1,544 | 1,988 | **+70.52% CAGR** |
-| **ROCE (%)** | 2.1% | 14.8% | 32.4% | 15.1% | ~20.5% | Value Creation Zone (>15%) |
-| **Balance Sheet Debt** | Low | Low | Net Cash | Net Cash | Net Cash | Pristine Balance Sheet |
+*   **Top-line Compound Growth (5-Yr Revenue CAGR):** **14.2%**, illustrating structural market share dominance in organized staffing.
+*   **Operating Margin Dynamics:** Margins bottomed in FY23 (3.40%) due to Foundit burn and tech sector bench costs. FY24–FY25 marks a margin expansion trajectory toward 4.2%+.
+*   **ROCE Trajectory:** Capital Efficiency is recovering from a low of 11.2% in FY23 to projected levels of **>19.5% in FY25**, driven by asset-light staffing client additions.
+*   **Balance Sheet Strength:** Working capital cycles have stabilized at ~21 days. Cash flow conversion remains high, supporting consistent dividend payouts.
 
 ---
 
 ### 9. Valuation Summary
 
-NATIONALUM trades at an attractive multiple matrix relative to its history, profitability profile, and asset replacement cost.
+At the current market price of **₹347.75**, Quess Corp trades at a **Trailing P/E of 20.22x** and a **Forward P/E of 17.13x**, representing a discount of ~25% compared to its 5-year historical average P/E band (26.5x) and peer TeamLease Services (~32x Forward P/E).
 
 ```
-HISTORICAL P/E BAND ANALYSIS
-
-P/E Multiple
-25.0x |--------------------------------------------------- (Historic Peak: Peak Cycle)
-20.0x |
-15.0x |--------------------------------------------------- (10-Yr Historical Mean: 14.8x)
-10.2x |==================== CMP: 10.25x =================== (Current Trading Level)
- 5.0x |--------------------------------------------------- (Trough Valuation)
-      |___________________________________________________
+VALUATION BAND & SOTP BREAKDOWN (POST-DEMERGER PROJECTION)
+========================================================================================
+Segment                          Valuation Basis         Value/Share (INR)
+----------------------------------------------------------------------------------------
+1. Workforce Management (WFM)    18x FY26E EV/EBITDA     INR 265.00
+2. Operating Asset Mgmt (OAM)   14x FY26E EV/EBITDA     INR 95.00
+3. Global Tech Solutions (GTS)   2.5x EV/Sales           INR 70.00
+----------------------------------------------------------------------------------------
+Gross Sum-of-the-Parts (SOTP) Value                      INR 430.00
+Holding Company Discount (Post-Demerger: 0%)             INR 0.00
+========================================================================================
+Implied Target Fair Value                                INR 430.00 (+23.6% Upside)
+Current Tactical Breakout Target Vector 3                INR 384.00
+========================================================================================
 ```
-
-#### Valuation Methodologies & Targets
-
-* **Historical P/E Band Discount**: At **10.25x TTM P/E**, NATIONALUM trades at a ~30% discount to its 10-year average P/E of 14.8x, despite higher operating margins and balance sheet strength.
-* **Replacement Cost Model**: Constructing an integrated 2.27 MTPA Alumina refinery and 0.46 MTPA Smelter along with 1,200 MW thermal power capacity today would cost **>₹35,000 Cr**. NALCO’s Enterprise Value (EV) stands at a deep discount to its true greenfield replacement value.
-* **Fair Value Target Vector**: Assigning a conservative 12.0x Forward P/E multiple on projected FY26E EPS of ₹36.0 yields a fundamental fair value of **₹432.00**, aligning with our technical Target Vector 3 (₹431.70).
 
 ---
 
 ### 10. Key Risks
 
 ```
-RISK MATRIX & INSTITUTIONAL MITIGATION PROFILE
-
-Risk Category        Severity Index    Likelihood    Mitigation Factor / Sovereign Buffer
-------------------------------------------------------------------------------------------------------
-LME Price Slump      [████████░░] High   Medium      Lowest quartile global cost curve for Alumina.
-Coal Supply Shock    [██████░░░░] Med    Low         Utkal D & E captive coal integration operational.
-Currency Volatility  [████░░░░░░] Med    Medium      Net exporter; USD appreciation provides natural hedge.
-Capex Delay          [██████░░░░] Med    Medium      Brownfield expansions managed via internal cash flows.
-Export Duty / Tariffs[████░░░░░░] Low    Low         Domestic demand in India growing at 8-10% CAGR.
++-----------------------------------------------------------------------------------+
+|                            RISK MATRIX & MITIGANTS                                |
++-----------------------+-------------+---------------------------------------------+
+| Risk Factor           | Risk Rating | Mitigation Strategy                         |
++-----------------------+-------------+---------------------------------------------+
+| Macro Labor Slowdown  | MODERATE    | Diversification across Manufacturing, EMS,  |
+|                       | [Medium]    | Telecom, and BFSI sectors.                  |
++-----------------------+-------------+---------------------------------------------+
+| IT Hiring Sluggishness| MODERATE    | Transition to high-value specialized IT     |
+|                       | [Medium]    | staffing & Global Capability Center (GCC) s.|
++-----------------------+-------------+---------------------------------------------+
+| Demerger Execution    | LOW         | Regulatory approvals progressing on schedule|
+| Delay                 | [Low]       | under NCLT framework.                       |
++-----------------------+-------------+---------------------------------------------+
+| Regulatory Changes in | LOW         | Quess benefits from formalization driven    |
+| Labor Codes           | [Low]       | by streamlined National Labor Codes.        |
++-----------------------+-------------+---------------------------------------------+
 ```
 
 ---
 
 ### 11. Key Growth Triggers
 
-* **Utkal D & E Coal Block Ramp-up**: Expected to save substantial power costs per tonne of aluminum produced, directly enhancing EBITDA margins by 250-300 bps.
-* **1.0 MTPA Alumina Refinery Commissioning**: Boosts high-margin alumina export volumes, taking total alumina capacity to **3.275 MTPA**.
-* **Global Aluminum Structural Deficit**: Capacity caps in China (45 MT ceiling due to environmental norms) limit global supply growth, keeping benchmark LME prices elevated.
-* **Domestic Infrastructure & EV Surge**: Rapid growth in Indian power transmission (conductors), automotive (EV lightweighting), building & construction, and solar panel structures driving domestic aluminum demand at a ~9% CAGR.
-* **KABIL Strategic Value Realization**: Strategic international acquisitions in critical battery materials (Lithium) offer optionality for structural multi-year re-rating.
+*   **Demerger Value Unlocking:** The upcoming three-way corporate split will eliminate conglomerate discount overhangs, encouraging segment-specific institutional re-ratings.
+*   **Formalization of Indian Workforce:** Organized staffing penetration in India remains under 1.5% (vs 3-4% in developed markets), offering a decade-long runway for headcount expansion.
+*   **EMS & Production-Linked Incentive (PLI) Tailwinds:** Rapid blue-collar headcount additions in electronics assembly, automotive manufacturing, and supply-chain logistics.
+*   **Foundit Turning Cash-Flow Positive:** Reduced operational drag from Foundit will directly improve consolidated operating EBITDA margins.
+*   **Operating Leverage in GTS:** Expansion into GCC setup consulting and high-margin BPO enterprise workflows.
 
 ---
 
 ### 12. Final Scorecard
 
-| Assessment Category | Weight | Score (out of 10) | Institutional Evaluation Commentary |
+| Assessment Category | Allocated Weight | Score (/10) | Institutional Rationale |
 | :--- | :--- | :--- | :--- |
-| **Technical Setup** | 10% | **10.0 / 10** | Pristine Stage 2 Breakout Retest on all timeframes |
-| **Earnings Momentum** | 10% | **9.0 / 10** | YoY EBITDA up >70%; structural expansion intact |
-| **Cost Curve Positioning** | 10% | **9.5 / 10** | Lowest-cost bauxite producer globally; captive coal operational |
-| **Valuation Discount** | 10% | **9.0 / 10** | Trades at ~10x P/E; deep discount to replacement cost |
-| **Balance Sheet Strength** | 10% | **9.5 / 10** | Low debt (D/E: 0.28), high net cash generator |
-| **Return Profile (RoCE)** | 10% | **8.5 / 10** | RoCE expanding >20% on improved input economics |
-| **Institutional Flow** | 10% | **9.0 / 10** | Persistent FII/DII accumulation over 4 consecutive quarters |
-| **Management & Governance** | 10% | **8.0 / 10** | Solid PSU execution; high dividend payout discipline |
-| **Industry Tailwinds** | 10% | **8.5 / 10** | China supply cap + Indian infra/EV volume demand |
-| **Capex Execution Visibility**| 10% | **8.5 / 10** | 5th Stream refinery & Utkal coal assets de-risking business |
-| **OVERALL TOTAL SCORE** | **100%** | **89.5 / 100** | **STRONG BUY / CONVICTION ACCUMULATION** |
+| **Technical Setup / Price Action** | 10% | **10.0/10** | Pre-Breakout Coil Squeeze + Positive RSI Divergence |
+| **Earnings Momentum & Growth** | 10% | **8.5/10** | Consolidated PAT expanded >50% YoY |
+| **Valuation Comfort** | 10% | **9.0/10** | Forward P/E of 17.13x trades at a sharp peer discount |
+| **Balance Sheet & Debt Profile** | 10% | **9.5/10** | D/E at a pristine 10.66% (~0.11x equity) |
+| **Capital Allocation History** | 10% | **8.5/10** | Demerger unlocks value; disciplined FCF conversion |
+| **Promoter & Institutional Backing**| 10% | **9.0/10** | Combined FII + DII holding high at ~37.7% |
+| **Competitive Moat / Scale** | 10% | **9.5/10** | Largest private recruiter in India (>560k associates) |
+| **Margin Expansion Potential** | 10% | **8.0/10** | Foundit drag fading; higher-margin IT/EMS expansion |
+| **Corporate Governance** | 10% | **9.0/10** | Transparent reporting and clear corporate split strategy |
+| **Macro / Sector Structural Tailwinds**| 10% | **9.5/10** | Formalization of labor market and domestic PLI boom |
+| **OVERALL TOTAL SCORE** | **100%** | **90.5 / 100** | **CONVICTION BUY (EXCELLENT)** |
 
 ---
 
 ### 13. Final Investment View
 
-| Horizon | Tactical Action | Price Target | Stop Loss | Core Thesis / Structural Trigger |
+| Horizon | Recommendation | Target Price (INR) | Stop Loss (INR) | Tactical Execution Strategy |
 | :--- | :--- | :--- | :--- | :--- |
-| **Swing (1-8 Weeks)** | **Aggressive Buy** | **₹404.20** | ₹372.90 | Retest completion; momentum continuation toward immediate Fibonacci pivot. |
-| **Short Term (1-3 Months)**| **Accumulate** | **₹415.90** | ₹372.90 | Re-testing prior macro peak with institutional volume backing. |
-| **Medium Term (6-12M)** | **Strong Buy** | **₹431.70** | ₹350.00 | Full operational integration of Utkal D&E coal and 5th stream refinery. |
-| **Long Term (2-5 Years)** | **Core Hold** | **₹550.00+** | ₹300.00 | Structural re-rating via global supply deficit, KABIL lithium assets, and sustained RoCE. |
+| **Swing (1–8 Weeks)** | **TACTICAL BUY** | **₹360.80 / ₹371.00** | **₹333.70** | Buy at CMP (₹347.75) with dynamic trailing stop |
+| **Short Term (1–3 Months)**| **MOMENTUM BUY** | **₹384.00** | **₹333.70** | Ride pattern expansion move on volume breakout |
+| **Medium Term (6–12M)** | **OUTPERFORM** | **₹430.00** | **₹318.00** | Hold through formal Demerger court process |
+| **Long Term (2–5 Years)** | **STRUCTURAL BUY** | **₹550.00+** | **₹290.00** | Accumulate as pure-play staffing leader |
 
 ---
 
 ### 14. Executive Summary
 
-* **Investment Verdict**: **HIGH CONVICTION ACCUMULATION**. NATIONALUM (NSE: NATIONALUM) offers an asymmetric combination of a textbook **10/10 technical breakout retest** setup alongside strong fundamental earnings momentum.
-* **Technical Setup**: Trading at **₹388.35**, the stock has completed a low-volume retest of its structural resistance-turned-support. A tight risk envelope is defined by a **Structural SL at ₹372.90**, targeting **₹404.20 / ₹415.90 / ₹431.70**.
-* **Fundamental Engine**: The operationalization of the **Utkal D & E captive coal blocks** provides 100% fuel security, structurally reducing cash production costs. Simultaneously, the imminent commissioning of the **1.0 MTPA 5th Stream Alumina expansion** drives volume growth into a tight global aluminum market.
-* **Valuation Cushion**: At **10.01x Forward P/E** and **5.85x EV/EBITDA**, NATIONALUM trades at a ~30% discount to its historical median multiple and a fraction of its asset replacement cost, underpinned by institutional accumulation (FII stake expanding to 15.62%).
-* **Bottom Line**: Capitalize on current entry levels at ₹388.35 to build long positions targeting **₹431.70**, maintaining strict risk management at **₹372.90**.
+Quess Corp (NSE: QUESS) offers an attractive tactical and fundamental risk-reward opportunity at its current price of **₹347.75**. 
 
----
+1. **Tactical Precision Setup:** The stock has generated a **Score 10/10 Technical Squeeze** featuring a tight Pre-Breakout Coil structure coupled with a strong **Positive RSI Divergence (+RSI Div)**. With a **Structural Stop Loss at ₹333.70** (-4.04% risk), the upside targets of **₹360.80 / ₹371.00 / ₹384.00** offer an asymmetric Risk-to-Reward ratio of **1 : 2.58**.
+2. **Fundamental Value Unlocking:** The approved **3-way corporate demerger** splits the company into independent Workforce Management, Operating Asset Management, and Tech Solutions entities. This initiative directly addresses the conglomerate discount overhang and provides structural re-rating catalysts.
+3. **Improving Fundamentals:** Supported by a robust balance sheet (**D/E of 10.66%**), strong earnings trajectory (**55.5% YoY PAT growth** in recent quarters), and scale benefits across >560,000 associate headcounts, Quess Corp presents an appealing risk/reward profile for both swing traders and institutional long-term portfolios.
 
-# Detailed Stock Analysis: ROLEXRINGS (NSE: ROLEXRINGS)
-
----
-
-### 1. Technical Analysis
-
-Rolex Rings Limited displays a classic **Pre-Breakout Coil** with a high-conviction **Positive RSI Divergence** on the daily chart. Price action has contracted into a tight consolidation channel near structural base support, while the daily RSI (14) has logged higher lows against flat-to-lower price lows—indicating aggressive institutional absorption prior to momentum expansion.
-
-```
-+-----------------------------------------------------------------------------------+
-|                            MULTI-TIMEFRAME TREND ANALYSIS                         |
-+-------------+---------------------+-------------------+---------------------------+
-| Timeframe   | Structural Trend    | Stage Analysis    | Key Technical Level       |
-+-------------+---------------------+-------------------+---------------------------+
-| Monthly     | Secular Uptrend     | Stage 2 Markup    | Major Base: ₹162.0        |
-| Weekly      | Consolidation / Coil| Stage 1 Base      | Dynamic 20-EMA: ₹178.2    |
-| Daily       | Bullish Reversal    | Pre-Breakout Coil | Pivotal Support: ₹173.4   |
-+-------------+---------------------+-------------------+---------------------------+
-```
-
-```
-+-----------------------------------------------------------------------------------+
-|                         TECHNICAL DRAFT PARAMETERS TABLE                          |
-+--------------------------+--------------------------------------------------------+
-| Parameter                | Value / Execution Level                                |
-+--------------------------+--------------------------------------------------------+
-| Technical Setup Type     | 💥 Pre-Breakout Coil (📉 +RSI Div)                     |
-| Conviction Score         | 10 / 10                                                |
-| Current Market Price     | ₹180.6                                                 |
-| Recommended Entry Zone   | ₹179.5 – ₹181.0                                        |
-| Structural Stop-Loss     | ₹173.4 (Risk: ₹7.2 / -3.98%)                           |
-| Target Vector 1          | ₹189.1 (+4.70% | Risk-Reward: 1:1.18)                  |
-| Target Vector 2          | ₹195.5 (+8.25% | Risk-Reward: 1:2.07)                  |
-| Target Vector 3          | ₹204.0 (+12.96% | Risk-Reward: 1:3.25)                 |
-| RSI (14-Day)             | 52.4 (Higher Low Divergence vs Price Action)           |
-| Volume Profile           | Institutional accumulation visible at ₹176.5–₹179.0    |
-+--------------------------+--------------------------------------------------------+
-```
-
-#### Volume Profile & Momentum Interpretation
-- **Coil Structure:** The multi-session price consolidation between ₹176.0 and ₹181.5 shows volatility compression (ATR narrowing), characteristic of institutional inventory building.
-- **RSI Divergence:** Between recent swing lows, price touched lower boundaries while RSI printed higher troughs, signaling exhaustion among short sellers and passive buying by institutional desks.
-- **Volume Profile:** The Point of Control (POC) over the 30-day lookback sits at ₹178.50, establishing strong structural support right below the entry point. Volume expansion on green candles confirms quiet accumulation.
-
----
-
-### 2. Why Did the Stock Fall Earlier?
-
-The prior cyclical sell-off and price consolidation from previous peak levels were driven by four distinct headwinds:
-
-1. **European Automotive & Industrial Slowdown:**
-   A significant portion of Rolex Rings' export revenue originates from European Tier-1 automotive and industrial OEMs. Stagnant industrial output, high energy costs in Germany, and destocking cycles across European auto supply chains depressed export volumes.
-
-2. **Freight Costs & Supply Chain Distortions:**
-   Red Sea shipping disruptions and elevated container freight rates temporarily squeezed export realization margins and led to working capital stretch across export-heavy auto-component manufacturers.
-
-3. **Pass-Through Lag on Steel Raw Material Prices:**
-   Fluctuations in special alloy steel prices led to short-term margin contraction. While contract terms allow raw material cost pass-throughs, a 30-to-90-day execution lag suppressed quarterly EBITDA margins during falling/volatile steel cycles.
-
-4. **EV Transition Uncertainty in Passenger Vehicles:**
-   Market anxiety surrounding the rapid transition to Electric Vehicles (EVs) led to structural derating across classical ICE (Internal Combustion Engine) powertrain component manufacturers. Rolex Rings was caught in this broad-brush sector de-rating before proving its capability to supply EV-neutral bearing rings.
-
----
-
-### 3. Has the Company Recovered?
-
-Rolex Rings has demonstrated a structural turnaround across operational metrics, operational efficiency, and balance sheet strength.
-
-```
-+-----------------------------------------------------------------------------------+
-|                        RECOVERY & TRACKING MATRIX                                 |
-+----------------------+--------------------+--------------------+------------------+
-| Metric               | Trough Phase       | Current Status     | Recovery Stage   |
-+----------------------+--------------------+--------------------+------------------+
-| EBITDA Margin %      | 17.5% - 18.2%      | 21.5% - 22.8%      | Complete         |
-| Debt / Equity        | > 0.45x            | ~0.05x (Near Zero) | Complete         |
-| Revenue Mix (EV/Hyb) | < 3%               | ~10% - 12%         | Accelerating     |
-| Export Volume Realiz.| Sluggish           | Rebounding         | Mid-Stage        |
-| Return on Capital    | Compressed         | ROCE > 20%         | Strong Recovery  |
-+----------------------+--------------------+--------------------+------------------+
-```
-
-- **Deleveraging Milestones:** The company has systematically retired high-cost legacy debt using internal cash flows, converting its balance sheet into a net-cash/near debt-free asset.
-- **Product Mix Shift:** Shifted capacity toward heavy industrial bearing rings, renewable energy forged rings, and EV transmission rings, mitigating exposure to basic ICE engine components.
-- **Cost Structure:** Captive solar power plant commissioning has permanently lowered per-unit energy costs, protecting operating margins against inflation.
-
----
-
-### 4. Latest News & Business Developments
-
-- **Capacities Expansion in Heavy Industrial Forgings:** Added new automated press lines aimed at manufacturing larger-diameter bearing rings used in wind energy, railways, and off-highway heavy machinery.
-- **EV & Hybrid Order Wins:** Secured long-term supply contracts with premier global Tier-1 automotive suppliers for specialized, lightweight EV bearing rings and transmission components.
-- **Captive Renewable Power Boost:** Fully operationalized captive solar power facilities, reducing grid electricity dependence and driving down power and fuel expense as a percentage of sales by 150-200 bps.
-- **China+1 & Europe Diversification Catalyst:** Global OEMs are actively expanding vendor bases outside China and Western Europe, positioning Rolex Rings as a primary beneficiary due to its integrated forging and machining capabilities.
-
----
-
-### 5. Fundamental Analysis
-
-```
-| Parameter | Latest (TTM / Current) | Previous Year | Interpretation | Analyst Action |
-| :--- | :--- | :--- | :--- | :--- |
-| **Trailing P/E** | 31.72x | 36.50x | Valuations normalized post earnings growth | **Accumulate** |
-| **Forward P/E** | 19.98x | 25.10x | Sharp earnings acceleration priced for FY26 | **Strong Buy** |
-| **Price to Book (P/B)** | 4.05x | 4.60x | Asset-rich balance sheet with expanding ROE | **Neutral-Positive** |
-| **Debt to Equity** | ~0.05x | 0.12x | Near debt-free status; minimal solvency risk | **High Conviction** |
-| **EBITDA Margin** | 22.1% | 19.8% | Margin expansion driven by higher machining mix | **Positive** |
-| **Asset Turnover** | 1.15x | 1.05x | Higher capacity utilization across press lines | **Positive** |
-```
-
----
-
-### 6. Shareholding Pattern
-
-```
-| Category | Q3 FY24 (%) | Q4 FY24 (%) | Q1 FY25 (%) | Q2 FY25 (%) | QoQ Trend / Institutional Absorption |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **Promoters** | 57.03 | 57.03 | 57.03 | 57.03 | Stable; no pledge risk |
-| **FIIs / FPIs** | 7.85 | 8.12 | 8.45 | 8.90 | Consistent institutional accumulation |
-| **DIIs (Mutual Funds)** | 23.10 | 23.45 | 23.80 | 24.15 | Steady absorption by domestic funds |
-| **Public / Others** | 12.02 | 11.40 | 10.72 | 9.92 | Strong hands migration (Retail shakeout) |
-```
-
-*Key Insight:* Continuous migration of equity from retail holders into the hands of Domestic Mutual Funds (DII) and Foreign Portfolio Investors (FII) over four consecutive quarters, setting up a tight supply float favorable for a price expansion.
-
----
-
-### 7. Quarterly & Annual Financial Performance
-
-```
-| Financial Metric | Q2 FY24 | Q3 FY24 | Q4 FY24 | Q1 FY25 | Q2 FY25 | YoY Growth (%) |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Net Revenue (₹ Cr)** | 298.5 | 310.2 | 325.4 | 338.1 | 352.6 | **+18.1%** |
-| **EBITDA (₹ Cr)** | 62.1 | 66.4 | 71.2 | 75.1 | 79.3 | **+27.7%** |
-| **EBITDA Margin (%)** | 20.8% | 21.4% | 21.9% | 22.2% | 22.5% | **+170 bps** |
-| **PAT (₹ Cr)** | 42.5 | 45.8 | 49.3 | 52.6 | 55.8 | **+31.3%** |
-| **EPS (₹)** | 1.56 | 1.68 | 1.81 | 1.93 | 2.05 | **+31.4%** |
-```
-
----
-
-### 8. Five-Year Financial Trend
-
-- **Revenue CAGR (5-Yr):** ~15.2% – Driven by steady market share gains in forged bearing rings and expanded machining capacities.
-- **PAT CAGR (5-Yr):** ~28.5% – Driven by aggressive deleveraging, operational efficiency, lower interest outgo, and margin enhancement.
-- **ROCE Trajectory:** Expanded from sub-12% levels during the debt-restructuring phase to **>20%** consistently over the past 3 years.
-- **Free Cash Flow Conversion:** Operating cash flows (OCF) to EBITDA ratio sustained above **75%**, supporting ongoing organic capex without leveraging the balance sheet.
-
----
-
-### 9. Valuation Summary
-
-Rolex Rings trades at a **Trailing P/E of 31.72x** and a compelling **Forward P/E of 19.98x**, representing a substantial discount compared to peer precision forging and component manufacturers (which trade in the range of 35x–48x Forward P/E). 
-
-- **Historical P/E Band:** Multi-year average sits around 28.5x.
-- **P/B Multiple:** 4.05x against high return metrics (ROCE > 20%), rendering the balance sheet quality exceptionally high.
-- **Fair Value Projection:** Based on a conservative FY26 EPS estimates and a mean-reverting multiple of 26.0x Forward P/E, the baseline intrinsic valuation yields a target of **₹225 - ₹240**, indicating substantial room above current market prices (CMP ₹180.6).
-
----
-
-### 10. Key Risks
-
-```
-+-----------------------------------------------------------------------------------+
-|                            INSTITUTIONAL RISK MATRIX                              |
-+--------------------------+--------+-------------+-------+-------------------------+
-| Risk Factor              | Impact | Probability | Score | Mitigation Factor       |
-+--------------------------+--------+-------------+-------+-------------------------+
-| Global EU Recess. Drag   | High   | Medium      | 6/10  | Industrial mix expansion|
-| Raw Material Volatility  | Medium | Medium      | 5/10  | Quarterly pass-through  |
-| Forex Rate Fluctuations  | Medium | Low         | 3/10  | Active hedging policies |
-| Concentrated Client Base | High   | Low         | 4/10  | New Tier-1 client adds  |
-+--------------------------+--------+-------------+-------+-------------------------+
-```
-
----
-
-### 11. Key Growth Triggers
-
-- **Rising Machined Component Share:** Transitioning from selling raw/semi-processed forgings to high-value fully machined bearing rings, increasing value addition per ton by 30-40%.
-- **EV & Hybrid Structural Tailwinds:** Bearing rings are application-agnostic and required in EV drivetrains, motors, and wheel hubs. EV transition presents net-content gains per vehicle.
-- **Export Demand Rebound:** Stabilization in European industrial supply chains and growth in North American auto assemblies.
-- **Operating Leverage:** Capacity expansion across press lines without proportional fixed overhead growth will directly boost operating margins.
-
----
-
-### 12. Final Scorecard
-
-```
-| Category | Score (/10) | Institutional Evaluation Commentary |
-| :--- | :--- | :--- |
-| **Technical Chart Setup** | 10 / 10 | Clean Pre-Breakout Coil with positive RSI divergence |
-| **Earnings Momentum** | 9 / 10 | Consistent double-digit QoQ & YoY profit expansion |
-| **Balance Sheet Quality** | 9.5 / 10 | Near debt-free balance sheet; high cash conversion |
-| **Return Profile (ROCE/ROE)**| 9 / 10 | ROCE maintained steadily above >20% benchmark |
-| **Valuation Margin of Safety**| 8.5 / 10 | Forward P/E of 19.98x provides strong valuation upside |
-| **Promoter Quality & Governance**| 8 / 10 | Stable promoter holding with clean track record post-IPO |
-| **Institutional Absorption** | 9 / 10 | Steady accumulation by domestic MFs and FIIs |
-| **Sector / Secular Tailwinds** | 8.5 / 10 | Beneficiary of China+1 diversification and global OEM sourcing |
-| **Competitive Moat** | 8.5 / 10 | Key supplier status with Tier-1 automotive/industrial global majors |
-| **Risk-Reward Ratio** | 9.5 / 10 | Asymmetric R:R setup (Risking ~₹7.2 for ₹23.4+ upside) |
-| **OVERALL COMPOSITE SCORE** | **89.5 / 100**| **HIGH CONVICTION ACCUMULATION GRADE** |
-```
-
----
-
-### 13. Final Investment View
-
-```
-| Horizon | Strategy / Action | Recommended Allocation | Target Levels | Stop-Loss Level | Key Focus |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **Swing (1 - 8 Weeks)** | Strong Buy | Tactical (3-5%) | **₹189.1 / ₹195.5** | **₹173.4** | Technical Coil Breakout |
-| **Short Term (1 - 3 Months)**| Accumulate on Dips | Tactical (5-7%) | **₹204.0** | **₹171.0** | Momentum Expansion |
-| **Medium Term (6 - 12 Months)**| Core Hold | Portfolio (8-10%) | **₹235.0** | **₹162.0** | Forward Earnings Realization |
-| **Long Term (2 - 5 Years)** | Structural Compounder| Portfolio (10-12%)| **₹300.0+** | **₹145.0** | Value Addition & EV Wins |
-```
-
----
-
-### 14. Executive Summary
-
-- **Verdict:** **HIGH CONVICTION BUY**
-- **Setup Score:** **10 / 10** (💥 Pre-Breakout Coil with Daily Positive RSI Divergence)
-- **Key Investment Thesis:** Rolex Rings (NSE: ROLEXRINGS) presents an asymmetric risk-reward proposition at the current price level of **₹180.6**. The stock exhibits structural volatility compression right above major support (₹173.4), validated by higher lows on the RSI indicator and steady institutional accumulation.
-- **Fundamentals:** Supported by a near debt-free balance sheet, expanding EBITDA margins (22.5%), high capital efficiency (ROCE > 20%), and an attractive Forward P/E of **19.98x**, the stock provides margin of safety alongside cyclical and secular earnings catalysts.
-- **Execution Plan:** Initiate primary positions in the **₹179.5 – ₹181.0** zone with a strict structural stop-loss at **₹173.4**. Phase target vectors are placed at **₹189.1**, **₹195.5**, and **₹204.0**, with a medium-term structural target of **₹235.0+**.
+**Institutional Bottom-Line Verdict:** **CONVICTION BUY**  
+**Immediate Position Entry:** ₹347.75 | **Structural Risk Limit:** ₹333.70 | **Tactical Objective:** ₹384.00 | **SOTP Fair Value:** ₹430.00

@@ -1,4 +1,4 @@
-# ⚡ Intraday Report (Top 25) — 18 Aug 2026 | 10:26 AM (Intraday)
+# ⚡ Intraday Report (Top 25) — 18 Aug 2026 | 11:29 AM (Intraday)
 
 > **System:** 1200+ Mega Universe + Clean Cash vs F&O Separation
 
@@ -6,13 +6,8 @@
 
 | # | Index Signal | Price | Option | Buy Above | Targets | SL |
 | :--- | :--- | :---: | :---: | :---: | :---: | :---: |
-| 1 | **NIFTY 50 Bearish (Put)** | ₹24216.9 | **24200 PE** | ₹87.52 | T1: ₹97.6<br>T2: ₹108.6<br>T3: ₹120.2<br>T4: ₹132.5<br>T5: ₹145.5+ | ₹75.8 |
-| 2 | **BANK NIFTY Bearish (Put)** | ₹57310.3 | **57300 PE** | ₹157.08 | T1: ₹195.6<br>T2: ₹239.3<br>T3: ₹288.2<br>T4: ₹341.8<br>T5: ₹399.7+ | ₹116.4 |
+| 1 | **NIFTY 50 Bearish (Put)** | ₹24182.75 | **24200 PE** | ₹104.03 | T1: ₹115.2<br>T2: ₹127.1<br>T3: ₹139.7<br>T4: ₹153.0<br>T5: ₹166.9+ | ₹91.1 |
+| 2 | **BANK NIFTY Bearish (Put)** | ₹57248.5 | **57200 PE** | ₹139.22 | T1: ₹173.7<br>T2: ₹213.2<br>T3: ₹257.5<br>T4: ₹306.6<br>T5: ₹360.0+ | ₹103.0 |
 
 ---
 
-## 📊 Validated Setups & Options
-
-| # | Stock | Setup Type | Price | Score | Qty | Risk | Execution Strategy & Targets |
-| :--- | :--- | :--- | :---: | :---: | :---: | :---: | :--- |
-| 1 | **GNFC (↑)** | 🚀 Volume Breakout (⭐ 2x Size) | ₹612.15 | 🔥 9/10 | 163 | ₹2029.35 | <b>Equity Targets:</b> T1:₹632.9 // T2:₹648.1 // T3:₹668.8<br><b>Option:</b> 610 CE (Buy > ₹17.04)<br><b>Opt Targets:</b> T1:₹30.6 // T2:₹42.9 // T3:₹61.6 |
