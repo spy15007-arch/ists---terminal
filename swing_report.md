@@ -1,4 +1,4 @@
-# 📈 Swing Trade Retest Report (Top 25) — 19 Aug 2026 | 03:24 PM (BTST/Afternoon)
+# 📈 Swing Trade Retest Report (Top 25) — 19 Aug 2026 | 04:28 PM (BTST/Afternoon)
 
 > **System:** 1200+ Mega Universe + Clean Cash vs F&O Separation
 
@@ -6,8 +6,6 @@
 
 | # | Stock | Setup Type | Price | Score | Qty | Risk | Execution Strategy & Targets |
 | :--- | :--- | :--- | :---: | :---: | :---: | :---: | :--- |
-| 1 | **NATIONALUM (↑)** | 🔄 Breakout Retest | ₹385.0 | 🔥 10/10 | 259 | ₹3936.8 | <b>Equity Targets:</b> T1:₹400.7 // T2:₹412.4 // T3:₹428.1<br><b>Option:</b> 385 CE (Buy > ₹9.34)<br><b>Opt Targets:</b> T1:₹19.8 // T2:₹29.6 // T3:₹44.5 |
-| 2 | **REDINGTON (↑)** | 🔄 Breakout Retest | ₹334.35 | 🔥 9/10 | 299 | ₹5097.95 | <b>Mode:</b> Cash Equity Only<br><b>Equity Targets:</b> T1:₹352.9 // T2:₹366.5 // T3:₹385.0 |
-| 3 | **CHOLAFIN (↑)** | 🔄 Breakout Retest | ₹1864.7 | 🔥 9/10 | 53 | ₹2936.2 | <b>Equity Targets:</b> T1:₹1917.7 // T2:₹1957.5 // T3:₹2010.4<br><b>Option:</b> 1860 CE (Buy > ₹37.96)<br><b>Opt Targets:</b> T1:₹73.8 // T2:₹107.3 // T3:₹156.9 |
-| 4 | **LAURUSLABS (↑)** | 🔄 Breakout Retest | ₹1805.5 | 🔥 9/10 | 55 | ₹2618.0 | <b>Equity Targets:</b> T1:₹1858.6 // T2:₹1897.6 // T3:₹1950.7<br><b>Option:</b> 1800 CE (Buy > ₹35.11)<br><b>Opt Targets:</b> T1:₹72.0 // T2:₹105.8 // T3:₹156.5 |
-| 5 | **STLTECH (↑)** | 🔄 Breakout Retest | ₹621.95 | 🔥 8/10 | 160 | ₹6264.0 | <b>Mode:</b> Cash Equity Only<br><b>Equity Targets:</b> T1:₹657.0 // T2:₹683.6 // T3:₹718.6 |
+| 1 | **HINDALCO (↑)** | 🔄 Breakout Retest | ₹1038.95 | 🔥 10/10 | 96 | ₹2760.0 | <b>Equity Targets:</b> T1:₹1066.6 // T2:₹1087.3 // T3:₹1114.9<br><b>Option:</b> 1040 CE (Buy > ₹21.4)<br><b>Opt Targets:</b> T1:₹38.8 // T2:₹55.0 // T3:₹79.6 |
+| 2 | **REDINGTON (↑)** | 🔄 Breakout Retest | ₹335.05 | 🔥 9/10 | 298 | ₹5080.9 | <b>Mode:</b> Cash Equity Only<br><b>Equity Targets:</b> T1:₹353.6 // T2:₹367.2 // T3:₹385.7 |
+| 3 | **LAURUSLABS (↑)** | 🔄 Breakout Retest | ₹1801.8 | 🔥 8/10 | 55 | ₹2618.0 | <b>Equity Targets:</b> T1:₹1854.9 // T2:₹1893.9 // T3:₹1947.0<br><b>Option:</b> 1800 CE (Buy > ₹33.06)<br><b>Opt Targets:</b> T1:₹69.0 // T2:₹102.4 // T3:₹152.8 |
