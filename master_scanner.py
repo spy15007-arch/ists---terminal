@@ -181,10 +181,12 @@ def calculate_dynamic_targets(close_p, atr, df_h, df_l, direction="Bullish", is_
     )
 
 def generate_quant_option(symbol, price, t1, t2, t3, t4, t5, eq_sl, df_h, df_l, df_c, direction="Bullish"):
+    # Fix for Live Index Options: Strip out theoretical premium estimates. Rely exclusively on Spot Mapping.
     if "^NSE" in symbol or symbol in ["NIFTY", "BANKNIFTY"]:
-        dte = get_index_dte(symbol)
         step = 100 if "BANK" in symbol else 50
-        vol = 0.14 
+        atm = int(round(price / step) * step)
+        opt_type = "CE" if direction == "Bullish" else "PE"
+        return f"{atm} {opt_type}", "CMP", "-", "-", "-", "-", "-", "-"
     else:
         dte = 15 
         step = 100 if price > 5000 else (50 if price > 2000 else (20 if price > 1000 else (10 if price > 500 else 5)))
@@ -194,18 +196,18 @@ def generate_quant_option(symbol, price, t1, t2, t3, t4, t5, eq_sl, df_h, df_l, 
             if math.isnan(vol) or vol == 0: vol = 0.2
         except: vol = 0.2
     
-    atm = int(round(price / step) * step)
-    opt_type = "CE" if direction == "Bullish" else "PE"
-    
-    c_prem = black_scholes(price, atm, dte/365.0, 0.07, vol, opt_type)
-    pt1 = black_scholes(t1, atm, dte/365.0, 0.07, vol, opt_type)
-    pt2 = black_scholes(t2, atm, dte/365.0, 0.07, vol, opt_type)
-    pt3 = black_scholes(t3, atm, dte/365.0, 0.07, vol, opt_type)
-    pt4 = black_scholes(t4, atm, dte/365.0, 0.07, vol, opt_type)
-    pt5 = black_scholes(t5, atm, dte/365.0, 0.07, vol, opt_type)
-    opt_sl = max(5.0, black_scholes(eq_sl, atm, dte/365.0, 0.07, vol, opt_type))
-    
-    return f"{atm} {opt_type}", c_prem, round(pt1, 1), round(pt2, 1), round(pt3, 1), round(pt4, 1), round(pt5, 1), round(opt_sl, 1)
+        atm = int(round(price / step) * step)
+        opt_type = "CE" if direction == "Bullish" else "PE"
+        
+        c_prem = black_scholes(price, atm, dte/365.0, 0.07, vol, opt_type)
+        pt1 = black_scholes(t1, atm, dte/365.0, 0.07, vol, opt_type)
+        pt2 = black_scholes(t2, atm, dte/365.0, 0.07, vol, opt_type)
+        pt3 = black_scholes(t3, atm, dte/365.0, 0.07, vol, opt_type)
+        pt4 = black_scholes(t4, atm, dte/365.0, 0.07, vol, opt_type)
+        pt5 = black_scholes(t5, atm, dte/365.0, 0.07, vol, opt_type)
+        opt_sl = max(5.0, black_scholes(eq_sl, atm, dte/365.0, 0.07, vol, opt_type))
+        
+        return f"{atm} {opt_type}", c_prem, round(pt1, 1), round(pt2, 1), round(pt3, 1), round(pt4, 1), round(pt5, 1), round(opt_sl, 1)
 
 def check_structure_hh_hl(df_h, df_l):
     if len(df_h) < 20: return True
@@ -301,14 +303,17 @@ def generate_tabular_markdown(df_stocks, df_index, title, filename, include_inde
         if df_stocks.empty and df_index.empty:
             f.write("*Market conditions did not trigger any quantitative setups meeting institutional gates for this timeframe.*\n")
             return
+        
+        # Spot Mapped formatting for Index Options
         if include_index and not df_index.empty:
-            f.write("## 👑 Index Options (15M Scalps)\n\n")
-            f.write("| # | Index Signal | Price | Option | Buy Above | Targets | SL |\n")
-            f.write("| :--- | :--- | :---: | :---: | :---: | :---: | :---: |\n")
+            f.write("## 👑 Index Options (Spot Mapped Execution)\n\n")
+            f.write("| # | Index Signal | Option Contract | Spot Entry Trigger | Spot Targets | Spot SL |\n")
+            f.write("| :--- | :--- | :---: | :---: | :---: | :---: |\n")
             for idx, r in df_index.reset_index().iterrows():
-                tgts = f"T1: ₹{r['PT1']}<br>T2: ₹{r['PT2']}<br>T3: ₹{r['PT3']}<br>T4: ₹{r['PT4']}<br>T5: ₹{r['PT5']}+"
-                f.write(f"| {idx+1} | **{r['Stock']}** | ₹{r['Entry']} | **{r['Opt']}** | ₹{r['Prem']} | {tgts} | ₹{r['OptSL']} |\n")
-            f.write("\n---\n\n")
+                tgts = f"T1: {r['EqT1']}<br>T2: {r['EqT2']}<br>T3: {r['EqT3']}"
+                f.write(f"| {idx+1} | **{r['Stock']}** | **{r['Opt']}** | Crosses **{r['Entry']}** | {tgts} | **{r['EqSL']}** |\n")
+            f.write("\n> *Note: Due to live market latency and gap-ups, execute the option at Current Market Price (CMP) the moment the underlying Spot Index hits the Entry Trigger.*\n\n---\n\n")
+            
         if not df_stocks.empty:
             f.write("## 📊 Validated Setups & Options\n\n")
             f.write("| # | Stock | Setup Type | Price | Score | Qty | Risk | Execution Strategy & Targets |\n")
@@ -329,14 +334,16 @@ def generate_tabular_markdown(df_stocks, df_index, title, filename, include_inde
 def format_telegram_text(df_stocks, df_index, title):
     msg = f"🚨 *{title}* 🚨\n\n"
     if not df_index.empty:
-        msg += "👑 *INDEX OPTIONS SIGNALS*\n"
+        msg += "👑 *INDEX OPTIONS (SPOT MAPPED EXECUTION)*\n"
         for _, r in df_index.iterrows():
             idx_name = "NIFTY" if "NIFTY 50" in r['Stock'] else "BANKNIFTY"
             ce_pe = r['Opt']
+            
             msg += f"*{idx_name} {ce_pe}*\n"
-            msg += f"Buy Above {r['Prem']}\n"
-            msg += f"TGT // T1:{r['PT1']} | T2:{r['PT2']} | T3:{r['PT3']}\n"
-            msg += f"SL {r['OptSL']}\n\n"
+            msg += f"📍 *Entry:* Buy {ce_pe[-2:]} @ CMP when Spot crosses *{r['Entry']}*\n"
+            msg += f"🎯 *Spot TGT* // T1:{r['EqT1']} | T2:{r['EqT2']} | T3:{r['EqT3']}\n"
+            msg += f"🛑 *Spot SL:* {r['EqSL']}\n"
+            msg += f"*(Avoid if massive gap-up already hit T1)*\n\n"
             
     if not df_stocks.empty:
         msg += "📊 *TOP POSITION SIZED SETUPS*\n"
