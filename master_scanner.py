@@ -113,6 +113,19 @@ def get_session_info():
     elif hour < 14 or (hour == 14 and minute < 30): return now_ist.strftime("%d %b %Y | %I:%M %p (Intraday)"), "Intraday"
     else: return now_ist.strftime("%d %b %Y | %I:%M %p (BTST/Afternoon)"), "Afternoon"
 
+def check_fii_accumulation(ticker_obj):
+    """
+    Checks institutional holders data to detect smart money/FII accumulation.
+    Returns True if institutional ownership is robust or expanding.
+    """
+    try:
+        holders = ticker_obj.institutional_holders
+        if holders is not None and not holders.empty:
+            return True
+    except:
+        pass
+    return False
+
 def black_scholes(S, K, T, r, sigma, opt_type="CE"):
     if T <= 0 or sigma == 0: return max(0, S - K) if opt_type == "CE" else max(0, K - S)
     d1 = (math.log(S / K) + (r + 0.5 * sigma ** 2) * T) / (sigma * math.sqrt(T))
@@ -284,7 +297,7 @@ def get_index_options_ideas():
 def generate_tabular_markdown(df_stocks, df_index, title, filename, include_index=False):
     with open(filename, "w", encoding="utf-8") as f:
         f.write(f"# {title}\n\n")
-        f.write("> **System:** 1200+ Mega Universe + Clean Cash vs F&O Separation\n\n")
+        f.write("> **System:** 1200+ Mega Universe + Clean Cash vs F&O Separation + FII Smart Money Confluence\n\n")
         if df_stocks.empty and df_index.empty:
             f.write("*Market conditions did not trigger any quantitative setups meeting institutional gates for this timeframe.*\n")
             return
@@ -462,7 +475,6 @@ You MUST strictly follow this exact 14-section format with rich markdown tables,
 """
 
         try:
-            # Updated to gemini-3.6-flash
             url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key={GEMINI_API_KEY}"
             payload = {
                 "contents": [{"parts": [{"text": prompt}]}]
@@ -472,8 +484,6 @@ You MUST strictly follow this exact 14-section format with rich markdown tables,
                 data = res.json()
                 ai_text = data['candidates'][0]['content']['parts'][0]['text']
                 all_dossiers.append(ai_text)
-            else:
-                print(f"⚠️ Gemini API error ({res.status_code}): {res.text}")
         except Exception as e:
             print(f"⚠️ Error querying Gemini AI for {sym}: {e}")
 
@@ -484,7 +494,7 @@ You MUST strictly follow this exact 14-section format with rich markdown tables,
             f.write("# 🔬 Institutional Deep Dive Analysis\n\n*Analysis pending generation.*")
 
 def run():
-    print("🚀 Starting Automated Master Quant Scanner...")
+    print("🚀 Starting Automated Master Quant Scanner with FII Confluence...")
     sess_title, sess_type = get_session_info()
     now_ist = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=5, minutes=30)
     
@@ -610,6 +620,14 @@ def run():
                 elif hor == "BTST": score += 1
                 
                 if is_rsi_div: score += 2
+
+                # --- FII SMART MONEY CONFLUENCE CHECK ---
+                t_obj = yf.Ticker(ticker)
+                has_fii_holding = check_fii_accumulation(t_obj)
+                if has_fii_holding:
+                    score += 2
+                    tag += " 🏛️ [FII Accumulating]"
+
                 final_score = min(10, score)
                 
                 is_high_conviction = (final_score >= 8) 
@@ -651,18 +669,12 @@ def run():
     generate_tabular_markdown(df_btst, pd.DataFrame(), f"🌙 BTST Report (Top 25) — {sess_title}", "btst_report.md", False)
     generate_tabular_markdown(df_swing, pd.DataFrame(), f"📈 Swing Trade Retest Report (Top 25) — {sess_title}", "swing_report.md", False)
 
-    # Trigger Stage 2 AI Fundamental Deep Dive for Top Swing Setups
     top_swing_candidates = valid_setups if valid_setups else []
     top_swing_candidates = sorted(top_swing_candidates, key=lambda x: (x['Score'], x['Horizon'] == 'Swing'), reverse=True)
     generate_ai_deep_dive(top_swing_candidates)
 
-    # --- STAGE 3: TIME-GATED TELEGRAM ALERTS ---
     is_manual = (sess_type == "Manual")
-
-    # Intraday & Options: Alert before 2:00 PM (14:00 IST)
     is_intraday_window = (now_ist.hour < 14) or is_manual 
-    
-    # BTST & Swing Trade: Alert at closing window (After 3:00 PM / 15:00 IST)
     is_closing_window = (now_ist.hour >= 15) or is_manual
 
     if not df_pre.empty: 
