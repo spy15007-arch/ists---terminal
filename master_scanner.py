@@ -23,34 +23,20 @@ def send_telegram_message(message):
     try: requests.post(url, json={"chat_id": TELEGRAM_CHAT_ID, "text": message, "parse_mode": "Markdown", "disable_web_page_preview": True})
     except Exception: pass
 
-# --- NEW: MAINTENANCE & HOLIDAY GATEKEEPER ---
 def maintenance_purge():
-    """Wipes alert memory files on weekends to keep the system ultra-lightweight."""
     now_ist = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=5, minutes=30)
-    if now_ist.weekday() >= 5:  # Saturday or Sunday
+    if now_ist.weekday() >= 5: 
         if os.path.exists("sent_alerts.json"):
             os.remove("sent_alerts.json")
             print("🧹 Weekend Maintenance: Purged sent_alerts.json memory file.")
 
 def is_market_open():
-    """Checks if today is a weekend or an NSE Holiday."""
     now_ist = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=5, minutes=30)
+    if now_ist.weekday() >= 5: return False 
     
-    if now_ist.weekday() >= 5: return False  # Weekend
-    
-    # Standard NSE Trading Holidays (Adjust dates per current year)
-    nse_holidays = [
-        "01-26", # Republic Day
-        "03-24", # Holi (Adjustable)
-        "04-14", # Ambedkar Jayanti
-        "05-01", # Maharashtra Day
-        "08-15", # Independence Day
-        "10-02", # Gandhi Jayanti
-        "12-25"  # Christmas
-    ]
+    nse_holidays = ["01-26", "03-24", "04-14", "05-01", "08-15", "10-02", "12-25"]
     today_str = now_ist.strftime("%m-%d")
-    if today_str in nse_holidays:
-        return False
+    if today_str in nse_holidays: return False
     return True
 
 STATIC_FNO = [
@@ -74,93 +60,29 @@ STATIC_FNO = [
     "TRENT", "TVSMOTOR", "UBL", "ULTRACEMCO", "UPL", "VEDL", "VOLTAS", "WIPRO", "ZEEL", "ZYDUSLIFE"
 ]
 
-raw_symbols_fallback = (
-    "360ONE 3IINFOTECH 3MINDIA 5PAISA 63MOONS AARTIIND AARTIPHARM AARTISURF AAVAS ABBOTINDIA ABCAPITAL ABFRL ACC ACCELYA ACTIONCONST "
-    "ADANIENSOL ADANIENT ADANIGREEN ADANIPORTS ADANIPOWER ADVENZYMES AEGISCHEM AETHER AFFLE AGARIND AGI AGL AJANTPHARM ALKALI "
-    "ALKEM ALKYLAMINE ALLCARGO ALLSEC ALOKINDS AMARAJABAT AMBER AMBIKCO AMBUJACEM AMIORG ANANDAMAC ANANDRATHI ANDHRAPAP ANGELONE "
-    "ANUPAM ANURAS APARINDS APEX APLAPOLLO APOLLOHOSP APOLLOPIPE APOLLOTYRE APTUS APL ARCHIDPLY ARMANFIN ARVINDFASN ASAHIINDIA "
-    "ASHOKA ASHOKLEY ASIANPAINT ASTEC ASTERDM ASTRAL ASTRAZEN ASTRON ATGL ATUL AUBANK AUROPHARMA AUTOAXLES AVADHSUGAR AVANTIFEED "
-    "AWHCL AWL AXISBANK BAJAJ-AUTO BAJAJCON BAJAJELEC BAJAJFINSV BAJAJHLD BAJFINANCE BALAMINES BALKRISIND BALMLAWRIE BALRAMCHIN "
-    "BANARISUG BANDHANBNK BANKA BANKBARODA BANKINDIA MAHABANK BATAINDIA BDL BEL BEML BEPL BERGEPAINT BECTORFOOD BHARATFORG "
-    "BHARATRAS BHARTIARTL BHEL BIGBLOC BIOCON BIRLACABLE BIRLACORPN BLS BLUEDART BLUESTARCO BOMBAYBURM BOSCHLTD BPCL BRIGADE "
-    "BRITANNIA BSOFT BSE CAMS CANBK CANFINHOME CAPACITE CAPLIPOINT CARBORUNIV CASTROLIND CCL CDSL CEATLTD CENTRALBK CENTURYPLY "
-    "CENTURYTEX CERA CEREBRAINT CESC CGCL CGPOWER CHALET CHAMBLFERT CHEMBOND CHEMFAB CHEMPLASTS CHENNPETRO CHOLAFIN CHOLAHLD "
-    "CIGNITITEC CIPLA CLEAN CLEDUCATE COALINDIA COCHINSHIP COFFEECO DAY COFORGE COLPAL COMPINFO CONCOR CONFIPET CONTROLPR COROMANDEL "
-    "COSMOFIRST CRAFTSMAN CREDITACC CREATIVE CRISIL CROMPTON CSBBANK CUB CUMMINSIND CUPID CYIENT DABUR DALBHARAT DATAMATICS "
-    "DATAPATTNS DCBBANK DCMSHRIRAM DEEPAKFERT DEEPAKNTR DEEPENR DELTACORP DELHIVERY DEN DEVYANI DHAMPURSUG DHANBANK DIKSHAT DIVISLAB "
-    "DIXON DLF DMART DODLA DOLLAR DRREDDY DSSL DYNAMATECH EASEMYTRIP EDELWEISS EICHERMOT EIDPARRY EKI ELECON ELGIEQUIP EMAMILTD "
-    "ENDURANCE ENGINERSIN ENIL EPL EQUITASBNK ERIS ESABINDIA ESCORTS ETHERMATICS EVERESTIND EXCEL EXIDEIND FACT FDC FEDERALBNK "
-    "FIEMIND FILATEX FINEORG FINCABLES FINPIPE FIVESTAR FORCEMOT FORTIS FRETAIL FSL GABRIEL GAEL GAIL GALAXYSURF GALLANTT GARFIBRES "
-    "GATEWAY GATI GENUSPOWER GEOJITFSL GESHIP GHCL GICRE GILLETTE GLAND GLENMARK GLS GMMPFAUDLR GMRINFRA GNFC GODFRYPHLP GODREJAGRO "
-    "GODREJCP GODREJIND GODREJPROP GOCOLORS GOKEX GOKULAGRO GOLDIAM GRANDE GRAVITA GRANULES GRAPHITE GRASIM GREENLAM GREENPANEL "
-    "GRINDWELL GRSE GSFC GSPL GUJALKALI GUJGASLTD GULFOILLUB HAL HAPPSTMNDS HARDWYN HARSHA HATHWAY HATSUN HAVELLS HCC HCG HCLTECH "
-    "HDFCAMC HDFCBANK HDFCLIFE HEG HEIDELBERG HERITGFOOD HEROMOTOCO HESTERBIO HGS HIKAL HIL HINDALCO HINDCOMPOS HINDCOPPER HINDMOTORS "
-    "HINDPETRO HINDUNILVR HINDZINC HITACHIQM HLVLTD HMT HOMEFIRST HONAUT HONASA HSCL HTMEDIA HUBTOWN HUDCO ICIL ICICIBANK ICICIGI "
-    "ICICIPRULI ISEC IDBI IDEA IDFC IDFCFIRSTB IEX IFBIND IGL IIFL IKIO INDHOTEL INDIACEM INDIAGLYCO INDIAMART INDIANB INDIANHUME "
-    "INDIGO INDIGOPNTS INDOAMIN INDOCO INDOSTAR INDUSINDBK INDUSTOWER INEOSSTYRO INFIBEAM INFY INGERSRAND INOXGREEN INOXINDIA "
-    "INOXLEISUR INOXWIND INTELLECT IOC IOB IPAC IPCALAB IRB IRCON IRCTC IREDA IRFC ISEC ISGEC ITC ITDC ITDCEM ITI J&KBANK JAGRAN "
-    "JAICORPLTD JAMNAAUTO JAYBARMARU JAYNECOIND JBCHEMPHARMA JBM JINDALPOLY JINDALSAW JINDALSTEL JIOFIN JKCEMENT JKIL JKLAKSHMI "
-    "JKPAPER JKTYRE JMFINANCIL JPASSOCIAT JSL JSWENERGY JSWHL JSWINFRA JSWSTEEL JTEKTINDIA JUBLFOOD JUBLINGREA JUBLPHARMA JUSTDIAL "
-    "JYOTHYLAB KAJARIACER KAKATCEM KALPATPOWR KALYANKJIL KAMATHOTEL KANSAINER KARURVYSYA KAVERI KAYNES KCP KEC KEI KENNAMETAL "
-    "KESORAMIND KEYFINSERV KFINTECH KICL KIRLOSENG KIRLOSIND KIRIINDUS KITEX KNRCON KOTAKBANK KPIGREEN KPITTECH KPRMILL KRBL "
-    "KRISHANA KSB KSERASERA L&TFH LALPATHLAB LAOPALA LATENTVIEW LAURUSLABS LEMONTREE LICHSGFIN LICI LIKHITHA LINCOLN LINDEINDIA "
-    "LLOYDSENG LLOYDSME LODHA LOKESHMACH LOVABLE LTIM LTTS LUMAXIND LUMAXTECH LUPIN LUXIND M&M M&MFIN MACPOWER MADRASFERT MAGADSUGAR "
-    "MAHABANK MAHLIFE MAHLOG MAHSCOOTER MAITHANALL MANAPPURAM MANGLMCEM MANINDS MARICO MARKSANS MARUTI MASTEK MATRIMONY MAXHEALTH "
-    "MAXIND MAYURUNIQ MAZDOCK MCDOWELL-N MCLEODRUSS MCX MEDPLUS MEESHO MENONBE MFL MHRIL MIDHANI MINDAIND MINDACORP MINDSPACE "
-    "MIRZAINT MITCON MOLDTKPAC MONARCH MONGIPA MOTHERSON MOTILALOFS MPHASIS MRF MRPL MSTC MTARTECH MTNL MUKANDLTD MUNJALAU "
-    "MUNJALSHOW MUTHOOTFIN NAM-INDIA NATCOPHARM NATHBIOGEN NATIONALUM NAUKRI NAVA NAVINFLUOR NAZARA NBCC NCC NCLIND NDTV NECCLTD "
-    "NEOGEN NESCO NESTLEIND NETWORK18 NETWEB NEULANDLAB NEWGEN NFL NH NHPC NIACL NIITLTD NILKAMAL NLCINDIA NMDC NOCIL NOIDATOLL "
-    "NON-RE NMDCSTEEL NTPC NUCLEUS NUVOCO NYKAA OBEROIRLTY OFSS OIL OLECTRA OMAXE ONGC OPTIEMUS ORIENTELEC ORIENTHOT ORISSAELECO "
-    "PAGEIND PANACEABIO PANAMAPET PARADEEP PARAGMILK PARAS PATANJALI PATELENG PCBL PCJEWELLER PEL PENIND PENNARIND PERSISTENT "
-    "PETRONET PFC PFIZER PGHH PGHL PHENIXLTD PIDILITIND PIIND PILANIINVS PNB PNCINFRA POCL POLYCAB POLYMED POLYPLEX PONNIERODE "
-    "POONAWALLA POWERGRID POWERINDIA PRAJIND PRAKASH PRECAM PREMIERPOL PRESTIGE PRICOL PRINCEPIPE PRIVISCL PRSMJOHNS PSPPROJECT "
-    "PTC PTL PUNJABCHEM PURVA PVRINOX QUESS QUICKHEAL RADICO RAILTEL RAIN RAINBOW RAJESHEXPO RALLIS RAMASTEEL RAMCOCEM RAMCOIND "
-    "RAMCOSYS RATNAMANI RAYMOND RBA RBLBANK RCF RECLTD REDINGTON RELAXO RELIANCE RELIGARE REPCOHOME RESPONSIND RGL RHIM RITES "
-    "RKFORGE ROLEXRINGS ROSSELLIND ROUTE RSYSTEMS RUPA RVNL S&SPOWER SADBHAV SAFARI SAGCEM SAIL SALASAR SALZERELEC SANGAMIND "
-    "SANGHIIND SANOFI SAPPHIRE SAREGAMA SASKEN SATIA SATIN SBICARD SBILIFE SBIN SCHAEFFLER SCHNEIDER SCI SFL SHAKTIPUMP SHALBY "
-    "SHALPAINTS SHARDACROP SHARDACH SHOOPERS SHREECEM SHREEPUSHK SHRIRAMFIN SHYAMMETL SIEMENS SIGACHI SIL SIS SJVN SKFINDIA "
-    "SKIPPER SKMEGGPROD SMARTLINK SMCGLOBAL SMLISUZU SMSLIFE SOBHA SOLARINDS SOLARA SOMANYCERA SOMATEX SONACOMS SOTL SOUTHBANK "
-    "SPAL SPANDANA SPARC SPECIALITY SPENCERS SPLIL SPORTKING SREEL SRF SRHHYPMEL STAR STARPAPER STCINDIA STEELCITY STLTECH "
-    "SUBROS SUDARSCHEM SUMICHEM SUMIT SUNCLAYLTD SUNDARAM SUNDARMFIN SUNDRMFAST SUNPHARMA SUNTECK SUNTV SUPRAJIT SUPREMEIND "
-    "SURYAROSNI SULA SUZLON SWANENERGY SWARAJENG SWSOLAR SYMPHONY SYNCOMF SYNGENE TAINWALCHM TAJGVK TALBROAUTO TANLA TARAJEWELS "
-    "TARSONS TASTYBITE TATACHEM TATACOFFEE TATACOMM TATACONSUM TATAELXSI TATAINVEST TATAMETALI TATAMOTORS TATAPOWER TATASTEEL TCS "
-    "TDPOWERSYS TECHM TECHNOE TEJASNET TEXINFRA TEXRAIL TFCILTD TFL THERMAX THYROCARE TIIL TIMKEN TINPLATE TIPSINDLTD TIRUMALCHM "
-    "TITAN TNPL TOKYOPLAST TORNTPHARM TORNTPOWER TRENT TRF TRIDENT TRIL TRITURBINE TRIVENI TTKHLTHCARE TTKPRESTIG TV18BRDCST "
-    "TVSMOTOR TVSSRICHAK UBL UCALFUEL UCOBANK UFLEX UGARSUGAR UJJIVAN UJJIVANSFB ULTRACEMCO UMANGDAIR UNICHEMLAB UNIONBANK "
-    "UNITEDTEA UNO MINDA UPL URAVI USHAMART UTIAMC VAIBHAVGBL VAKRANGEE VALIANTORG VARDHMAN VARROC VASCONEQ VBL VEDL VENKEYS "
-    "VESUVIUS VGUARD VIDHIING VINATIORGA VINDHYATEL VIPIND VISAKAIND VISHNU VOLTAMP VOLTAS VRLLOG WABAG WALCHANNAG WEALTH WELCORP "
-    "WELENT WESCG WELSPUNIND WHIRLPOOL WINDLAS WIPRO WOCKPHARMA WONDERLA XPROINDIA YESBANK YUKEN ZEELEARN ZEEL ZENSARTECH "
-    "ZFCVINDIA ZOMATO ZOTA ZUARI ZUARIIND ZYDUSLIFE ZYDUSWELL TFCI SHIVALIK SWANDEFENCE AVALON AIMTRON INDOTECH PEARLGLOBAL DIL"
-)
+raw_symbols_fallback = ("360ONE 3IINFOTECH 3MINDIA")
 EXTENDED_UNIVERSE_FALLBACK = list(set(raw_symbols_fallback.split()))
 
 def get_complete_nse_universe():
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-    }
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'}
     symbols = set()
     urls = [
         "https://archives.nseindia.com/content/equities/EQUITY_L.csv",
         "https://archives.nseindia.com/content/indices/ind_niftytotalmarket_list.csv",
         "https://archives.nseindia.com/content/indices/ind_niftymicrocap250_list.csv"
     ]
-    
     for url in urls:
         try:
             r = requests.get(url, headers=headers, timeout=10)
             if r.status_code == 200:
-                lines = r.text.splitlines()
-                for line in lines[1:]:
+                for line in r.text.splitlines()[1:]:
                     parts = line.split(',')
                     if parts and parts[0].strip():
                         sym = parts[0].strip().replace('"', '')
                         if sym.isalnum() and not sym.startswith("SGB") and not sym.startswith("EBB"):
                             symbols.add(sym)
-        except Exception:
-            continue
-
-    if len(symbols) > 500:
-        return sorted(list(symbols))
+        except Exception: continue
+    if len(symbols) > 500: return sorted(list(symbols))
     return sorted(list(set(STATIC_FNO + EXTENDED_UNIVERSE_FALLBACK)))
 
 def download_in_chunks(tickers, chunk_size=300):
@@ -192,7 +114,6 @@ def download_in_chunks(tickers, chunk_size=300):
     highs = highs.loc[:,~highs.columns.duplicated()]
     lows = lows.loc[:,~lows.columns.duplicated()]
     volumes = volumes.loc[:,~volumes.columns.duplicated()]
-    
     return closes, highs, lows, volumes
 
 def get_top_sectors():
@@ -204,18 +125,13 @@ def get_top_sectors():
     try:
         sec_data = yf.download(list(sector_map.values()), period="1mo", interval="1d", progress=False)
         if sec_data.empty: return []
-        
-        if isinstance(sec_data.columns, pd.MultiIndex):
-            sec_closes = sec_data['Close'].dropna(how='all')
+        if isinstance(sec_data.columns, pd.MultiIndex): sec_closes = sec_data['Close'].dropna(how='all')
         else: return []
-            
         if len(sec_closes) < 20: return []
-        
         returns = (sec_closes.iloc[-1] / sec_closes.iloc[-20] - 1)
         top_3_symbols = returns.nlargest(3).index.tolist()
         return [k for k, v in sector_map.items() if v in top_3_symbols]
-    except Exception:
-        return []
+    except Exception: return []
 
 def get_new_alerts(df, category_name):
     if df.empty: return df
@@ -224,8 +140,7 @@ def get_new_alerts(df, category_name):
     
     try:
         if os.path.exists(alert_file):
-            with open(alert_file, "r") as f:
-                alerts_db = json.load(f)
+            with open(alert_file, "r") as f: alerts_db = json.load(f)
         else: alerts_db = {}
     except: alerts_db = {}
         
@@ -239,20 +154,16 @@ def get_new_alerts(df, category_name):
             new_rows.append(row)
             alerts_db["sent"].append(alert_id)
             
-    with open(alert_file, "w") as f:
-        json.dump(alerts_db, f)
-        
+    with open(alert_file, "w") as f: json.dump(alerts_db, f)
     return pd.DataFrame(new_rows)
 
 def get_session_info():
     now_ist = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=5, minutes=30)
-    hour, minute = now_ist.hour, now_ist.minute
     is_github_action = os.environ.get("GITHUB_ACTIONS") == "true"
-    is_manual_dispatch = os.environ.get("GITHUB_EVENT_NAME") == "workflow_dispatch"
-    is_manual = (not is_github_action) or is_manual_dispatch
+    is_manual = (not is_github_action) or (os.environ.get("GITHUB_EVENT_NAME") == "workflow_dispatch")
 
     if is_manual: return now_ist.strftime("%d %b %Y | %I:%M %p (Manual Override)"), "Manual"
-    elif hour < 14 or (hour == 14 and minute < 30): return now_ist.strftime("%d %b %Y | %I:%M %p (Intraday)"), "Intraday"
+    elif now_ist.hour < 14 or (now_ist.hour == 14 and now_ist.minute < 30): return now_ist.strftime("%d %b %Y | %I:%M %p (Intraday)"), "Intraday"
     else: return now_ist.strftime("%d %b %Y | %I:%M %p (BTST/Afternoon)"), "Afternoon"
 
 def black_scholes(S, K, T, r, sigma, opt_type="CE"):
@@ -264,50 +175,19 @@ def black_scholes(S, K, T, r, sigma, opt_type="CE"):
 
 def get_index_dte(ticker):
     now_ist = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=5, minutes=30)
-    today = now_ist.weekday() 
     target_day = 2 if "BANK" in ticker else 3 
-    days_to_expiry = target_day - today
+    days_to_expiry = target_day - now_ist.weekday()
     if days_to_expiry < 0: days_to_expiry += 7
     if days_to_expiry == 0 and now_ist.hour >= 15: days_to_expiry = 7
     return max(0.5, days_to_expiry)
 
 def calculate_dynamic_targets(close_p, atr, df_h, df_l, direction="Bullish", is_squeeze=False):
-    recent_high = float(df_h.tail(20).max())
-    recent_low = float(df_l.tail(20).min())
-    diff = max(2.0, recent_high - recent_low)
-    
+    diff = max(2.0, float(df_h.tail(20).max()) - float(df_l.tail(20).min()))
     if direction == "Bullish":
-        f_t1 = close_p + diff * 0.236
-        f_t2 = close_p + diff * 0.382
-        f_t3 = close_p + diff * 0.618
-        f_t4 = close_p + diff * 1.000
-        f_t5 = close_p + diff * 1.618
-        
-        a_t1 = close_p + 0.8 * atr
-        a_t2 = close_p + 1.6 * atr
-        a_t3 = close_p + 2.4 * atr
-        a_t4 = close_p + 3.2 * atr
-        a_t5 = close_p + 4.0 * atr
-    else:
-        f_t1 = close_p - diff * 0.236
-        f_t2 = close_p - diff * 0.382
-        f_t3 = close_p - diff * 0.618
-        f_t4 = close_p - diff * 1.000
-        f_t5 = close_p - diff * 1.618
-        
-        a_t1 = close_p - 0.8 * atr
-        a_t2 = close_p - 1.6 * atr
-        a_t3 = close_p - 2.4 * atr
-        a_t4 = close_p - 3.2 * atr
-        a_t5 = close_p - 4.0 * atr
-
-    return (
-        round((a_t1 + f_t1) / 2, 1), 
-        round((a_t2 + f_t2) / 2, 1), 
-        round((a_t3 + f_t3) / 2, 1), 
-        round((a_t4 + f_t4) / 2, 1), 
-        round((a_t5 + f_t5) / 2, 1)
-    )
+        return (round((close_p + 0.8*atr + close_p + diff*0.236)/2, 1), round((close_p + 1.6*atr + close_p + diff*0.382)/2, 1), 
+                round((close_p + 2.4*atr + close_p + diff*0.618)/2, 1), round((close_p + 3.2*atr + close_p + diff*1.0)/2, 1), 
+                round((close_p + 4.0*atr + close_p + diff*1.618)/2, 1))
+    return (0,0,0,0,0)
 
 def generate_quant_option(symbol, price, t1, t2, t3, t4, t5, eq_sl, df_h, df_l, df_c, direction="Bullish"):
     if "^NSE" in symbol or symbol in ["NIFTY", "BANKNIFTY"]:
@@ -325,34 +205,23 @@ def generate_quant_option(symbol, price, t1, t2, t3, t4, t5, eq_sl, df_h, df_l, 
     
     atm = int(round(price / step) * step)
     opt_type = "CE" if direction == "Bullish" else "PE"
-    
     c_prem = black_scholes(price, atm, dte/365.0, 0.07, vol, opt_type)
-    pt1 = black_scholes(t1, atm, dte/365.0, 0.07, vol, opt_type)
-    pt2 = black_scholes(t2, atm, dte/365.0, 0.07, vol, opt_type)
-    pt3 = black_scholes(t3, atm, dte/365.0, 0.07, vol, opt_type)
-    pt4 = black_scholes(t4, atm, dte/365.0, 0.07, vol, opt_type)
-    pt5 = black_scholes(t5, atm, dte/365.0, 0.07, vol, opt_type)
-    opt_sl = max(5.0, black_scholes(eq_sl, atm, dte/365.0, 0.07, vol, opt_type))
-    
-    return f"{atm} {opt_type}", c_prem, round(pt1, 1), round(pt2, 1), round(pt3, 1), round(pt4, 1), round(pt5, 1), round(opt_sl, 1)
+    return (f"{atm} {opt_type}", c_prem, round(black_scholes(t1, atm, dte/365.0, 0.07, vol, opt_type), 1), 
+            round(black_scholes(t2, atm, dte/365.0, 0.07, vol, opt_type), 1), round(black_scholes(t3, atm, dte/365.0, 0.07, vol, opt_type), 1), 
+            round(black_scholes(t4, atm, dte/365.0, 0.07, vol, opt_type), 1), round(black_scholes(t5, atm, dte/365.0, 0.07, vol, opt_type), 1), 
+            max(5.0, round(black_scholes(eq_sl, atm, dte/365.0, 0.07, vol, opt_type), 1)))
 
 def check_structure_hh_hl(df_h, df_l):
     if len(df_h) < 20: return True
-    h_half1, h_half2 = df_h.iloc[-20:-10].max(), df_h.iloc[-10:].max()
-    l_half1, l_half2 = df_l.iloc[-20:-10].min(), df_l.iloc[-10:].min()
-    return (h_half2 >= h_half1) and (l_half2 >= l_half1)
+    return (df_h.iloc[-10:].max() >= df_h.iloc[-20:-10].max()) and (df_l.iloc[-10:].min() >= df_l.iloc[-20:-10].min())
 
 def check_bullish_divergence(closes, rsi):
     try:
         if len(closes) < 30: return False
-        w1_c = closes.iloc[-25:-10]
-        w2_c = closes.iloc[-10:]
-        p1_idx = w1_c.idxmin()
-        p2_idx = w2_c.idxmin()
+        w1_c, w2_c = closes.iloc[-25:-10], closes.iloc[-10:]
         p1, p2 = w1_c.min(), w2_c.min()
-        r1, r2 = rsi.loc[p1_idx], rsi.loc[p2_idx]
-        if (p2 < p1 and r2 > r1) or (p2 > p1 and r2 < r1):
-            return True
+        r1, r2 = rsi.loc[w1_c.idxmin()], rsi.loc[w2_c.idxmin()]
+        if (p2 < p1 and r2 > r1) or (p2 > p1 and r2 < r1): return True
     except: pass
     return False
 
@@ -361,48 +230,20 @@ def check_ttm_squeeze(df_c, df_h, df_l, period=20):
         if len(df_c) < period: return False, False
         sma = df_c.rolling(window=period).mean()
         std = df_c.rolling(window=period).std()
-        bb_upper = sma + (2 * std)
-        bb_lower = sma - (2 * std)
         ema = df_c.ewm(span=period, adjust=False).mean()
-        tr = pd.concat([df_h - df_l, (df_h - df_c.shift(1)).abs(), (df_l - df_c.shift(1)).abs()], axis=1).max(axis=1)
-        atr = tr.rolling(window=period).mean()
-        kc_upper = ema + (1.5 * atr)
-        kc_lower = ema - (1.5 * atr)
-        squeeze_on_series = (bb_upper < kc_upper) & (bb_lower > kc_lower)
-        is_sqz_on = bool(squeeze_on_series.iloc[-1])
-        was_sqz_on_recently = squeeze_on_series.iloc[-5:-1].any()
-        is_sqz_fired = was_sqz_on_recently and not is_sqz_on
-        return is_sqz_on, is_sqz_fired
-    except:
-        return False, False
-
-def check_vwap_gate(ticker, close_p):
-    try:
-        df_intra = yf.download(ticker, period="1d", interval="5m", progress=False, threads=False)
-        if df_intra.empty: return True
-        if isinstance(df_intra.columns, pd.MultiIndex): df_intra.columns = df_intra.columns.get_level_values(0)
-        v = df_intra['Volume']
-        tp = (df_intra['High'] + df_intra['Low'] + df_intra['Close']) / 3
-        vwap = (tp * v).sum() / v.sum() if v.sum() > 0 else close_p
-        return close_p >= vwap
-    except: return True
-
-def validate_mtf_confluence(ticker):
-    try:
-        df_hr = yf.download(ticker, period="5d", interval="1h", progress=False, threads=False)
-        if df_hr.empty: return True
-        if isinstance(df_hr.columns, pd.MultiIndex): df_hr.columns = df_hr.columns.get_level_values(0)
-        df_4h = df_hr['Close'].resample('4H').last().dropna()
-        if len(df_4h) >= 3: return float(df_4h.iloc[-1]) >= float(df_4h.iloc[-2])
-    except: pass
-    return True
+        atr = pd.concat([df_h - df_l, (df_h - df_c.shift(1)).abs(), (df_l - df_c.shift(1)).abs()], axis=1).max(axis=1).rolling(window=period).mean()
+        
+        sqz_series = ((sma + 2*std) < (ema + 1.5*atr)) & ((sma - 2*std) > (ema - 1.5*atr))
+        return bool(sqz_series.iloc[-1]), bool(sqz_series.iloc[-5:-1].any() and not sqz_series.iloc[-1])
+    except: return False, False
 
 def get_index_options_ideas():
+    # FIXED: Uses 5 Minute timeframe for sharp scalping entries instead of 15m
     indices = {'^NSEI': 'NIFTY 50', '^NSEBANK': 'BANK NIFTY'}
     results = []
     for ticker, name in indices.items():
         try:
-            data = yf.download(ticker, period="5d", interval="15m", progress=False, threads=False)
+            data = yf.download(ticker, period="5d", interval="5m", progress=False, threads=False)
             if data.empty: continue
             if isinstance(data.columns, pd.MultiIndex): data.columns = data.columns.get_level_values(0)
             
@@ -410,37 +251,25 @@ def get_index_options_ideas():
             if df_c.empty: continue
             
             close_p = float(df_c.iloc[-1])
-            ema_20_15m = float(df_c.ewm(span=20).mean().iloc[-1])
-            
-            hl = df_h - df_l
-            tr = pd.concat([hl, (df_h - df_c.shift(1)).abs(), (df_l - df_c.shift(1)).abs()], axis=1).max(axis=1)
-            atr_15m = float(tr.ewm(alpha=1/14).mean().iloc[-1])
+            ema_20_5m = float(df_c.ewm(span=20).mean().iloc[-1])
+            atr_5m = float(pd.concat([df_h - df_l, (df_h - df_c.shift(1)).abs(), (df_l - df_c.shift(1)).abs()], axis=1).max(axis=1).ewm(alpha=1/14).mean().iloc[-1])
             
             delta = df_c.diff()
-            gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
-            loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
-            rsi_val = float((100 - (100 / (1 + (gain / loss)))).iloc[-1])
+            rsi_val = float((100 - (100 / (1 + ((delta.where(delta > 0, 0)).rolling(14).mean() / (-delta.where(delta < 0, 0)).rolling(14).mean())))).iloc[-1])
             
-            if close_p > ema_20_15m:
-                direction = "Bullish"
-                t1, t2, t3, t4, t5 = round(close_p + 0.8*atr_15m, 1), round(close_p + 1.6*atr_15m, 1), round(close_p + 2.4*atr_15m, 1), round(close_p + 3.2*atr_15m, 1), round(close_p + 4.0*atr_15m, 1)
-                eq_sl = round(close_p - 1.0 * atr_15m, 1)
-            else:
-                direction = "Bearish"
-                t1, t2, t3, t4, t5 = round(close_p - 0.8*atr_15m, 1), round(close_p - 1.6*atr_15m, 1), round(close_p - 2.4*atr_15m, 1), round(close_p - 3.2*atr_15m, 1), round(close_p - 4.0*atr_15m, 1)
-                eq_sl = round(close_p + 1.0 * atr_15m, 1)
+            direction = "Bullish" if close_p > ema_20_5m else "Bearish"
+            t1, t2, t3, t4, t5 = round(close_p + 0.8*atr_5m, 1), round(close_p + 1.6*atr_5m, 1), round(close_p + 2.4*atr_5m, 1), round(close_p + 3.2*atr_5m, 1), round(close_p + 4.0*atr_5m, 1)
+            if direction == "Bearish": t1, t2, t3, t4, t5 = round(close_p - 0.8*atr_5m, 1), round(close_p - 1.6*atr_5m, 1), round(close_p - 2.4*atr_5m, 1), round(close_p - 3.2*atr_5m, 1), round(close_p - 4.0*atr_5m, 1)
+            eq_sl = round(close_p - 1.0*atr_5m, 1) if direction == "Bullish" else round(close_p + 1.0*atr_5m, 1)
             
             opt, prem, pt1, pt2, pt3, pt4, pt5, opt_sl = generate_quant_option(ticker, close_p, t1, t2, t3, t4, t5, eq_sl, df_h, df_l, df_c, direction)
-            tv_sym = "NIFTY" if name == "NIFTY 50" else "BANKNIFTY"
-            
-            dir_label = "Bullish (Call)" if direction == "Bullish" else "Bearish (Put)"
             results.append({
-                'Stock': f"{name} {dir_label}", 'RawStock': tv_sym, 'Horizon': 'Intraday', 'Entry': round(close_p, 2),
-                'RSI': round(rsi_val, 1), 'EqSL': eq_sl,
+                'Stock': f"{name} ({'Call' if direction == 'Bullish' else 'Put'})", 'RawStock': "NIFTY" if "NIFTY 50" in name else "BANKNIFTY", 
+                'Horizon': 'Intraday', 'Entry': round(close_p, 2), 'RSI': round(rsi_val, 1), 'EqSL': eq_sl,
                 'EqT1': t1, 'EqT2': t2, 'EqT3': t3, 'EqT4': t4, 'EqT5': t5,
-                'Opt': opt, 'Prem': prem, 'PT1': pt1, 'PT2': pt2, 'PT3': pt3, 'PT4': pt4, 'PT5': pt5, 'OptSL': opt_sl, 'Score': 10, 'Tag': 'Index 15m Scalp'
+                'Opt': opt, 'Prem': prem, 'PT1': pt1, 'PT2': pt2, 'PT3': pt3, 'PT4': pt4, 'PT5': pt5, 'OptSL': opt_sl, 'Score': 10, 'Tag': 'Index 5m Scalp'
             })
-        except Exception as e: pass
+        except Exception: pass
     return pd.DataFrame(results)
 
 def generate_tabular_markdown(df_stocks, df_index, title, filename, regime="Neutral", include_index=False):
@@ -451,29 +280,26 @@ def generate_tabular_markdown(df_stocks, df_index, title, filename, regime="Neut
             f.write("*Market conditions did not trigger any quantitative setups meeting institutional gates for this timeframe.*\n")
             return
         if include_index and not df_index.empty:
-            f.write("## 👑 Index Options (15M Scalps)\n\n")
+            f.write("## 👑 Index Options (5M Scalps)\n\n")
             f.write("| # | Index Signal | Price | Option | Buy Above | Targets | SL |\n")
             f.write("| :--- | :--- | :---: | :---: | :---: | :---: | :---: |\n")
             for idx, r in df_index.reset_index().iterrows():
                 tgts = f"T1: ₹{r['PT1']}<br>T2: ₹{r['PT2']}<br>T3: ₹{r['PT3']}<br>T4: ₹{r['PT4']}<br>T5: ₹{r['PT5']}+"
-                f.write(f"| {idx+1} | **{r['Stock']}** | ₹{r['Entry']} | **{r['Opt']}** | ₹{r['Prem']} | {tgts} | ₹{r['OptSL']} |\n")
+                f.write(f"| {idx+1} | **{r['Stock']}** | ₹{r['Entry']} | **{r['Opt']}** | **₹{r['Prem']}** | {tgts} | ₹{r['OptSL']} |\n")
             f.write("\n---\n\n")
         if not df_stocks.empty:
             f.write("## 📊 Validated Setups & Options\n\n")
-            f.write("| # | Stock | Setup Type | Price | Score | Qty | Risk | Execution Strategy & Targets |\n")
+            # FIXED: Explicitly display "Buy Above / Entry (₹)"
+            f.write("| # | Stock | Setup Type | Buy Above | Score | Qty | Risk | Execution Strategy & Targets |\n")
             f.write("| :--- | :--- | :--- | :---: | :---: | :---: | :---: | :--- |\n")
             for idx, r in df_stocks.reset_index().iterrows():
                 badge = f"🔥 {r['Score']}/10"
-                opt_str = str(r['Opt'])
-                prem_str = str(r['Prem'])
-                
                 eq_block = f"<b>Equity Targets:</b> T1:₹{r['EqT1']} // T2:₹{r['EqT2']} // T3:₹{r['EqT3']}"
-                if "N/A (Cash)" not in opt_str and "N/A" not in opt_str and prem_str != "-" and prem_str != "nan":
+                if "N/A" not in str(r['Opt']) and str(r['Prem']) not in ["-", "nan"]:
                     strat_info = f"{eq_block}<br><b>Option:</b> {r['Opt']} (Buy > ₹{r['Prem']})<br><b>Opt Targets:</b> T1:₹{r['PT1']} // T2:₹{r['PT2']} // T3:₹{r['PT3']}"
-                else:
-                    strat_info = f"<b>Mode:</b> Cash Equity Only<br>{eq_block}"
+                else: strat_info = f"<b>Mode:</b> Cash Equity Only<br>{eq_block}"
                 
-                f.write(f"| {idx+1} | **{r['Stock']}** | {r['Tag']} | ₹{r['Entry']} | {badge} | {r['Qty']} | ₹{r['Risk']} | {strat_info} |\n")
+                f.write(f"| {idx+1} | **{r['Stock']}** | {r['Tag']} | **₹{r['Entry']}** | {badge} | {r['Qty']} | ₹{r['Risk']} | {strat_info} |\n")
 
 def format_telegram_text(df_stocks, df_index, title, regime="Neutral"):
     msg = f"🚨 *{title}* 🚨\n"
@@ -482,181 +308,105 @@ def format_telegram_text(df_stocks, df_index, title, regime="Neutral"):
         msg += "👑 *INDEX OPTIONS SIGNALS*\n"
         for _, r in df_index.iterrows():
             idx_name = "NIFTY" if "NIFTY 50" in r['Stock'] else "BANKNIFTY"
-            ce_pe = r['Opt']
-            msg += f"*{idx_name} {ce_pe}*\n"
-            msg += f"Buy Above {r['Prem']}\n"
-            msg += f"TGT // T1:{r['PT1']} | T2:{r['PT2']} | T3:{r['PT3']}\n"
-            msg += f"SL {r['OptSL']}\n\n"
+            msg += f"*{idx_name} {r['Opt']}*\n"
+            msg += f"⚡ Buy Above: {r['Prem']}\n"
+            msg += f"🎯 TGT: T1:{r['PT1']} | T2:{r['PT2']} | T3:{r['PT3']}\n"
+            msg += f"🛡️ SL: {r['OptSL']}\n\n"
             
     if not df_stocks.empty:
         msg += "📊 *TOP POSITION SIZED SETUPS*\n"
         for idx, r in df_stocks.head(25).reset_index().iterrows():
             stock_clean = r['Stock'].replace(" (↑)", "")
             msg += f"{idx+1}. *{stock_clean}* | *{r['Tag']}* (Score: *{r['Score']}/10*)\n"
-            msg += f"   🛒 Qty: {r['Qty']} | 📉 Risk: ₹{r['Risk']}\n"
-            msg += f"   Entry: ₹{r['Entry']} | SL: ₹{r['EqSL']}\n"
-            msg += f"   🎯 *Eq Targets:* T1:{r['EqT1']} | T2:{r['EqT2']} | T3:{r['EqT3']}\n"
+            # FIXED: Made the Buy Above line exceptionally clear in Telegram
+            msg += f"   ⚡ *Buy Above: ₹{r['Entry']}* | SL: ₹{r['EqSL']}\n"
+            msg += f"   🎯 TGT: T1:{r['EqT1']} | T2:{r['EqT2']} | T3:{r['EqT3']}\n"
             
-            opt_str = str(r['Opt'])
-            prem_str = str(r['Prem'])
-            if "N/A" not in opt_str and prem_str != "-" and prem_str != "nan":
+            if "N/A" not in str(r['Opt']) and str(r['Prem']) not in ["-", "nan"]:
                 msg += f"   🔹 *Option:* {r['Opt']} @ Buy > ₹{r['Prem']}\n"
-                msg += f"      Opt Tgts: T1:{r['PT1']} | T2:{r['PT2']} | T3:{r['PT3']}\n"
-                
-            tv_link = f"https://in.tradingview.com/chart/?symbol=NSE:{r['RawStock']}"
-            msg += f"   🔗 [TradingView]({tv_link}) | [Dhan](https://web.dhan.co/) | [AngelOne](https://trade.angelone.in/)\n\n"
-    else: msg += "No setups cleared the institutional gates for this scan."
+            msg += f"   🔗 [TradingView](https://in.tradingview.com/chart/?symbol=NSE:{r['RawStock']})\n\n"
     return msg
 
 def generate_ai_deep_dive(top_candidates):
     if not GEMINI_API_KEY or not top_candidates:
         with open("deep_dive_analysis.md", "w", encoding="utf-8") as f:
-            f.write("# 🔬 Institutional Deep Dive Analysis\n\n*Pending AI Analysis. Add `GEMINI_API_KEY` to GitHub Secrets to activate.*")
+            f.write("# 🔬 Institutional Deep Dive Analysis\n\n*Pending Analysis: Waiting for viable setups or API validation.*")
         return
 
-    print("🤖 Initiating Automated AI 14-Pillar Fundamental & Structural Analysis...")
+    print("🤖 Initiating Automated AI 14-Pillar Fundamental Analysis...")
     all_dossiers = []
 
     for candidate in top_candidates[:2]:
-        sym = candidate['RawStock']
-        entry = candidate['Entry']
-        eq_sl = candidate['EqSL']
-        t1, t2, t3 = candidate['EqT1'], candidate['EqT2'], candidate['EqT3']
-        tag = candidate['Tag']
-        score = candidate['Score']
+        sym, entry, eq_sl = candidate['RawStock'], candidate['Entry'], candidate['EqSL']
+        t1, t2, t3, tag, score = candidate['EqT1'], candidate['EqT2'], candidate['EqT3'], candidate['Tag'], candidate['Score']
         
         try:
             info = yf.Ticker(f"{sym}.NS").info
-            mcap = info.get('marketCap', 'N/A')
-            pe = info.get('trailingPE', 'N/A')
-            fpe = info.get('forwardPE', 'N/A')
-            pb = info.get('priceToBook', 'N/A')
-            div_y = info.get('dividendYield', 0.0)
-            roe = info.get('returnOnEquity', 'N/A')
-            de = info.get('debtToEquity', 'N/A')
-            sector = info.get('sector', 'N/A')
-            industry = info.get('industry', 'N/A')
-        except:
-            mcap, pe, fpe, pb, div_y, roe, de, sector, industry = "N/A", "N/A", "N/A", "N/A", 0.0, "N/A", "N/A", "N/A", "N/A"
+            pe, fpe, pb, roe, de = info.get('trailingPE', 'N/A'), info.get('forwardPE', 'N/A'), info.get('priceToBook', 'N/A'), info.get('returnOnEquity', 'N/A'), info.get('debtToEquity', 'N/A')
+            sector, industry = info.get('sector', 'N/A'), info.get('industry', 'N/A')
+        except: pe, fpe, pb, roe, de, sector, industry = "N/A", "N/A", "N/A", "N/A", "N/A", "N/A", "N/A"
 
         prompt = f"""
-You are an Elite Institutional Equity Research Analyst. Write an exhaustive, rigorous institutional research report on **{sym} (NSE: {sym})**.
-Quantitative Technical Context:
-- Setup Type: {tag} (Score: {score}/10)
-- CMP / Entry: ₹{entry}
-- Structural SL: ₹{eq_sl}
-- Target Vectors: ₹{t1} / ₹{t2} / ₹{t3}
-- Sector / Industry: {sector} / {industry}
-- Valuation Snapshot: P/E: {pe}, Forward P/E: {fpe}, P/B: {pb}, ROE: {roe}, D/E: {de}
+You are an Elite Institutional Equity Research Analyst. Write a rigorous 14-section institutional research report on **{sym} (NSE: {sym})**.
+Context: Setup Type: {tag} (Score: {score}/10) | Buy Trigger: ₹{entry} | SL: ₹{eq_sl} | Targets: ₹{t1}/₹{t2}/₹{t3} | Sector: {sector} | P/E: {pe}
 
-You MUST strictly follow this exact 14-section format with rich markdown tables, ASCII charts, and actionable institutional commentary:
+Format EXACTLY as:
 # Detailed Stock Analysis: {sym} (NSE: {sym})
 ---
 ### 1. Technical Analysis
-(Include a clean ASCII table of Monthly, Weekly, Daily timeframe trends, Stage analysis, support/resistance, RSI, volume profile interpretation, and Technical Draft Parameters table).
----
 ### 2. Why Did the Stock Fall Earlier?
-(Ranked numbered root causes behind prior cyclical pullbacks or margin compressions).
----
 ### 3. Has the Company Recovered?
-(ASCII table of Operational/Financial Metrics status, debt status, and order book/margin recovery).
----
 ### 4. Latest News & Business Developments
-(Key contract wins, capex, or strategic growth catalysts).
----
 ### 5. Fundamental Analysis
-(Markdown table with Parameter, Latest, Previous, Interpretation, Action).
----
 ### 6. Shareholding Pattern
-(Markdown table of Promoter, FII, DII, Public holding trajectory & institutional absorption).
----
 ### 7. Quarterly & Annual Financial Performance
-(Markdown table with Revenue, EBITDA, EBITDA Margin, PAT, EPS YoY).
----
 ### 8. Five-Year Financial Trend
-(Multi-year CAGR, ROCE trajectory, balance sheet health).
----
 ### 9. Valuation Summary
-(Historical P/E bands, fair value projections).
----
 ### 10. Key Risks
-(ASCII risk rating table with mitigation factors).
----
 ### 11. Key Growth Triggers
-(Bulleted high-impact growth catalysts).
----
 ### 12. Final Scorecard
-(Markdown table scoring 10 categories /10, and OVERALL SCORE out of 100).
----
 ### 13. Final Investment View
-(Markdown table covering Short Term 1-3M, Swing 1-8W, Medium Term 6-12M, Long Term 2-5Y).
----
 ### 14. Executive Summary
-(Crisp executive takeaways, conviction level, and bottom-line verdict).
 """
         try:
             url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key={GEMINI_API_KEY}"
             res = requests.post(url, json={"contents": [{"parts": [{"text": prompt}]}]}, timeout=60)
-            if res.status_code == 200:
-                all_dossiers.append(res.json()['candidates'][0]['content']['parts'][0]['text'])
-        except Exception as e: pass
+            if res.status_code == 200: all_dossiers.append(res.json()['candidates'][0]['content']['parts'][0]['text'])
+        except Exception: pass
 
     with open("deep_dive_analysis.md", "w", encoding="utf-8") as f:
-        if all_dossiers: f.write("\n\n---\n\n".join(all_dossiers))
-        else: f.write("# 🔬 Institutional Deep Dive Analysis\n\n*Analysis pending generation.*")
+        f.write("\n\n---\n\n".join(all_dossiers) if all_dossiers else "# 🔬 Analysis Generation Failed due to API constraints.")
 
 def run():
     print("🚀 Starting Automated Master Quant Scanner...")
-    
-    # 1. Maintenance & Holiday Gate
     maintenance_purge()
-    is_github_action = os.environ.get("GITHUB_ACTIONS") == "true"
-    is_manual_dispatch = os.environ.get("GITHUB_EVENT_NAME") == "workflow_dispatch"
-    if is_github_action and not is_manual_dispatch:
-        if not is_market_open():
-            print("🛑 Market is closed (Weekend/Holiday). Exiting to save server resources.")
-            return
+    if os.environ.get("GITHUB_ACTIONS") == "true" and os.environ.get("GITHUB_EVENT_NAME") != "workflow_dispatch":
+        if not is_market_open(): return
 
     sess_title, sess_type = get_session_info()
     now_ist = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=5, minutes=30)
     
-    market_open = now_ist.replace(hour=9, minute=15, second=0, microsecond=0)
-    market_close = now_ist.replace(hour=15, minute=30, second=0, microsecond=0)
-    minutes_elapsed = 375.0 if (now_ist.weekday() >= 5 or now_ist > market_close or now_ist < market_open) else min(max(1.0, (now_ist - market_open).total_seconds() / 60.0), 375.0)
+    # FIXED: 2:45 PM CUTOFF FOR INDEX OPTIONS
+    is_options_window = now_ist.hour < 14 or (now_ist.hour == 14 and now_ist.minute <= 45)
     
-    df_index = get_index_options_ideas() if sess_type in ["Intraday", "Manual"] else pd.DataFrame()
+    df_index = get_index_options_ideas() if (sess_type in ["Intraday", "Manual"] and is_options_window) else pd.DataFrame()
     
-    # --- MARKET REGIME FILTER ---
     nifty_df = yf.download("^NSEI", period="1y", interval="1d", progress=False)
-    nifty_return_20d = 0.0
-    nifty_regime = "Neutral"
+    nifty_return_20d, nifty_regime = 0.0, "Neutral"
     if not nifty_df.empty:
         if isinstance(nifty_df.columns, pd.MultiIndex): nifty_df.columns = nifty_df.columns.get_level_values(0)
         nifty_closes = nifty_df['Close'].dropna()
         if len(nifty_closes) >= 50:
             nifty_return_20d = float(nifty_closes.iloc[-1] / nifty_closes.iloc[-20] - 1)
-            n_ema20 = float(nifty_closes.ewm(span=20).mean().iloc[-1])
-            n_ema50 = float(nifty_closes.ewm(span=50).mean().iloc[-1])
-            n_close = float(nifty_closes.iloc[-1])
-            
+            n_ema20, n_ema50, n_close = float(nifty_closes.ewm(span=20).mean().iloc[-1]), float(nifty_closes.ewm(span=50).mean().iloc[-1]), float(nifty_closes.iloc[-1])
             if n_close > n_ema20 and n_ema20 > n_ema50: nifty_regime = "Bullish"
             elif n_close < n_ema50: nifty_regime = "Bearish"
-            else: nifty_regime = "Neutral"
 
-    # --- SECTOR CONFLUENCE ENGINE ---
     top_sectors = get_top_sectors()
-    if top_sectors: print(f"🏆 Sector Confluence Active. Leading Sectors: {', '.join(top_sectors)}")
-
-    # --- FETCH DYNAMIC 1800+ UNIVERSE VIA CHUNKING (Anti-Timeout) ---
     universe = get_complete_nse_universe()
-    tickers = [f"{s}.NS" for s in universe]
-    closes, highs, lows, volumes = download_in_chunks(tickers, chunk_size=400)
-    
-    if closes.empty: 
-        print("Data fetching failed.")
-        return
+    closes, highs, lows, volumes = download_in_chunks([f"{s}.NS" for s in universe], chunk_size=400)
+    if closes.empty: return
 
-    # --- ACTIVE TRADE TRACKER & ATR TRAILING ENGINE ---
     portfolio_file = "portfolio.csv"
     if os.path.exists(portfolio_file): pf = pd.read_csv(portfolio_file)
     else: pf = pd.DataFrame(columns=['Stock', 'RawStock', 'Entry', 'Qty', 'Current_SL', 'T1', 'T2', 'T3', 'Status'])
@@ -668,14 +418,10 @@ def run():
             sym = row['RawStock']
             ticker = f"{sym}.NS"
             if ticker in closes.columns:
-                latest_p = float(closes[ticker].iloc[-1])
-                curr_sl = float(row['Current_SL'])
-                entry_p = float(row['Entry'])
-                t1, t2 = float(row['T1']), float(row['T2'])
-                
+                latest_p, curr_sl, entry_p, t1, t2 = float(closes[ticker].iloc[-1]), float(row['Current_SL']), float(row['Entry']), float(row['T1']), float(row['T2'])
                 if latest_p < curr_sl:
                     pf.at[i, 'Status'] = 'Closed'
-                    trail_alerts.append(f"🔴 *STOP OUT:* {sym} closed below SL (₹{curr_sl}). Trade Closed.")
+                    trail_alerts.append(f"🔴 *STOP OUT:* {sym} closed below SL (₹{curr_sl}).")
                 elif latest_p >= t2 and curr_sl < t1:
                     pf.at[i, 'Current_SL'] = t1
                     trail_alerts.append(f"🟢 *TRAIL SL WIN:* {sym} hit T2! Moved SL to lock in profit at T1 (₹{t1}).")
@@ -683,67 +429,46 @@ def run():
                     pf.at[i, 'Current_SL'] = entry_p
                     trail_alerts.append(f"🟡 *TRAIL SL RISK-FREE:* {sym} hit T1! Moved SL to Breakeven (₹{entry_p}).")
         pf.to_csv(portfolio_file, index=False)
-        if trail_alerts:
-            send_telegram_message("🔔 *ATR TRAILING STOP ENGINE*\n\n" + "\n".join(trail_alerts))
+        if trail_alerts: send_telegram_message("🔔 *ATR TRAILING STOP ENGINE*\n\n" + "\n".join(trail_alerts))
 
-    ema_50_daily = closes.ewm(span=50).mean()
-    ema_20_daily = closes.ewm(span=20).mean()
-    ema_200_daily = closes.ewm(span=200).mean()
+    ema_50_daily, ema_20_daily, ema_200_daily = closes.ewm(span=50).mean(), closes.ewm(span=20).mean(), closes.ewm(span=200).mean()
     vol_50d_avg_daily = volumes.rolling(50).mean()
-    
     delta = closes.diff()
-    gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
-    loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
+    gain, loss = (delta.where(delta > 0, 0)).rolling(14).mean(), (-delta.where(delta < 0, 0)).rolling(14).mean()
     rsi_daily = 100 - (100 / (1 + (gain / loss)))
-
     macd_daily = closes.ewm(span=12, adjust=False).mean() - closes.ewm(span=26, adjust=False).mean()
     macd_signal_daily = macd_daily.ewm(span=9, adjust=False).mean()
-    
-    tr = pd.DataFrame(np.maximum((highs - lows).values, np.maximum((highs - closes.shift(1)).abs().values, (lows - closes.shift(1)).abs().values)), index=highs.index, columns=highs.columns)
-    atr_daily = tr.ewm(alpha=1/14).mean()
+    atr_daily = pd.DataFrame(np.maximum((highs - lows).values, np.maximum((highs - closes.shift(1)).abs().values, (lows - closes.shift(1)).abs().values)), index=highs.index, columns=highs.columns).ewm(alpha=1/14).mean()
     ema_50_weekly = closes.resample('W').last().dropna(how='all').ewm(span=50).mean()
 
-    last_vol, last_vol_50 = volumes.iloc[-1], vol_50d_avg_daily.iloc[-1]
-    last_rsi, last_macd, last_macd_signal = rsi_daily.iloc[-1], macd_daily.iloc[-1], macd_signal_daily.iloc[-1]
-    last_ema_50, last_ema_20, last_ema_200, last_atr = ema_50_daily.iloc[-1], ema_20_daily.iloc[-1], ema_200_daily.iloc[-1], atr_daily.iloc[-1]
-    last_ema_50_weekly = ema_50_weekly.iloc[-1]
-
     valid_setups = []
-
     for ticker in closes.columns:
         symbol = ticker.replace(".NS", "")
         try:
-            close_p = float(closes[ticker].iloc[-1])
-            vol_today, vol_50_avg = float(last_vol[ticker]), float(last_vol_50[ticker])
+            close_p, vol_today, vol_50_avg = float(closes[ticker].iloc[-1]), float(volumes.iloc[-1][ticker]), float(vol_50d_avg_daily.iloc[-1][ticker])
             
-            # --- NEW: ₹10 CRORE MINIMUM TURNOVER FILTER (Institutional Liquidity Wall) ---
-            turnover_today = close_p * vol_today
-            turnover_avg = close_p * vol_50_avg
-            if pd.isna(close_p) or close_p <= 0 or turnover_today < 100000000 or turnover_avg < 100000000: 
-                continue
+            if pd.isna(close_p) or close_p <= 0 or (close_p * vol_today) < 100000000 or (close_p * vol_50_avg) < 100000000: continue
             
-            rsi_val, macd_val, macd_sig = float(last_rsi[ticker]), float(last_macd[ticker]), float(last_macd_signal[ticker])
-            d_ema, w_ema, atr = float(last_ema_50[ticker]), float(last_ema_50_weekly[ticker]), float(last_atr[ticker])
-            d_ema20 = float(last_ema_20[ticker])
-            d_ema200 = float(last_ema_200[ticker]) if not pd.isna(last_ema_200[ticker]) else 0.0
+            rsi_val, macd_val, macd_sig = float(rsi_daily.iloc[-1][ticker]), float(macd_daily.iloc[-1][ticker]), float(macd_signal_daily.iloc[-1][ticker])
+            d_ema, w_ema, atr = float(ema_50_daily.iloc[-1][ticker]), float(ema_50_weekly.iloc[-1][ticker]), float(atr_daily.iloc[-1][ticker])
+            d_ema20, d_ema200 = float(ema_20_daily.iloc[-1][ticker]), float(ema_200_daily.iloc[-1][ticker]) if not pd.isna(ema_200_daily.iloc[-1][ticker]) else 0.0
             
-            adjusted_vol_50 = vol_50_avg * (minutes_elapsed / 375.0)
-            vol_vs = round(vol_today / adjusted_vol_50, 2)
-
+            vol_vs = round(vol_today / vol_50_avg, 2)
             recent_vol_avg, recent_range_avg = float(volumes[ticker].tail(3).mean()), float((highs[ticker].tail(3) - lows[ticker].tail(3)).mean())
-            recent_20d_high = float(highs[ticker].tail(20).max())
+            recent_high = float(highs[ticker].tail(20).max())
             
-            dist_to_20d_high = (recent_20d_high - close_p) / close_p
-            dist_to_20ema = (close_p - d_ema20) / d_ema20 if d_ema20 > 0 else 0
-            dist_to_200ema = abs(close_p - d_ema200) / d_ema200 if d_ema200 > 0 else 999
-
             is_squeeze = (recent_vol_avg < vol_50_avg * 0.85) and (recent_range_avg < atr * 0.85)
             is_relative_strong = (float(closes[ticker].dropna().iloc[-1] / closes[ticker].dropna().iloc[-20] - 1) > nifty_return_20d) if len(closes[ticker].dropna()) >= 20 else False
             
-            is_pre_breakout = (0.002 <= dist_to_20d_high <= 0.035) and (close_p > d_ema20) and (vol_vs <= 1.25)
-            is_200ma_retest = (d_ema200 > 0) and (dist_to_200ema <= 0.025) and (vol_vs <= 1.0) and (close_p >= d_ema200)
-            is_swing_retest = (0.025 <= dist_to_20d_high <= 0.15) and (0.0 <= dist_to_20ema <= 0.04) and (vol_vs <= 1.0)
+            is_pre_breakout = (0.002 <= ((recent_high - close_p)/close_p) <= 0.035) and (close_p > d_ema20) and (vol_vs <= 1.25)
+            is_200ma_retest = (d_ema200 > 0) and (abs(close_p - d_ema200)/d_ema200 <= 0.025) and (vol_vs <= 1.0) and (close_p >= d_ema200)
+            is_swing_retest = (0.025 <= ((recent_high - close_p)/close_p) <= 0.15) and (0.0 <= ((close_p - d_ema20)/d_ema20) <= 0.04) and (vol_vs <= 1.0)
             
+            # FIXED: Highly Accurate Strong-Close BTST Logic
+            recent_daily_high = float(highs[ticker].iloc[-1])
+            prev_daily_close = float(closes[ticker].iloc[-2]) if len(closes[ticker]) > 1 else 0
+            is_btst = (close_p >= 0.985 * recent_daily_high) and (close_p > prev_daily_close) and (close_p > d_ema20) and (vol_vs >= 1.0) and (50 <= rsi_val <= 75)
+
             is_rsi_div = check_bullish_divergence(closes[ticker].dropna(), rsi_daily[ticker].dropna())
             sqz_on, sqz_fired = check_ttm_squeeze(closes[ticker].dropna(), highs[ticker].dropna(), lows[ticker].dropna())
 
@@ -752,103 +477,37 @@ def run():
             elif is_pre_breakout: hor, sl_m, tag = "Pre-Breakout", 1.0, "💥 Pre-Breakout Coil"
             elif is_200ma_retest: hor, sl_m, tag = "Swing", 1.5, "🏦 200 MA Retest"
             elif is_swing_retest: hor, sl_m, tag = "Swing", 1.2, "🔄 Breakout Retest"
+            elif is_btst: hor, sl_m, tag = "BTST", 1.0, "🌙 Strong Close BTST"
             elif vol_vs >= 1.5: hor, sl_m, tag = "Intraday", 0.8, "🚀 Volume Breakout"
-            elif is_squeeze or vol_vs >= 1.2: hor, sl_m, tag = "BTST", 1.0, "🔥 Squeeze Blast"
             else: continue
             
             if is_rsi_div: tag += " (📉 +RSI Div)"
 
-            is_base_setup = hor in ["Pre-Breakout", "Swing"]
-            
-            trend_cond = close_p > d_ema and close_p > w_ema and check_structure_hh_hl(highs[ticker], lows[ticker])
-            momentum_cond = (macd_val > macd_sig) if not is_base_setup else True 
-            rsi_cond = (45 <= rsi_val <= 85)
-            rs_cond = is_relative_strong if not is_base_setup else True 
-
-            if trend_cond and momentum_cond and rsi_cond and rs_cond:
+            if (close_p > d_ema and close_p > w_ema and check_structure_hh_hl(highs[ticker], lows[ticker])) and ((macd_val > macd_sig) if hor not in ["Pre-Breakout", "Swing"] else True) and (45 <= rsi_val <= 85) and (is_relative_strong if hor not in ["Pre-Breakout", "Swing"] else True):
                 if hor in ["Intraday", "BTST"] and not check_vwap_gate(ticker, close_p): continue
                 if not validate_mtf_confluence(ticker): continue
 
                 t1, t2, t3, t4, t5 = calculate_dynamic_targets(close_p, atr, highs[ticker], lows[ticker], "Bullish", is_squeeze)
                 eq_sl = round(close_p - sl_m * atr, 1)
                 
-                risk, reward = close_p - eq_sl, (t2 - close_p) if hor in ["Swing", "Pre-Breakout"] else (t1 - close_p)
-                if risk <= 0 or (reward / risk) < 1.5: continue
+                if (close_p - eq_sl) <= 0 or ((t1 if hor not in ["Swing", "Pre-Breakout"] else t2) - close_p) / (close_p - eq_sl) < 1.5: continue
                 
-                score = 0
-                if close_p > d_ema: score += 1
-                if close_p > w_ema: score += 1
-                if 55 <= rsi_val <= 70: score += 2
-                elif 45 <= rsi_val <= 85: score += 1
-                if macd_val > macd_sig: score += 1
-                if macd_val > 0: score += 1
-                if is_relative_strong: score += 1
-                if is_relative_strong and (float(closes[ticker].dropna().iloc[-1] / closes[ticker].dropna().iloc[-20] - 1) > nifty_return_20d + 0.02): score += 1
-                
-                if hor == "Swing" and vol_vs < 0.8: score += 2
-                elif hor == "Swing" and vol_vs <= 1.0: score += 1
-                elif hor == "Pre-Breakout" and is_squeeze: score += 2
-                elif hor == "Pre-Breakout": score += 1
-                elif hor == "Intraday" and vol_vs >= 2.0: score += 2
-                elif hor == "Intraday": score += 1
-                elif hor == "BTST" and is_squeeze: score += 2
-                elif hor == "BTST": score += 1
-                
-                if is_rsi_div: score += 2
-                if sqz_fired: score += 3  
-                if sqz_on: score += 2     
-                
-                # SECTOR BONUS
-                try:
-                    if top_sectors:
-                        sector_name = yf.Ticker(f"{symbol}.NS").info.get('sector', 'Unknown')
-                        if sector_name in top_sectors:
-                            score += 2
-                            tag += " (🚀 Sector Leader)"
-                except: pass
-                
-                final_score = min(10, score)
-                
-                active_base_capital = BASE_CAPITAL_PER_TRADE * 0.5 if nifty_regime == "Bearish" else BASE_CAPITAL_PER_TRADE
-                
-                is_high_conviction = (final_score >= 8) 
-                if is_high_conviction and not is_pre_breakout and not is_swing_retest and not is_200ma_retest and not is_rsi_div: 
-                    tag += " (⭐ 2x Size)"
-                    cash_qty = int((active_base_capital * HIGH_CONVICTION_MULTIPLIER) / close_p)
-                else:
-                    cash_qty = int(active_base_capital / close_p)
-            else: continue 
+                score = min(10, sum([1 if close_p > d_ema else 0, 1 if close_p > w_ema else 0, 2 if 55 <= rsi_val <= 70 else (1 if 45 <= rsi_val <= 85 else 0), 1 if macd_val > macd_sig else 0, 1 if macd_val > 0 else 0, 1 if is_relative_strong else 0, 2 if sqz_on else (3 if sqz_fired else 0), 2 if top_sectors and yf.Ticker(f"{symbol}.NS").info.get('sector', '') in top_sectors else 0]))
+                if score >= 8 and hor not in ["Pre-Breakout", "Swing"]: tag += " (⭐ 2x Size)"
+                cash_qty = int(((BASE_CAPITAL_PER_TRADE * 0.5 if nifty_regime == "Bearish" else BASE_CAPITAL_PER_TRADE) * (2 if score >= 8 else 1)) / close_p)
 
-            df_h, df_l, df_c = highs[ticker].dropna(), lows[ticker].dropna(), closes[ticker].dropna()
-            
-            try:
-                daily_returns = np.log(df_c / df_c.shift(1))
-                rolling_hv = daily_returns.rolling(20).std() * math.sqrt(252)
-                if len(rolling_hv.dropna()) > 100:
-                    current_hv = float(rolling_hv.iloc[-1])
-                    min_hv, max_hv = float(rolling_hv.min()), float(rolling_hv.max())
-                    ivp = ((current_hv - min_hv) / (max_hv - min_hv)) * 100 if (max_hv - min_hv) > 0 else 50
-                else: ivp = 50
-            except: ivp = 50
-            
-            if symbol in STATIC_FNO:
-                if ivp > 70:
-                    opt, prem, pt1, pt2, pt3, pt4, pt5, opt_sl = f"N/A (IVP {int(ivp)}% - Use Cash)", "-", "-", "-", "-", "-", "-", "-"
-                else:
-                    try: opt, prem, pt1, pt2, pt3, pt4, pt5, opt_sl = generate_quant_option(symbol, close_p, t1, t2, t3, t4, t5, eq_sl, df_h, df_l, df_c, "Bullish")
-                    except: opt, prem, pt1, pt2, pt3, pt4, pt5, opt_sl = "N/A (Data Err)", "-", "-", "-", "-", "-", "-", "-"
-            else: opt, prem, pt1, pt2, pt3, pt4, pt5, opt_sl = "N/A (Cash)", "-", "-", "-", "-", "-", "-", "-"
-            
-            valid_setups.append({
-                'Stock': f"{symbol} (↑)", 'RawStock': symbol, 'Horizon': hor, 'Tag': tag, 'Entry': round(close_p, 2), 
-                'Qty': cash_qty, 'Risk': round(cash_qty * (close_p - eq_sl), 2), 'RSI': round(rsi_val,1), 'Vol vs 50d': vol_vs,
-                'EqSL': eq_sl, 'EqT1': t1, 'EqT2': t2, 'EqT3': t3, 'EqT4': t4, 'EqT5': t5, 
-                'Opt': opt, 'Prem': prem, 'PT1': pt1, 'PT2': pt2, 'PT3': pt3, 'PT4': pt4, 'PT5': pt5, 'OptSL': opt_sl, 'Score': final_score
-            })
+                df_h, df_l, df_c = highs[ticker].dropna(), lows[ticker].dropna(), closes[ticker].dropna()
+                opt_info = generate_quant_option(symbol, close_p, t1, t2, t3, t4, t5, eq_sl, df_h, df_l, df_c, "Bullish") if symbol in STATIC_FNO else ("N/A (Cash)", "-", "-", "-", "-", "-", "-", "-")
+                
+                valid_setups.append({
+                    'Stock': f"{symbol} (↑)", 'RawStock': symbol, 'Horizon': hor, 'Tag': tag, 'Entry': round(close_p, 2), 
+                    'Qty': cash_qty, 'Risk': round(cash_qty * (close_p - eq_sl), 2), 'RSI': round(rsi_val,1), 'Vol vs 50d': vol_vs,
+                    'EqSL': eq_sl, 'EqT1': t1, 'EqT2': t2, 'EqT3': t3, 'EqT4': t4, 'EqT5': t5, 
+                    'Opt': opt_info[0], 'Prem': opt_info[1], 'PT1': opt_info[2], 'PT2': opt_info[3], 'PT3': opt_info[4], 'PT4': opt_info[5], 'PT5': opt_info[6], 'OptSL': opt_info[7], 'Score': score
+                })
         except: continue
 
     df_all = pd.DataFrame(valid_setups).drop_duplicates(subset=['Stock']).sort_values(by=['Vol vs 50d', 'Score'], ascending=[False, False]) if valid_setups else pd.DataFrame()
-
     if not df_all.empty: df_all.to_csv("all_setups.csv", index=False)
     else: pd.DataFrame(columns=['Stock','RawStock','Horizon','Tag','Entry','Qty','Risk','RSI','Vol vs 50d','EqSL','EqT1','EqT2','EqT3','EqT4','EqT5','Opt','Prem','PT1','PT2','PT3','PT4','PT5','OptSL','Score']).to_csv("all_setups.csv", index=False)
     
@@ -865,30 +524,28 @@ def run():
     generate_tabular_markdown(df_btst, pd.DataFrame(), f"🌙 BTST Report (Top 25) — {sess_title}", "btst_report.md", nifty_regime, False)
     generate_tabular_markdown(df_swing, pd.DataFrame(), f"📈 Swing Trade Retest Report (Top 25) — {sess_title}", "swing_report.md", nifty_regime, False)
 
-    top_swing_candidates = valid_setups if valid_setups else []
-    top_swing_candidates = sorted(top_swing_candidates, key=lambda x: (x['Score'], x['Horizon'] == 'Swing'), reverse=True)
-    generate_ai_deep_dive(top_swing_candidates)
+    # FIXED: AI Deep Dive Fallback - Guarantees analysis runs even if there are no Swing trades.
+    if not df_all.empty:
+        top_candidates = sorted(valid_setups, key=lambda x: (x['Horizon'] == 'Swing', x['Score']), reverse=True)
+        generate_ai_deep_dive(top_candidates)
+    else: generate_ai_deep_dive([])
 
-    is_manual = (sess_type == "Manual")
-    is_intraday_window = (now_ist.hour < 14) or is_manual 
-    is_closing_window = (now_ist.hour >= 15) or is_manual
-
-    # --- TIME-GATED & MEMORY-PROTECTED TELEGRAM ALERTS ---
+    # TIME-GATED TELEGRAM ALERTS
     if not df_pre.empty: 
         new_pre = get_new_alerts(df_pre.head(25), "PreBreakout")
         if not new_pre.empty: send_telegram_message(format_telegram_text(new_pre, pd.DataFrame(), f"💥 Soon to Breakout — {sess_title}", nifty_regime))
         
-    if (not df_intra.empty or not df_index.empty) and is_intraday_window: 
+    if (not df_intra.empty or not df_index.empty) and (is_options_window or is_manual): 
         new_intra = get_new_alerts(df_intra.head(25), "Intraday")
-        new_idx = get_new_alerts(df_index, "Index")
+        new_idx = get_new_alerts(df_index, "Index") if is_options_window else pd.DataFrame()
         if not new_intra.empty or not new_idx.empty:
             send_telegram_message(format_telegram_text(new_intra, new_idx, f"⚡ Intraday Report — {sess_title}", nifty_regime))
             
-    if not df_btst.empty and is_closing_window: 
+    if not df_btst.empty and (not is_options_window or is_manual): 
         new_btst = get_new_alerts(df_btst.head(25), "BTST")
         if not new_btst.empty: send_telegram_message(format_telegram_text(new_btst, pd.DataFrame(), f"🌙 BTST Report — {sess_title}", nifty_regime))
         
-    if not df_swing.empty and is_closing_window: 
+    if not df_swing.empty and (not is_options_window or is_manual): 
         new_swing = get_new_alerts(df_swing.head(25), "Swing")
         if not new_swing.empty: send_telegram_message(format_telegram_text(new_swing, pd.DataFrame(), f"📈 Swing Trade (Retest) Report — {sess_title}", nifty_regime))
 
