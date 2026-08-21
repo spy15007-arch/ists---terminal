@@ -1,15 +1,13 @@
-# ⚡ Intraday Report (Top 25) — 21 Aug 2026 | 04:20 PM (Manual Override)
+# ⚡ Intraday Report (Top 25) — 21 Aug 2026 | 05:08 PM (Manual Override)
 
-> **System:** 1200+ Mega Universe + Clean Cash vs F&O Separation + FII Smart Money Confluence
+> **Market Regime Filter:** Neutral | **System:** 1200+ Universe
 
-## 👑 Index Options (Spot Mapped Execution)
+## 👑 Index Options (15M Scalps)
 
-| # | Index Signal | Option Contract | Spot Entry Trigger | Spot Targets | Spot SL |
-| :--- | :--- | :---: | :---: | :---: | :---: |
-| 1 | **NIFTY 50 Bullish (Call)** | **24250 CE** | Crosses **24252.0** | T1: 24266.3<br>T2: 24280.7<br>T3: 24295.0 | **24234.1** |
-| 2 | **BANK NIFTY Bullish (Call)** | **57800 CE** | Crosses **57761.95** | T1: 57812.0<br>T2: 57862.1<br>T3: 57912.2 | **57699.3** |
-
-> *Note: Due to live market latency and gap-ups, execute the option at Current Market Price (CMP) the moment the underlying Spot Index hits the Entry Trigger.*
+| # | Index Signal | Price | Option | Buy Above | Targets | SL |
+| :--- | :--- | :---: | :---: | :---: | :---: | :---: |
+| 1 | **NIFTY 50 Bullish (Call)** | ₹24252.0 | **24250 CE** | ₹188.91 | T1: ₹196.6<br>T2: ₹204.5<br>T3: ₹212.6<br>T4: ₹220.8<br>T5: ₹229.2+ | ₹179.6 |
+| 2 | **BANK NIFTY Bullish (Call)** | ₹57761.95 | **57800 CE** | ₹386.26 | T1: ₹412.4<br>T2: ₹439.5<br>T3: ₹467.7<br>T4: ₹497.0<br>T5: ₹527.2+ | ₹355.1 |
 
 ---
 

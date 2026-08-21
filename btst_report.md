@@ -1,5 +1,5 @@
-# 🌙 BTST Report (Top 25) — 21 Aug 2026 | 04:20 PM (Manual Override)
+# 🌙 BTST Report (Top 25) — 21 Aug 2026 | 05:08 PM (Manual Override)
 
-> **System:** 1200+ Mega Universe + Clean Cash vs F&O Separation + FII Smart Money Confluence
+> **Market Regime Filter:** Neutral | **System:** 1200+ Universe
 
 *Market conditions did not trigger any quantitative setups meeting institutional gates for this timeframe.*
