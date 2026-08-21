@@ -28,15 +28,12 @@ if page == "Dashboard":
     st.title("Institutional Quant Trading System (ISTS Pro)")
     st.markdown("Live Market Top-Down MTF Momentum, AI Research & Options Engine")
     
-    # Check Market Regime
     nifty_df = yf.download("^NSEI", period="60d", interval="1d", progress=False)
     regime = "Calculating..."
     if not nifty_df.empty:
         if isinstance(nifty_df.columns, pd.MultiIndex): nifty_df.columns = nifty_df.columns.get_level_values(0)
         c = nifty_df['Close'].dropna()
-        n20 = c.ewm(span=20).mean().iloc[-1]
-        n50 = c.ewm(span=50).mean().iloc[-1]
-        n_p = c.iloc[-1]
+        n20, n50, n_p = c.ewm(span=20).mean().iloc[-1], c.ewm(span=50).mean().iloc[-1], c.iloc[-1]
         if n_p > n20 and n20 > n50: regime = "🟢 BULLISH"
         elif n_p < n50: regime = "🔴 BEARISH (50% Sizing)"
         else: regime = "🟡 NEUTRAL"
@@ -49,18 +46,13 @@ if page == "Dashboard":
 
 elif page == "Active Trade Tracker":
     st.title("🗂️ Active Trade Tracker & ATR Trailing Stop Engine")
-    st.markdown("Log your open positions here. The scanner runs every 15 minutes, checks your targets, automatically trails your Stop Loss, and alerts your Telegram!")
+    st.markdown("Log your open positions here. The scanner monitors and automatically trails your Stop Loss.")
     
     pf_file = "portfolio.csv"
     if not os.path.exists(pf_file):
         pd.DataFrame(columns=['Stock', 'RawStock', 'Entry', 'Qty', 'Current_SL', 'T1', 'T2', 'T3', 'Status']).to_csv(pf_file, index=False)
     
-    pf = pd.read_csv(pf_file)
-    
-    st.markdown("### Edit Your Active Positions")
-    st.caption("Change `Status` to 'Active' to start tracking. The system changes it to 'Closed' if the Stop Loss gets hit.")
-    edited_pf = st.data_editor(pf, num_rows="dynamic", use_container_width=True)
-    
+    edited_pf = st.data_editor(pd.read_csv(pf_file), num_rows="dynamic", use_container_width=True)
     if st.button("💾 Save Portfolio Settings", type="primary"):
         edited_pf.to_csv(pf_file, index=False)
         st.success("Portfolio saved! The GitHub Action will now monitor and trail your Stop Losses.")
@@ -75,11 +67,7 @@ elif page == "Scan Market":
     st.markdown("---")
     st.subheader("📊 Market Intelligence & Quantitative Reports")
     tab1, tab2, tab3, tab4, tab5 = st.tabs([
-        "💥 Soon to Breakout (Top 25)", 
-        "⚡ Intraday (Top 25)", 
-        "🌙 BTST (Top 25)", 
-        "📈 Swing Retest (Top 25)",
-        "🔬 Institutional Deep Dive"
+        "💥 Soon to Breakout", "⚡ Intraday", "🌙 BTST", "📈 Swing Retest", "🔬 AI Deep Dive"
     ])
     
     with tab1: st.markdown(load_report("prebreakout_report.md"), unsafe_allow_html=True)
@@ -88,7 +76,6 @@ elif page == "Scan Market":
     with tab4: st.markdown(load_report("swing_report.md"), unsafe_allow_html=True)
     with tab5: st.markdown(load_report("deep_dive_analysis.md"), unsafe_allow_html=True)
 
-    # --- NATIVE PLOTLY CHART INTEGRATION ---
     st.markdown("---")
     st.subheader("🔍 Native Real-Time Chart Analysis")
     
@@ -97,15 +84,19 @@ elif page == "Scan Market":
     if not df_all_merged.empty and 'Stock' in df_all_merged.columns:
         c1, c2, c3 = st.columns([2, 1, 1])
         with c1: selected_stock = st.selectbox("Select asset to load native chart:", df_all_merged['Stock'].tolist())
-        with c2: selected_tf = st.selectbox("Timeframe:", ["5m", "15m", "30m", "1h", "1d"], index=1)
+        
+        stock_row = df_all_merged[df_all_merged['Stock'] == selected_stock].iloc[0]
+        raw_sym = str(stock_row['RawStock']).strip()
+        
+        # FIXED: Automatically sets default timeframe to 5m for index options, and 1d for Stocks
+        default_tf_index = 0 if "NIFTY" in raw_sym else 4 
+        
+        with c2: selected_tf = st.selectbox("Timeframe:", ["5m", "15m", "30m", "1h", "1d"], index=default_tf_index)
         with c3:
             st.write("")
             st.write("")
             if st.button("🔄 Reload Chart", use_container_width=True): st.cache_data.clear()
 
-        stock_row = df_all_merged[df_all_merged['Stock'] == selected_stock].iloc[0]
-        raw_sym = str(stock_row['RawStock']).strip()
-        
         yf_sym = "^NSEI" if raw_sym == "NIFTY" else ("^NSEBANK" if raw_sym == "BANKNIFTY" else f"{raw_sym}.NS")
         tv_link_sym = f"NSE:{raw_sym}"
         fetch_period = "3mo" if selected_tf == "1d" else "5d"
@@ -113,10 +104,7 @@ elif page == "Scan Market":
         with st.spinner(f"Fetching live {selected_tf} candlestick data..."):
             chart_data = yf.Ticker(yf_sym).history(period=fetch_period, interval=selected_tf)
             if not chart_data.empty:
-                fig = go.Figure(data=[go.Candlestick(
-                    x=chart_data.index, open=chart_data['Open'], high=chart_data['High'], low=chart_data['Low'], close=chart_data['Close'],
-                    increasing_line_color='#00ff00', decreasing_line_color='#ff0000'
-                )])
+                fig = go.Figure(data=[go.Candlestick(x=chart_data.index, open=chart_data['Open'], high=chart_data['High'], low=chart_data['Low'], close=chart_data['Close'], increasing_line_color='#00ff00', decreasing_line_color='#ff0000')])
                 range_breaks = [dict(bounds=["sat", "mon"])]
                 if selected_tf != "1d": range_breaks.append(dict(bounds=[15.5, 9.25], pattern="hour")) 
                 fig.update_xaxes(rangebreaks=range_breaks)
@@ -154,7 +142,6 @@ elif page == "Scan Market":
             m1.metric("Quantity to Trade", f"{qty} units")
             m2.metric("Total Investment", f"₹{(qty * entry_p):,.2f}")
             m3.metric("Max Capital at Risk", f"₹{max_risk:,.2f}")
-            
             runner_tgt = float(stock_row.get('EqT5', stock_row.get('EqT3', entry_p)))
             m4.metric("Max Runner Profit (T5)", f"₹{(qty * abs(runner_tgt - entry_p)):,.2f}")
 
@@ -193,5 +180,3 @@ elif page == "Budget Scanner (< ₹500)":
                 st.metric("Total Investment Required", f"₹{round(shares_qty * float(stock_row['Entry']), 2):,.2f}")
         else:
             st.warning(f"No setups found under ₹{budget_limit} today.")
-    else:
-        st.warning("Run the GitHub Scanner first to populate the database.")
