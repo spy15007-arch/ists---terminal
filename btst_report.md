@@ -1,4 +1,4 @@
-# 🌙 BTST Report (Top 25) — 20 Aug 2026 | 04:32 PM (BTST/Afternoon)
+# 🌙 BTST Report (Top 25) — 21 Aug 2026 | 10:29 AM (Intraday)
 
 > **System:** 1200+ Mega Universe + Clean Cash vs F&O Separation + FII Smart Money Confluence
 
