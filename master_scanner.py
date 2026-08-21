@@ -113,19 +113,6 @@ def get_session_info():
     elif hour < 14 or (hour == 14 and minute < 30): return now_ist.strftime("%d %b %Y | %I:%M %p (Intraday)"), "Intraday"
     else: return now_ist.strftime("%d %b %Y | %I:%M %p (BTST/Afternoon)"), "Afternoon"
 
-def check_fii_accumulation(ticker_obj):
-    """
-    Checks institutional holders data to detect smart money/FII accumulation.
-    Returns True if institutional ownership is robust or expanding.
-    """
-    try:
-        holders = ticker_obj.institutional_holders
-        if holders is not None and not holders.empty:
-            return True
-    except:
-        pass
-    return False
-
 def black_scholes(S, K, T, r, sigma, opt_type="CE"):
     if T <= 0 or sigma == 0: return max(0, S - K) if opt_type == "CE" else max(0, K - S)
     d1 = (math.log(S / K) + (r + 0.5 * sigma ** 2) * T) / (sigma * math.sqrt(T))
@@ -181,12 +168,10 @@ def calculate_dynamic_targets(close_p, atr, df_h, df_l, direction="Bullish", is_
     )
 
 def generate_quant_option(symbol, price, t1, t2, t3, t4, t5, eq_sl, df_h, df_l, df_c, direction="Bullish"):
-    # Fix for Live Index Options: Strip out theoretical premium estimates. Rely exclusively on Spot Mapping.
     if "^NSE" in symbol or symbol in ["NIFTY", "BANKNIFTY"]:
+        dte = get_index_dte(symbol)
         step = 100 if "BANK" in symbol else 50
-        atm = int(round(price / step) * step)
-        opt_type = "CE" if direction == "Bullish" else "PE"
-        return f"{atm} {opt_type}", "CMP", "-", "-", "-", "-", "-", "-"
+        vol = 0.14 
     else:
         dte = 15 
         step = 100 if price > 5000 else (50 if price > 2000 else (20 if price > 1000 else (10 if price > 500 else 5)))
@@ -196,18 +181,18 @@ def generate_quant_option(symbol, price, t1, t2, t3, t4, t5, eq_sl, df_h, df_l, 
             if math.isnan(vol) or vol == 0: vol = 0.2
         except: vol = 0.2
     
-        atm = int(round(price / step) * step)
-        opt_type = "CE" if direction == "Bullish" else "PE"
-        
-        c_prem = black_scholes(price, atm, dte/365.0, 0.07, vol, opt_type)
-        pt1 = black_scholes(t1, atm, dte/365.0, 0.07, vol, opt_type)
-        pt2 = black_scholes(t2, atm, dte/365.0, 0.07, vol, opt_type)
-        pt3 = black_scholes(t3, atm, dte/365.0, 0.07, vol, opt_type)
-        pt4 = black_scholes(t4, atm, dte/365.0, 0.07, vol, opt_type)
-        pt5 = black_scholes(t5, atm, dte/365.0, 0.07, vol, opt_type)
-        opt_sl = max(5.0, black_scholes(eq_sl, atm, dte/365.0, 0.07, vol, opt_type))
-        
-        return f"{atm} {opt_type}", c_prem, round(pt1, 1), round(pt2, 1), round(pt3, 1), round(pt4, 1), round(pt5, 1), round(opt_sl, 1)
+    atm = int(round(price / step) * step)
+    opt_type = "CE" if direction == "Bullish" else "PE"
+    
+    c_prem = black_scholes(price, atm, dte/365.0, 0.07, vol, opt_type)
+    pt1 = black_scholes(t1, atm, dte/365.0, 0.07, vol, opt_type)
+    pt2 = black_scholes(t2, atm, dte/365.0, 0.07, vol, opt_type)
+    pt3 = black_scholes(t3, atm, dte/365.0, 0.07, vol, opt_type)
+    pt4 = black_scholes(t4, atm, dte/365.0, 0.07, vol, opt_type)
+    pt5 = black_scholes(t5, atm, dte/365.0, 0.07, vol, opt_type)
+    opt_sl = max(5.0, black_scholes(eq_sl, atm, dte/365.0, 0.07, vol, opt_type))
+    
+    return f"{atm} {opt_type}", c_prem, round(pt1, 1), round(pt2, 1), round(pt3, 1), round(pt4, 1), round(pt5, 1), round(opt_sl, 1)
 
 def check_structure_hh_hl(df_h, df_l):
     if len(df_h) < 20: return True
@@ -228,6 +213,40 @@ def check_bullish_divergence(closes, rsi):
             return True
     except: pass
     return False
+
+# --- NEW: TTM Squeeze Math Engine ---
+def check_ttm_squeeze(df_c, df_h, df_l, period=20):
+    try:
+        if len(df_c) < period: return False, False
+        
+        # 1. Bollinger Bands Calculation
+        sma = df_c.rolling(window=period).mean()
+        std = df_c.rolling(window=period).std()
+        bb_upper = sma + (2 * std)
+        bb_lower = sma - (2 * std)
+        
+        # 2. Keltner Channels Calculation
+        ema = df_c.ewm(span=period, adjust=False).mean()
+        tr = pd.concat([
+            df_h - df_l,
+            (df_h - df_c.shift(1)).abs(),
+            (df_l - df_c.shift(1)).abs()
+        ], axis=1).max(axis=1)
+        atr = tr.rolling(window=period).mean()
+        
+        kc_upper = ema + (1.5 * atr)
+        kc_lower = ema - (1.5 * atr)
+        
+        # 3. Squeeze Logic (BB inside KC)
+        squeeze_on_series = (bb_upper < kc_upper) & (bb_lower > kc_lower)
+        
+        is_sqz_on = bool(squeeze_on_series.iloc[-1])
+        was_sqz_on_recently = squeeze_on_series.iloc[-5:-1].any()
+        is_sqz_fired = was_sqz_on_recently and not is_sqz_on
+        
+        return is_sqz_on, is_sqz_fired
+    except:
+        return False, False
 
 def check_vwap_gate(ticker, close_p):
     try:
@@ -299,21 +318,18 @@ def get_index_options_ideas():
 def generate_tabular_markdown(df_stocks, df_index, title, filename, include_index=False):
     with open(filename, "w", encoding="utf-8") as f:
         f.write(f"# {title}\n\n")
-        f.write("> **System:** 1200+ Mega Universe + Clean Cash vs F&O Separation + FII Smart Money Confluence\n\n")
+        f.write("> **System:** 1200+ Mega Universe + Clean Cash vs F&O Separation\n\n")
         if df_stocks.empty and df_index.empty:
             f.write("*Market conditions did not trigger any quantitative setups meeting institutional gates for this timeframe.*\n")
             return
-        
-        # Spot Mapped formatting for Index Options
         if include_index and not df_index.empty:
-            f.write("## 👑 Index Options (Spot Mapped Execution)\n\n")
-            f.write("| # | Index Signal | Option Contract | Spot Entry Trigger | Spot Targets | Spot SL |\n")
-            f.write("| :--- | :--- | :---: | :---: | :---: | :---: |\n")
+            f.write("## 👑 Index Options (15M Scalps)\n\n")
+            f.write("| # | Index Signal | Price | Option | Buy Above | Targets | SL |\n")
+            f.write("| :--- | :--- | :---: | :---: | :---: | :---: | :---: |\n")
             for idx, r in df_index.reset_index().iterrows():
-                tgts = f"T1: {r['EqT1']}<br>T2: {r['EqT2']}<br>T3: {r['EqT3']}"
-                f.write(f"| {idx+1} | **{r['Stock']}** | **{r['Opt']}** | Crosses **{r['Entry']}** | {tgts} | **{r['EqSL']}** |\n")
-            f.write("\n> *Note: Due to live market latency and gap-ups, execute the option at Current Market Price (CMP) the moment the underlying Spot Index hits the Entry Trigger.*\n\n---\n\n")
-            
+                tgts = f"T1: ₹{r['PT1']}<br>T2: ₹{r['PT2']}<br>T3: ₹{r['PT3']}<br>T4: ₹{r['PT4']}<br>T5: ₹{r['PT5']}+"
+                f.write(f"| {idx+1} | **{r['Stock']}** | ₹{r['Entry']} | **{r['Opt']}** | ₹{r['Prem']} | {tgts} | ₹{r['OptSL']} |\n")
+            f.write("\n---\n\n")
         if not df_stocks.empty:
             f.write("## 📊 Validated Setups & Options\n\n")
             f.write("| # | Stock | Setup Type | Price | Score | Qty | Risk | Execution Strategy & Targets |\n")
@@ -334,16 +350,14 @@ def generate_tabular_markdown(df_stocks, df_index, title, filename, include_inde
 def format_telegram_text(df_stocks, df_index, title):
     msg = f"🚨 *{title}* 🚨\n\n"
     if not df_index.empty:
-        msg += "👑 *INDEX OPTIONS (SPOT MAPPED EXECUTION)*\n"
+        msg += "👑 *INDEX OPTIONS SIGNALS*\n"
         for _, r in df_index.iterrows():
             idx_name = "NIFTY" if "NIFTY 50" in r['Stock'] else "BANKNIFTY"
             ce_pe = r['Opt']
-            
             msg += f"*{idx_name} {ce_pe}*\n"
-            msg += f"📍 *Entry:* Buy {ce_pe[-2:]} @ CMP when Spot crosses *{r['Entry']}*\n"
-            msg += f"🎯 *Spot TGT* // T1:{r['EqT1']} | T2:{r['EqT2']} | T3:{r['EqT3']}\n"
-            msg += f"🛑 *Spot SL:* {r['EqSL']}\n"
-            msg += f"*(Avoid if massive gap-up already hit T1)*\n\n"
+            msg += f"Buy Above {r['Prem']}\n"
+            msg += f"TGT // T1:{r['PT1']} | T2:{r['PT2']} | T3:{r['PT3']}\n"
+            msg += f"SL {r['OptSL']}\n\n"
             
     if not df_stocks.empty:
         msg += "📊 *TOP POSITION SIZED SETUPS*\n"
@@ -491,6 +505,8 @@ You MUST strictly follow this exact 14-section format with rich markdown tables,
                 data = res.json()
                 ai_text = data['candidates'][0]['content']['parts'][0]['text']
                 all_dossiers.append(ai_text)
+            else:
+                print(f"⚠️ Gemini API error ({res.status_code}): {res.text}")
         except Exception as e:
             print(f"⚠️ Error querying Gemini AI for {sym}: {e}")
 
@@ -501,7 +517,7 @@ You MUST strictly follow this exact 14-section format with rich markdown tables,
             f.write("# 🔬 Institutional Deep Dive Analysis\n\n*Analysis pending generation.*")
 
 def run():
-    print("🚀 Starting Automated Master Quant Scanner with FII Confluence...")
+    print("🚀 Starting Automated Master Quant Scanner...")
     sess_title, sess_type = get_session_info()
     now_ist = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=5, minutes=30)
     
@@ -580,8 +596,11 @@ def run():
             is_swing_retest = (0.025 <= dist_to_20d_high <= 0.15) and (0.0 <= dist_to_20ema <= 0.04) and (vol_vs <= 1.0)
             
             is_rsi_div = check_bullish_divergence(closes[ticker].dropna(), rsi_daily[ticker].dropna())
+            sqz_on, sqz_fired = check_ttm_squeeze(closes[ticker].dropna(), highs[ticker].dropna(), lows[ticker].dropna())
 
-            if is_pre_breakout: hor, sl_m, tag = "Pre-Breakout", 1.0, "💥 Pre-Breakout Coil"
+            if sqz_fired: hor, sl_m, tag = "Pre-Breakout", 1.0, "🔥 Squeeze Breakout"
+            elif sqz_on and is_pre_breakout: hor, sl_m, tag = "Pre-Breakout", 1.0, "🗜️ TTM Squeeze Coil"
+            elif is_pre_breakout: hor, sl_m, tag = "Pre-Breakout", 1.0, "💥 Pre-Breakout Coil"
             elif is_200ma_retest: hor, sl_m, tag = "Swing", 1.5, "🏦 200 MA Retest"
             elif is_swing_retest: hor, sl_m, tag = "Swing", 1.2, "🔄 Breakout Retest"
             elif vol_vs >= 1.5: hor, sl_m, tag = "Intraday", 0.8, "🚀 Volume Breakout"
@@ -627,14 +646,9 @@ def run():
                 elif hor == "BTST": score += 1
                 
                 if is_rsi_div: score += 2
-
-                # --- FII SMART MONEY CONFLUENCE CHECK ---
-                t_obj = yf.Ticker(ticker)
-                has_fii_holding = check_fii_accumulation(t_obj)
-                if has_fii_holding:
-                    score += 2
-                    tag += " 🏛️ [FII Accumulating]"
-
+                if sqz_fired: score += 3  
+                if sqz_on: score += 2     
+                
                 final_score = min(10, score)
                 
                 is_high_conviction = (final_score >= 8) 
@@ -658,8 +672,8 @@ def run():
             })
         except: continue
 
+    # Sorted by Vol vs 50d then Score to keep Intraday live momentum fresh
     df_all = pd.DataFrame(valid_setups).drop_duplicates(subset=['Stock']).sort_values(by=['Vol vs 50d', 'Score'], ascending=[False, False]) if valid_setups else pd.DataFrame()
-
 
     if not df_all.empty: df_all.to_csv("all_setups.csv", index=False)
     else: pd.DataFrame(columns=['Stock','RawStock','Horizon','Tag','Entry','Qty','Risk','RSI','Vol vs 50d','EqSL','EqT1','EqT2','EqT3','EqT4','EqT5','Opt','Prem','PT1','PT2','PT3','PT4','PT5','OptSL','Score']).to_csv("all_setups.csv", index=False)
@@ -677,12 +691,18 @@ def run():
     generate_tabular_markdown(df_btst, pd.DataFrame(), f"🌙 BTST Report (Top 25) — {sess_title}", "btst_report.md", False)
     generate_tabular_markdown(df_swing, pd.DataFrame(), f"📈 Swing Trade Retest Report (Top 25) — {sess_title}", "swing_report.md", False)
 
+    # Trigger Stage 2 AI Fundamental Deep Dive for Top Swing Setups
     top_swing_candidates = valid_setups if valid_setups else []
     top_swing_candidates = sorted(top_swing_candidates, key=lambda x: (x['Score'], x['Horizon'] == 'Swing'), reverse=True)
     generate_ai_deep_dive(top_swing_candidates)
 
+    # --- STAGE 3: TIME-GATED TELEGRAM ALERTS ---
     is_manual = (sess_type == "Manual")
+
+    # Intraday & Options: Alert before 2:00 PM (14:00 IST)
     is_intraday_window = (now_ist.hour < 14) or is_manual 
+    
+    # BTST & Swing Trade: Alert at closing window (After 3:00 PM / 15:00 IST)
     is_closing_window = (now_ist.hour >= 15) or is_manual
 
     if not df_pre.empty: 
