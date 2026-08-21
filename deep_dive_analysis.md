@@ -1,3 +1,3 @@
 # 🔬 Institutional Deep Dive Analysis
 
-*Analysis pending generation.*
+*Pending Analysis: Waiting for viable setups or API validation.*
