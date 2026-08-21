@@ -18,7 +18,7 @@ HIGH_CONVICTION_MULTIPLIER = 2
 def send_telegram_message(message):
     if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID: return
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-    try: requests.post(url, json={"chat_id": TELEGRAM_CHAT_ID, "text": message, "parse_mode": "Markdown"})
+    try: requests.post(url, json={"chat_id": TELEGRAM_CHAT_ID, "text": message, "parse_mode": "Markdown", "disable_web_page_preview": True})
     except Exception: pass
 
 STATIC_FNO = [
@@ -214,36 +214,22 @@ def check_bullish_divergence(closes, rsi):
     except: pass
     return False
 
-# --- NEW: TTM Squeeze Math Engine ---
 def check_ttm_squeeze(df_c, df_h, df_l, period=20):
     try:
         if len(df_c) < period: return False, False
-        
-        # 1. Bollinger Bands Calculation
         sma = df_c.rolling(window=period).mean()
         std = df_c.rolling(window=period).std()
         bb_upper = sma + (2 * std)
         bb_lower = sma - (2 * std)
-        
-        # 2. Keltner Channels Calculation
         ema = df_c.ewm(span=period, adjust=False).mean()
-        tr = pd.concat([
-            df_h - df_l,
-            (df_h - df_c.shift(1)).abs(),
-            (df_l - df_c.shift(1)).abs()
-        ], axis=1).max(axis=1)
+        tr = pd.concat([df_h - df_l, (df_h - df_c.shift(1)).abs(), (df_l - df_c.shift(1)).abs()], axis=1).max(axis=1)
         atr = tr.rolling(window=period).mean()
-        
         kc_upper = ema + (1.5 * atr)
         kc_lower = ema - (1.5 * atr)
-        
-        # 3. Squeeze Logic (BB inside KC)
         squeeze_on_series = (bb_upper < kc_upper) & (bb_lower > kc_lower)
-        
         is_sqz_on = bool(squeeze_on_series.iloc[-1])
         was_sqz_on_recently = squeeze_on_series.iloc[-5:-1].any()
         is_sqz_fired = was_sqz_on_recently and not is_sqz_on
-        
         return is_sqz_on, is_sqz_fired
     except:
         return False, False
@@ -315,10 +301,10 @@ def get_index_options_ideas():
         except Exception as e: pass
     return pd.DataFrame(results)
 
-def generate_tabular_markdown(df_stocks, df_index, title, filename, include_index=False):
+def generate_tabular_markdown(df_stocks, df_index, title, filename, regime="Neutral", include_index=False):
     with open(filename, "w", encoding="utf-8") as f:
         f.write(f"# {title}\n\n")
-        f.write("> **System:** 1200+ Mega Universe + Clean Cash vs F&O Separation\n\n")
+        f.write(f"> **Market Regime Filter:** {regime} | **System:** 1200+ Universe\n\n")
         if df_stocks.empty and df_index.empty:
             f.write("*Market conditions did not trigger any quantitative setups meeting institutional gates for this timeframe.*\n")
             return
@@ -347,8 +333,9 @@ def generate_tabular_markdown(df_stocks, df_index, title, filename, include_inde
                 
                 f.write(f"| {idx+1} | **{r['Stock']}** | {r['Tag']} | ₹{r['Entry']} | {badge} | {r['Qty']} | ₹{r['Risk']} | {strat_info} |\n")
 
-def format_telegram_text(df_stocks, df_index, title):
-    msg = f"🚨 *{title}* 🚨\n\n"
+def format_telegram_text(df_stocks, df_index, title, regime="Neutral"):
+    msg = f"🚨 *{title}* 🚨\n"
+    msg += f"🧭 Market Regime: *{regime}*\n\n"
     if not df_index.empty:
         msg += "👑 *INDEX OPTIONS SIGNALS*\n"
         for _, r in df_index.iterrows():
@@ -373,11 +360,13 @@ def format_telegram_text(df_stocks, df_index, title):
             if "N/A" not in opt_str and prem_str != "-" and prem_str != "nan":
                 msg += f"   🔹 *Option:* {r['Opt']} @ Buy > ₹{r['Prem']}\n"
                 msg += f"      Opt Tgts: T1:{r['PT1']} | T2:{r['PT2']} | T3:{r['PT3']}\n"
-            msg += "\n"
+                
+            # DEEP LINKS IN TELEGRAM
+            tv_link = f"https://in.tradingview.com/chart/?symbol=NSE:{r['RawStock']}"
+            msg += f"   🔗 [TradingView]({tv_link}) | [Dhan](https://web.dhan.co/) | [AngelOne](https://trade.angelone.in/)\n\n"
     else: msg += "No setups cleared the institutional gates for this scan."
     return msg
 
-# --- STAGE 2: AUTOMATED 14-PILLAR AI FUNDAMENTAL RESEARCH ENGINE ---
 def generate_ai_deep_dive(top_candidates):
     if not GEMINI_API_KEY or not top_candidates:
         with open("deep_dive_analysis.md", "w", encoding="utf-8") as f:
@@ -411,7 +400,6 @@ def generate_ai_deep_dive(top_candidates):
 
         prompt = f"""
 You are an Elite Institutional Equity Research Analyst. Write an exhaustive, rigorous institutional research report on **{sym} (NSE: {sym})**.
-
 Quantitative Technical Context:
 - Setup Type: {tag} (Score: {score}/10)
 - CMP / Entry: ₹{entry}
@@ -421,100 +409,60 @@ Quantitative Technical Context:
 - Valuation Snapshot: P/E: {pe}, Forward P/E: {fpe}, P/B: {pb}, ROE: {roe}, D/E: {de}
 
 You MUST strictly follow this exact 14-section format with rich markdown tables, ASCII charts, and actionable institutional commentary:
-
 # Detailed Stock Analysis: {sym} (NSE: {sym})
-
 ---
-
 ### 1. Technical Analysis
 (Include a clean ASCII table of Monthly, Weekly, Daily timeframe trends, Stage analysis, support/resistance, RSI, volume profile interpretation, and Technical Draft Parameters table).
-
 ---
-
 ### 2. Why Did the Stock Fall Earlier?
 (Ranked numbered root causes behind prior cyclical pullbacks or margin compressions).
-
 ---
-
 ### 3. Has the Company Recovered?
 (ASCII table of Operational/Financial Metrics status, debt status, and order book/margin recovery).
-
 ---
-
 ### 4. Latest News & Business Developments
 (Key contract wins, capex, or strategic growth catalysts).
-
 ---
-
 ### 5. Fundamental Analysis
 (Markdown table with Parameter, Latest, Previous, Interpretation, Action).
-
 ---
-
 ### 6. Shareholding Pattern
 (Markdown table of Promoter, FII, DII, Public holding trajectory & institutional absorption).
-
 ---
-
 ### 7. Quarterly & Annual Financial Performance
 (Markdown table with Revenue, EBITDA, EBITDA Margin, PAT, EPS YoY).
-
 ---
-
 ### 8. Five-Year Financial Trend
 (Multi-year CAGR, ROCE trajectory, balance sheet health).
-
 ---
-
 ### 9. Valuation Summary
 (Historical P/E bands, fair value projections).
-
 ---
-
 ### 10. Key Risks
 (ASCII risk rating table with mitigation factors).
-
 ---
-
 ### 11. Key Growth Triggers
 (Bulleted high-impact growth catalysts).
-
 ---
-
 ### 12. Final Scorecard
 (Markdown table scoring 10 categories /10, and OVERALL SCORE out of 100).
-
 ---
-
 ### 13. Final Investment View
 (Markdown table covering Short Term 1-3M, Swing 1-8W, Medium Term 6-12M, Long Term 2-5Y).
-
 ---
-
 ### 14. Executive Summary
 (Crisp executive takeaways, conviction level, and bottom-line verdict).
 """
-
         try:
             url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key={GEMINI_API_KEY}"
-            payload = {
-                "contents": [{"parts": [{"text": prompt}]}]
-            }
-            res = requests.post(url, json=payload, timeout=60)
+            res = requests.post(url, json={"contents": [{"parts": [{"text": prompt}]}]}, timeout=60)
             if res.status_code == 200:
-                data = res.json()
-                ai_text = data['candidates'][0]['content']['parts'][0]['text']
-                all_dossiers.append(ai_text)
-            else:
-                print(f"⚠️ Gemini API error ({res.status_code}): {res.text}")
-        except Exception as e:
-            print(f"⚠️ Error querying Gemini AI for {sym}: {e}")
+                all_dossiers.append(res.json()['candidates'][0]['content']['parts'][0]['text'])
+        except Exception as e: pass
 
     with open("deep_dive_analysis.md", "w", encoding="utf-8") as f:
-        if all_dossiers:
-            f.write("\n\n---\n\n".join(all_dossiers))
-        else:
-            f.write("# 🔬 Institutional Deep Dive Analysis\n\n*Analysis pending generation.*")
+        if all_dossiers: f.write("\n\n---\n\n".join(all_dossiers))
+        else: f.write("# 🔬 Institutional Deep Dive Analysis\n\n*Analysis pending generation.*")
 
 def run():
     print("🚀 Starting Automated Master Quant Scanner...")
@@ -523,17 +471,26 @@ def run():
     
     market_open = now_ist.replace(hour=9, minute=15, second=0, microsecond=0)
     market_close = now_ist.replace(hour=15, minute=30, second=0, microsecond=0)
-    if now_ist.weekday() >= 5 or now_ist > market_close or now_ist < market_open: minutes_elapsed = 375.0
-    else: minutes_elapsed = min(max(1.0, (now_ist - market_open).total_seconds() / 60.0), 375.0)
+    minutes_elapsed = 375.0 if (now_ist.weekday() >= 5 or now_ist > market_close or now_ist < market_open) else min(max(1.0, (now_ist - market_open).total_seconds() / 60.0), 375.0)
     
     df_index = get_index_options_ideas() if sess_type in ["Intraday", "Manual"] else pd.DataFrame()
     
+    # --- MARKET REGIME FILTER ---
     nifty_df = yf.download("^NSEI", period="1y", interval="1d", progress=False)
     nifty_return_20d = 0.0
+    nifty_regime = "Neutral"
     if not nifty_df.empty:
         if isinstance(nifty_df.columns, pd.MultiIndex): nifty_df.columns = nifty_df.columns.get_level_values(0)
-        nifty_closes = nifty_df['Close'].squeeze()
-        if len(nifty_closes) >= 20: nifty_return_20d = float(nifty_closes.iloc[-1] / nifty_closes.iloc[-20] - 1)
+        nifty_closes = nifty_df['Close'].dropna()
+        if len(nifty_closes) >= 50:
+            nifty_return_20d = float(nifty_closes.iloc[-1] / nifty_closes.iloc[-20] - 1)
+            n_ema20 = float(nifty_closes.ewm(span=20).mean().iloc[-1])
+            n_ema50 = float(nifty_closes.ewm(span=50).mean().iloc[-1])
+            n_close = float(nifty_closes.iloc[-1])
+            
+            if n_close > n_ema20 and n_ema20 > n_ema50: nifty_regime = "Bullish"
+            elif n_close < n_ema50: nifty_regime = "Bearish"
+            else: nifty_regime = "Neutral"
 
     tickers = [f"{s}.NS" for s in EXTENDED_UNIVERSE]
     data = yf.download(tickers, period="1y", interval="1d", progress=False, threads=True)
@@ -541,6 +498,36 @@ def run():
     
     if isinstance(data.columns, pd.MultiIndex): closes, highs, lows, volumes = data['Close'], data['High'], data['Low'], data['Volume']
     else: closes, highs, lows, volumes = data['Close'], data['High'], data['Low'], data['Volume']
+
+    # --- ACTIVE TRADE TRACKER & ATR TRAILING ENGINE ---
+    portfolio_file = "portfolio.csv"
+    if os.path.exists(portfolio_file): pf = pd.read_csv(portfolio_file)
+    else: pf = pd.DataFrame(columns=['Stock', 'RawStock', 'Entry', 'Qty', 'Current_SL', 'T1', 'T2', 'T3', 'Status'])
+        
+    trail_alerts = []
+    if not pf.empty and not data.empty:
+        for i, row in pf.iterrows():
+            if row['Status'] != 'Active': continue
+            sym = row['RawStock']
+            ticker = f"{sym}.NS"
+            if ticker in closes.columns:
+                latest_p = float(closes[ticker].iloc[-1])
+                curr_sl = float(row['Current_SL'])
+                entry_p = float(row['Entry'])
+                t1, t2 = float(row['T1']), float(row['T2'])
+                
+                if latest_p < curr_sl:
+                    pf.at[i, 'Status'] = 'Closed'
+                    trail_alerts.append(f"🔴 *STOP OUT:* {sym} closed below SL (₹{curr_sl}). Trade Closed.")
+                elif latest_p >= t2 and curr_sl < t1:
+                    pf.at[i, 'Current_SL'] = t1
+                    trail_alerts.append(f"🟢 *TRAIL SL WIN:* {sym} hit T2! Moved SL to lock in profit at T1 (₹{t1}).")
+                elif latest_p >= t1 and curr_sl < entry_p:
+                    pf.at[i, 'Current_SL'] = entry_p
+                    trail_alerts.append(f"🟡 *TRAIL SL RISK-FREE:* {sym} hit T1! Moved SL to Breakeven (₹{entry_p}).")
+        pf.to_csv(portfolio_file, index=False)
+        if trail_alerts:
+            send_telegram_message("🔔 *ATR TRAILING STOP ENGINE*\n\n" + "\n".join(trail_alerts))
 
     ema_50_daily = closes.ewm(span=50).mean()
     ema_20_daily = closes.ewm(span=20).mean()
@@ -651,17 +638,36 @@ def run():
                 
                 final_score = min(10, score)
                 
+                # --- MARKET REGIME SIZING ---
+                active_base_capital = BASE_CAPITAL_PER_TRADE * 0.5 if nifty_regime == "Bearish" else BASE_CAPITAL_PER_TRADE
+                
                 is_high_conviction = (final_score >= 8) 
-                if is_high_conviction and not is_pre_breakout and not is_swing_retest and not is_200ma_retest and not is_rsi_div: tag += " (⭐ 2x Size)"
-                cash_qty = int((BASE_CAPITAL_PER_TRADE * HIGH_CONVICTION_MULTIPLIER if is_high_conviction else BASE_CAPITAL_PER_TRADE) / close_p)
-
+                if is_high_conviction and not is_pre_breakout and not is_swing_retest and not is_200ma_retest and not is_rsi_div: 
+                    tag += " (⭐ 2x Size)"
+                    cash_qty = int((active_base_capital * HIGH_CONVICTION_MULTIPLIER) / close_p)
+                else:
+                    cash_qty = int(active_base_capital / close_p)
             else: continue 
 
             df_h, df_l, df_c = highs[ticker].dropna(), lows[ticker].dropna(), closes[ticker].dropna()
             
+            # --- OPTIONS IV PERCENTILE GATE ---
+            try:
+                daily_returns = np.log(df_c / df_c.shift(1))
+                rolling_hv = daily_returns.rolling(20).std() * math.sqrt(252)
+                if len(rolling_hv.dropna()) > 100:
+                    current_hv = float(rolling_hv.iloc[-1])
+                    min_hv, max_hv = float(rolling_hv.min()), float(rolling_hv.max())
+                    ivp = ((current_hv - min_hv) / (max_hv - min_hv)) * 100 if (max_hv - min_hv) > 0 else 50
+                else: ivp = 50
+            except: ivp = 50
+            
             if symbol in STATIC_FNO:
-                try: opt, prem, pt1, pt2, pt3, pt4, pt5, opt_sl = generate_quant_option(symbol, close_p, t1, t2, t3, t4, t5, eq_sl, df_h, df_l, df_c, "Bullish")
-                except: opt, prem, pt1, pt2, pt3, pt4, pt5, opt_sl = "N/A (Data Err)", "-", "-", "-", "-", "-", "-", "-"
+                if ivp > 70:
+                    opt, prem, pt1, pt2, pt3, pt4, pt5, opt_sl = f"N/A (IVP {int(ivp)}% - Use Cash)", "-", "-", "-", "-", "-", "-", "-"
+                else:
+                    try: opt, prem, pt1, pt2, pt3, pt4, pt5, opt_sl = generate_quant_option(symbol, close_p, t1, t2, t3, t4, t5, eq_sl, df_h, df_l, df_c, "Bullish")
+                    except: opt, prem, pt1, pt2, pt3, pt4, pt5, opt_sl = "N/A (Data Err)", "-", "-", "-", "-", "-", "-", "-"
             else: opt, prem, pt1, pt2, pt3, pt4, pt5, opt_sl = "N/A (Cash)", "-", "-", "-", "-", "-", "-", "-"
             
             valid_setups.append({
@@ -672,7 +678,6 @@ def run():
             })
         except: continue
 
-    # Sorted by Vol vs 50d then Score to keep Intraday live momentum fresh
     df_all = pd.DataFrame(valid_setups).drop_duplicates(subset=['Stock']).sort_values(by=['Vol vs 50d', 'Score'], ascending=[False, False]) if valid_setups else pd.DataFrame()
 
     if not df_all.empty: df_all.to_csv("all_setups.csv", index=False)
@@ -686,36 +691,23 @@ def run():
     df_btst = df_all[df_all['Horizon'] == 'BTST'].head(25) if not df_all.empty else pd.DataFrame()
     df_swing = df_all[df_all['Horizon'] == 'Swing'].head(25) if not df_all.empty else pd.DataFrame()
 
-    generate_tabular_markdown(df_pre, pd.DataFrame(), f"💥 Soon to Breakout Report (Top 25) — {sess_title}", "prebreakout_report.md", False)
-    generate_tabular_markdown(df_intra, df_index, f"⚡ Intraday Report (Top 25) — {sess_title}", "intraday_report.md", True)
-    generate_tabular_markdown(df_btst, pd.DataFrame(), f"🌙 BTST Report (Top 25) — {sess_title}", "btst_report.md", False)
-    generate_tabular_markdown(df_swing, pd.DataFrame(), f"📈 Swing Trade Retest Report (Top 25) — {sess_title}", "swing_report.md", False)
+    generate_tabular_markdown(df_pre, pd.DataFrame(), f"💥 Soon to Breakout Report (Top 25) — {sess_title}", "prebreakout_report.md", nifty_regime, False)
+    generate_tabular_markdown(df_intra, df_index, f"⚡ Intraday Report (Top 25) — {sess_title}", "intraday_report.md", nifty_regime, True)
+    generate_tabular_markdown(df_btst, pd.DataFrame(), f"🌙 BTST Report (Top 25) — {sess_title}", "btst_report.md", nifty_regime, False)
+    generate_tabular_markdown(df_swing, pd.DataFrame(), f"📈 Swing Trade Retest Report (Top 25) — {sess_title}", "swing_report.md", nifty_regime, False)
 
-    # Trigger Stage 2 AI Fundamental Deep Dive for Top Swing Setups
     top_swing_candidates = valid_setups if valid_setups else []
     top_swing_candidates = sorted(top_swing_candidates, key=lambda x: (x['Score'], x['Horizon'] == 'Swing'), reverse=True)
     generate_ai_deep_dive(top_swing_candidates)
 
-    # --- STAGE 3: TIME-GATED TELEGRAM ALERTS ---
     is_manual = (sess_type == "Manual")
-
-    # Intraday & Options: Alert before 2:00 PM (14:00 IST)
     is_intraday_window = (now_ist.hour < 14) or is_manual 
-    
-    # BTST & Swing Trade: Alert at closing window (After 3:00 PM / 15:00 IST)
     is_closing_window = (now_ist.hour >= 15) or is_manual
 
-    if not df_pre.empty: 
-        send_telegram_message(format_telegram_text(df_pre.head(25), pd.DataFrame(), f"💥 Soon to Breakout — {sess_title}"))
-        
-    if (not df_intra.empty or not df_index.empty) and is_intraday_window: 
-        send_telegram_message(format_telegram_text(df_intra.head(25), df_index, f"⚡ Intraday Report — {sess_title}"))
-        
-    if not df_btst.empty and is_closing_window: 
-        send_telegram_message(format_telegram_text(df_btst.head(25), pd.DataFrame(), f"🌙 BTST Report — {sess_title}"))
-        
-    if not df_swing.empty and is_closing_window: 
-        send_telegram_message(format_telegram_text(df_swing.head(25), pd.DataFrame(), f"📈 Swing Trade (Retest) Report — {sess_title}"))
+    if not df_pre.empty: send_telegram_message(format_telegram_text(df_pre.head(25), pd.DataFrame(), f"💥 Soon to Breakout — {sess_title}", nifty_regime))
+    if (not df_intra.empty or not df_index.empty) and is_intraday_window: send_telegram_message(format_telegram_text(df_intra.head(25), df_index, f"⚡ Intraday Report — {sess_title}", nifty_regime))
+    if not df_btst.empty and is_closing_window: send_telegram_message(format_telegram_text(df_btst.head(25), pd.DataFrame(), f"🌙 BTST Report — {sess_title}", nifty_regime))
+    if not df_swing.empty and is_closing_window: send_telegram_message(format_telegram_text(df_swing.head(25), pd.DataFrame(), f"📈 Swing Trade (Retest) Report — {sess_title}", nifty_regime))
 
 if __name__ == "__main__":
     run()
