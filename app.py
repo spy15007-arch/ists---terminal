@@ -43,7 +43,7 @@ if page == "Dashboard":
 
     col1, col2, col3, col4 = st.columns(4)
     col1.metric("Market Regime", regime, "Nifty 50 Trend Filter")
-    col2.metric("Scan Universe", "1200+ Equities", "Liquidity Protected")
+    col2.metric("Scan Universe", "1800+ NSE Equities", "Liquidity Protected")
     col3.metric("Research Engine", "AI 14-Pillar Deep Dive", "Gemini 3.6 Active")
     col4.metric("Strategy Engine", "TTM Squeeze & Trailing SL", "Scalp/Swing/Pre")
 
@@ -67,7 +67,7 @@ elif page == "Active Trade Tracker":
 
 elif page == "Scan Market":
     st.title("🚀 Master Quant Scanner & Institutional Reports")
-    st.markdown("Displays Live 1200+ Universe Scans, TTM Squeezes, and Automated AI Fundamental Research.")
+    st.markdown("Displays Live 1800+ Universe Scans, TTM Squeezes, and Automated AI Fundamental Research.")
 
     df_all_setups = load_csv("all_setups.csv")
     df_index_setups = load_csv("index_setups.csv")
