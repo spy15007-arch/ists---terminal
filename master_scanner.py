@@ -1,5 +1,7 @@
 import os
 import requests
+import json
+import time
 import yfinance as yf
 import pandas as pd
 import numpy as np
@@ -105,9 +107,7 @@ EXTENDED_UNIVERSE_FALLBACK = list(set(raw_symbols_fallback.split()))
 # --- NEW: DYNAMIC 1800+ NSE UNIVERSE LOADER ---
 def get_complete_nse_universe():
     headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.5'
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
     }
     symbols = set()
     urls = [
@@ -133,6 +133,90 @@ def get_complete_nse_universe():
     if len(symbols) > 500:
         return sorted(list(symbols))
     return sorted(list(set(STATIC_FNO + EXTENDED_UNIVERSE_FALLBACK)))
+
+# --- NEW: CHUNKED DOWNLOADING ENGINE (Anti-Timeout) ---
+def download_in_chunks(tickers, chunk_size=300):
+    closes_list, highs_list, lows_list, vols_list = [], [], [], []
+    for i in range(0, len(tickers), chunk_size):
+        chunk = tickers[i:i+chunk_size]
+        print(f"📡 Downloading chunk {i//chunk_size + 1}/{math.ceil(len(tickers)/chunk_size)}...")
+        d = yf.download(chunk, period="1y", interval="1d", progress=False, threads=True)
+        if not d.empty:
+            if isinstance(d.columns, pd.MultiIndex):
+                if 'Close' in d.columns.levels[0]: closes_list.append(d['Close'])
+                if 'High' in d.columns.levels[0]: highs_list.append(d['High'])
+                if 'Low' in d.columns.levels[0]: lows_list.append(d['Low'])
+                if 'Volume' in d.columns.levels[0]: vols_list.append(d['Volume'])
+            else: 
+                sym = chunk[0]
+                closes_list.append(d[['Close']].rename(columns={'Close': sym}))
+                highs_list.append(d[['High']].rename(columns={'High': sym}))
+                lows_list.append(d[['Low']].rename(columns={'Low': sym}))
+                vols_list.append(d[['Volume']].rename(columns={'Volume': sym}))
+        time.sleep(1)
+        
+    closes = pd.concat(closes_list, axis=1) if closes_list else pd.DataFrame()
+    highs = pd.concat(highs_list, axis=1) if highs_list else pd.DataFrame()
+    lows = pd.concat(lows_list, axis=1) if lows_list else pd.DataFrame()
+    volumes = pd.concat(vols_list, axis=1) if vols_list else pd.DataFrame()
+    
+    closes = closes.loc[:,~closes.columns.duplicated()]
+    highs = highs.loc[:,~highs.columns.duplicated()]
+    lows = lows.loc[:,~lows.columns.duplicated()]
+    volumes = volumes.loc[:,~volumes.columns.duplicated()]
+    
+    return closes, highs, lows, volumes
+
+# --- NEW: SECTOR CONFLUENCE ENGINE ---
+def get_top_sectors():
+    sector_map = {
+        'Technology': '^CNXIT', 'Consumer Cyclical': '^CNXAUTO', 'Basic Materials': '^CNXMETAL',
+        'Financial Services': '^CNXPSUBANK', 'Energy': '^CNXENERGY', 'Healthcare': '^CNXPHARMA',
+        'Consumer Defensive': '^CNXFMCG', 'Real Estate': '^CNXREALTY', 'Industrials': '^CNXINFRA'
+    }
+    try:
+        sec_data = yf.download(list(sector_map.values()), period="1mo", interval="1d", progress=False)
+        if sec_data.empty: return []
+        
+        if isinstance(sec_data.columns, pd.MultiIndex):
+            sec_closes = sec_data['Close'].dropna(how='all')
+        else: return []
+            
+        if len(sec_closes) < 20: return []
+        
+        returns = (sec_closes.iloc[-1] / sec_closes.iloc[-20] - 1)
+        top_3_symbols = returns.nlargest(3).index.tolist()
+        return [k for k, v in sector_map.items() if v in top_3_symbols]
+    except Exception:
+        return []
+
+# --- NEW: INTELLIGENT ALERT MEMORY (Anti-Spam) ---
+def get_new_alerts(df, category_name):
+    if df.empty: return df
+    today_str = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d")
+    alert_file = "sent_alerts.json"
+    
+    try:
+        if os.path.exists(alert_file):
+            with open(alert_file, "r") as f:
+                alerts_db = json.load(f)
+        else: alerts_db = {}
+    except: alerts_db = {}
+        
+    if alerts_db.get("date") != today_str:
+        alerts_db = {"date": today_str, "sent": []}
+        
+    new_rows = []
+    for idx, row in df.iterrows():
+        alert_id = f"{row['Stock']}_{row['Tag']}_{category_name}"
+        if alert_id not in alerts_db["sent"]:
+            new_rows.append(row)
+            alerts_db["sent"].append(alert_id)
+            
+    with open(alert_file, "w") as f:
+        json.dump(alerts_db, f)
+        
+    return pd.DataFrame(new_rows)
 
 def get_session_info():
     now_ist = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=5, minutes=30)
@@ -523,16 +607,18 @@ def run():
             elif n_close < n_ema50: nifty_regime = "Bearish"
             else: nifty_regime = "Neutral"
 
-    # --- FETCH DYNAMIC 1800+ UNIVERSE ---
+    # --- SECTOR CONFLUENCE ENGINE ---
+    top_sectors = get_top_sectors()
+    if top_sectors: print(f"🏆 Sector Confluence Active. Leading Sectors: {', '.join(top_sectors)}")
+
+    # --- FETCH DYNAMIC 1800+ UNIVERSE VIA CHUNKING (Anti-Timeout) ---
     universe = get_complete_nse_universe()
     tickers = [f"{s}.NS" for s in universe]
-    print(f"📡 Batch downloading market data for {len(tickers)} equities across NSE...")
+    closes, highs, lows, volumes = download_in_chunks(tickers, chunk_size=400)
     
-    data = yf.download(tickers, period="1y", interval="1d", progress=False, threads=True)
-    if data.empty: return
-    
-    if isinstance(data.columns, pd.MultiIndex): closes, highs, lows, volumes = data['Close'], data['High'], data['Low'], data['Volume']
-    else: closes, highs, lows, volumes = data['Close'], data['High'], data['Low'], data['Volume']
+    if closes.empty: 
+        print("Data fetching failed.")
+        return
 
     # --- ACTIVE TRADE TRACKER & ATR TRAILING ENGINE ---
     portfolio_file = "portfolio.csv"
@@ -540,7 +626,7 @@ def run():
     else: pf = pd.DataFrame(columns=['Stock', 'RawStock', 'Entry', 'Qty', 'Current_SL', 'T1', 'T2', 'T3', 'Status'])
         
     trail_alerts = []
-    if not pf.empty and not data.empty:
+    if not pf.empty:
         for i, row in pf.iterrows():
             if row['Status'] != 'Active': continue
             sym = row['RawStock']
@@ -671,9 +757,17 @@ def run():
                 if sqz_fired: score += 3  
                 if sqz_on: score += 2     
                 
+                # SECTOR BONUS
+                try:
+                    if top_sectors:
+                        sector_name = yf.Ticker(f"{symbol}.NS").info.get('sector', 'Unknown')
+                        if sector_name in top_sectors:
+                            score += 2
+                            tag += " (🚀 Sector Leader)"
+                except: pass
+                
                 final_score = min(10, score)
                 
-                # --- MARKET REGIME SIZING ---
                 active_base_capital = BASE_CAPITAL_PER_TRADE * 0.5 if nifty_regime == "Bearish" else BASE_CAPITAL_PER_TRADE
                 
                 is_high_conviction = (final_score >= 8) 
@@ -686,7 +780,6 @@ def run():
 
             df_h, df_l, df_c = highs[ticker].dropna(), lows[ticker].dropna(), closes[ticker].dropna()
             
-            # --- OPTIONS IV PERCENTILE GATE ---
             try:
                 daily_returns = np.log(df_c / df_c.shift(1))
                 rolling_hv = daily_returns.rolling(20).std() * math.sqrt(252)
@@ -739,10 +832,24 @@ def run():
     is_intraday_window = (now_ist.hour < 14) or is_manual 
     is_closing_window = (now_ist.hour >= 15) or is_manual
 
-    if not df_pre.empty: send_telegram_message(format_telegram_text(df_pre.head(25), pd.DataFrame(), f"💥 Soon to Breakout — {sess_title}", nifty_regime))
-    if (not df_intra.empty or not df_index.empty) and is_intraday_window: send_telegram_message(format_telegram_text(df_intra.head(25), df_index, f"⚡ Intraday Report — {sess_title}", nifty_regime))
-    if not df_btst.empty and is_closing_window: send_telegram_message(format_telegram_text(df_btst.head(25), pd.DataFrame(), f"🌙 BTST Report — {sess_title}", nifty_regime))
-    if not df_swing.empty and is_closing_window: send_telegram_message(format_telegram_text(df_swing.head(25), pd.DataFrame(), f"📈 Swing Trade (Retest) Report — {sess_title}", nifty_regime))
+    # --- TIME-GATED & MEMORY-PROTECTED TELEGRAM ALERTS ---
+    if not df_pre.empty: 
+        new_pre = get_new_alerts(df_pre.head(25), "PreBreakout")
+        if not new_pre.empty: send_telegram_message(format_telegram_text(new_pre, pd.DataFrame(), f"💥 Soon to Breakout — {sess_title}", nifty_regime))
+        
+    if (not df_intra.empty or not df_index.empty) and is_intraday_window: 
+        new_intra = get_new_alerts(df_intra.head(25), "Intraday")
+        new_idx = get_new_alerts(df_index, "Index")
+        if not new_intra.empty or not new_idx.empty:
+            send_telegram_message(format_telegram_text(new_intra, new_idx, f"⚡ Intraday Report — {sess_title}", nifty_regime))
+            
+    if not df_btst.empty and is_closing_window: 
+        new_btst = get_new_alerts(df_btst.head(25), "BTST")
+        if not new_btst.empty: send_telegram_message(format_telegram_text(new_btst, pd.DataFrame(), f"🌙 BTST Report — {sess_title}", nifty_regime))
+        
+    if not df_swing.empty and is_closing_window: 
+        new_swing = get_new_alerts(df_swing.head(25), "Swing")
+        if not new_swing.empty: send_telegram_message(format_telegram_text(new_swing, pd.DataFrame(), f"📈 Swing Trade (Retest) Report — {sess_title}", nifty_regime))
 
 if __name__ == "__main__":
     run()
