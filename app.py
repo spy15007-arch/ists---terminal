@@ -30,12 +30,12 @@ if page == "Dashboard":
     col1, col2, col3, col4 = st.columns(4)
     col1.metric("Market Status", "15M LIVE TRACKING", "NSE Live Feed")
     col2.metric("Scan Universe", "1200+ Equities", "Liquidity Protected")
-    col3.metric("Research Engine", "AI 14-Pillar Deep Dive", "Gemini 2.5 Active")
-    col4.metric("Strategy", "Scaled ATR Vectors", "Scalp/Swing/Pre")
+    col3.metric("Research Engine", "AI 14-Pillar Deep Dive", "Gemini 3.6 Active")
+    col4.metric("Strategy", "TTM Squeeze & ATR", "Scalp/Swing/Pre")
 
 elif page == "Scan Market":
     st.title("🚀 Master Quant Scanner & Institutional Reports")
-    st.markdown("Displays Live 1200+ Universe Scans and Automated AI Fundamental Research.")
+    st.markdown("Displays Live 1200+ Universe Scans, TTM Squeezes, and Automated AI Fundamental Research.")
 
     df_all_setups = load_csv("all_setups.csv")
     df_index_setups = load_csv("index_setups.csv")
@@ -101,6 +101,8 @@ elif page == "Scan Market":
 
         st.markdown("---")
         st.subheader(f"🧮 Position Size & Risk Calculator: {selected_stock}")
+        st.caption(f"**Trigger Tag:** {stock_row.get('Tag', 'N/A')} | **Volume Velocity:** {stock_row.get('Vol vs 50d', 'N/A')}x 50-Day Avg")
+        
         c1, c2, c3 = st.columns(3)
         capital = c1.number_input("Account Capital (₹)", min_value=10000, value=500000, step=25000)
         risk_pct = c2.number_input("Risk Limit per Trade (%)", min_value=0.25, max_value=5.0, value=1.0, step=0.25)
@@ -115,11 +117,15 @@ elif page == "Scan Market":
                 lot_size = 25 if "BANK" not in raw_sym else 15
                 qty = max(lot_size, (qty // lot_size) * lot_size)
                 st.info(f"💡 Index detected. Adjusted to nearest lot size ({lot_size} qty).")
+            
             m1, m2, m3, m4 = st.columns(4)
             m1.metric("Quantity to Trade", f"{qty} units")
             m2.metric("Total Investment", f"₹{(qty * entry_p):,.2f}")
             m3.metric("Max Capital at Risk", f"₹{max_risk:,.2f}")
-            m4.metric("Target 3 Profit", f"₹{(qty * abs(float(stock_row['EqT3']) - entry_p)):,.2f}")
+            
+            # Now calculating max profit potential utilizing the T5 runner target
+            runner_tgt = float(stock_row.get('EqT5', stock_row.get('EqT3', entry_p)))
+            m4.metric("Max Runner Profit (T5)", f"₹{(qty * abs(runner_tgt - entry_p)):,.2f}")
 
 elif page == "Budget Scanner (< ₹500)":
     st.title("💡 Sub-₹500 Budget Quant Scanner")
@@ -133,7 +139,11 @@ elif page == "Budget Scanner (< ₹500)":
             st.success(f"Found {len(budget_res)} quant setups under ₹{budget_limit}!")
             
             st.subheader(f"🏆 Top Budget Quant Setups Under ₹{budget_limit}")
-            b_cols = ['#', 'Stock', 'Horizon', 'Score', 'Entry', 'EqSL', 'EqT1', 'EqT2', 'EqT3', 'Opt', 'Prem']
+            # Added the 'Tag' and 'Vol vs 50d' columns to display active TTM Squeezes
+            b_cols = ['#', 'Stock', 'Tag', 'Vol vs 50d', 'Score', 'Entry', 'EqSL', 'EqT1', 'EqT2', 'EqT3', 'Opt']
+            
+            # Ensure columns exist before filtering
+            b_cols = [c for c in b_cols if c in budget_res.columns]
             st.dataframe(budget_res[b_cols], use_container_width=True, hide_index=True)
 
             st.markdown("---")
@@ -144,9 +154,10 @@ elif page == "Budget Scanner (< ₹500)":
             col1, col2 = st.columns(2)
             with col1:
                 st.markdown(f"**Stock:** `{selected_stock}`")
+                st.markdown(f"**Trigger:** {stock_row.get('Tag', 'N/A')}")
                 st.markdown(f"**Entry Price:** ₹{stock_row['Entry']}")
                 st.markdown(f"**Score / 10:** 🔥 {stock_row['Score']}")
-                st.markdown(f"**Option Recommendation:** `{stock_row['Opt']}` at ₹{stock_row['Prem']}")
+                st.markdown(f"**Option Recommendation:** `{stock_row['Opt']}` at ₹{stock_row.get('Prem', 'N/A')}")
             with col2:
                 trade_capital = st.number_input("Allocated Capital (₹)", min_value=5000, value=50000, step=5000)
                 shares_qty = int(trade_capital // float(stock_row['Entry']))
