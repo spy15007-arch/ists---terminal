@@ -1,4 +1,4 @@
-# 💥 Soon to Breakout Report (Top 25) — 21 Aug 2026 | 03:29 PM (BTST/Afternoon)
+# 💥 Soon to Breakout Report (Top 25) — 21 Aug 2026 | 03:54 PM (Manual Override)
 
 > **System:** 1200+ Mega Universe + Clean Cash vs F&O Separation + FII Smart Money Confluence
 
@@ -6,18 +6,18 @@
 
 | # | Stock | Setup Type | Price | Score | Qty | Risk | Execution Strategy & Targets |
 | :--- | :--- | :--- | :---: | :---: | :---: | :---: | :--- |
-| 1 | **AARTIIND (↑)** | 💥 Pre-Breakout Coil (📉 +RSI Div) | ₹527.1 | 🔥 10/10 | 189 | ₹3099.6 | <b>Equity Targets:</b> T1:₹541.5 // T2:₹552.9 // T3:₹567.4<br><b>Option:</b> 530 CE (Buy > ₹13.65)<br><b>Opt Targets:</b> T1:₹22.0 // T2:₹30.0 // T3:₹41.8 |
-| 2 | **JUBLFOOD (↑)** | 💥 Pre-Breakout Coil | ₹507.0 | 🔥 10/10 | 197 | ₹2935.3 | <b>Equity Targets:</b> T1:₹524.8 // T2:₹538.1 // T3:₹555.9<br><b>Option:</b> 510 CE (Buy > ₹12.86)<br><b>Opt Targets:</b> T1:₹23.5 // T2:₹33.5 // T3:₹48.9 |
-| 3 | **PNB (↑)** | 💥 Pre-Breakout Coil (📉 +RSI Div) | ₹116.55 | 🔥 10/10 | 858 | ₹1844.7 | <b>Equity Targets:</b> T1:₹118.5 // T2:₹120.0 // T3:₹121.9<br><b>Option:</b> 115 CE (Buy > ₹3.06)<br><b>Opt Targets:</b> T1:₹4.5 // T2:₹5.7 // T3:₹7.4 |
-| 4 | **SONACOMS (↑)** | 💥 Pre-Breakout Coil (📉 +RSI Div) | ₹817.9 | 🔥 10/10 | 122 | ₹2598.6 | <b>Mode:</b> Cash Equity Only<br><b>Equity Targets:</b> T1:₹842.6 // T2:₹861.1 // T3:₹885.8 |
-| 5 | **TITAN (↑)** | 💥 Pre-Breakout Coil (📉 +RSI Div) | ₹5079.9 | 🔥 10/10 | 19 | ₹1584.6 | <b>Equity Targets:</b> T1:₹5170.0 // T2:₹5238.5 // T3:₹5328.6<br><b>Option:</b> 5100 CE (Buy > ₹76.82)<br><b>Opt Targets:</b> T1:₹129.6 // T2:₹179.4 // T3:₹254.9 |
-| 6 | **MOTHERSON (↑)** | 💥 Pre-Breakout Coil | ₹169.3 | 🔥 9/10 | 590 | ₹2419.0 | <b>Equity Targets:</b> T1:₹174.4 // T2:₹178.2 // T3:₹183.3<br><b>Option:</b> 170 CE (Buy > ₹2.41)<br><b>Opt Targets:</b> T1:₹5.7 // T2:₹9.0 // T3:₹13.8 |
-| 7 | **CLEAN (↑)** | 💥 Pre-Breakout Coil | ₹825.5 | 🔥 9/10 | 121 | ₹2952.4 | <b>Mode:</b> Cash Equity Only<br><b>Equity Targets:</b> T1:₹850.4 // T2:₹869.6 // T3:₹894.5 |
-| 8 | **AUBANK (↑)** | 💥 Pre-Breakout Coil | ₹1105.0 | 🔥 9/10 | 90 | ₹2151.0 | <b>Equity Targets:</b> T1:₹1124.9 // T2:₹1140.9 // T3:₹1160.8<br><b>Option:</b> 1100 CE (Buy > ₹20.35)<br><b>Opt Targets:</b> T1:₹33.9 // T2:₹46.9 // T3:₹65.0 |
-| 9 | **INDIANB (↑)** | 💥 Pre-Breakout Coil | ₹875.0 | 🔥 9/10 | 114 | ₹2143.2 | <b>Mode:</b> Cash Equity Only<br><b>Equity Targets:</b> T1:₹892.7 // T2:₹906.5 // T3:₹924.2 |
-| 10 | **PETRONET (↑)** | 💥 Pre-Breakout Coil | ₹292.8 | 🔥 9/10 | 341 | ₹2080.1 | <b>Equity Targets:</b> T1:₹297.9 // T2:₹302.0 // T3:₹307.0<br><b>Option:</b> 295 CE (Buy > ₹4.9)<br><b>Opt Targets:</b> T1:₹7.7 // T2:₹10.4 // T3:₹14.3 |
-| 11 | **JINDALSTEL (↑)** | 💥 Pre-Breakout Coil | ₹1126.3 | 🔥 9/10 | 88 | ₹2138.4 | <b>Equity Targets:</b> T1:₹1148.5 // T2:₹1165.9 // T3:₹1188.1<br><b>Option:</b> 1120 CE (Buy > ₹24.19)<br><b>Opt Targets:</b> T1:₹39.1 // T2:₹53.1 // T3:₹72.9 |
-| 12 | **EICHERMOT (↑)** | 💥 Pre-Breakout Coil (📉 +RSI Div) | ₹8000.0 | 🔥 9/10 | 12 | ₹1606.8 | <b>Equity Targets:</b> T1:₹8123.9 // T2:₹8221.0 // T3:₹8344.9<br><b>Option:</b> 8000 CE (Buy > ₹98.87)<br><b>Opt Targets:</b> T1:₹179.9 // T2:₹259.0 // T3:₹372.4 |
-| 13 | **KRISHANA (↑)** | 💥 Pre-Breakout Coil | ₹198.5 | 🔥 8/10 | 503 | ₹3873.1 | <b>Mode:</b> Cash Equity Only<br><b>Equity Targets:</b> T1:₹206.4 // T2:₹212.4 // T3:₹220.3 |
-| 14 | **RBLBANK (↑)** | 💥 Pre-Breakout Coil | ₹391.35 | 🔥 8/10 | 255 | ₹2001.75 | <b>Equity Targets:</b> T1:₹399.5 // T2:₹405.7 // T3:₹413.8<br><b>Option:</b> 390 CE (Buy > ₹6.49)<br><b>Opt Targets:</b> T1:₹12.2 // T2:₹17.4 // T3:₹25.1 |
-| 15 | **TVSMOTOR (↑)** | 💥 Pre-Breakout Coil | ₹4365.0 | 🔥 8/10 | 22 | ₹1773.2 | <b>Equity Targets:</b> T1:₹4471.0 // T2:₹4548.9 // T3:₹4654.9<br><b>Option:</b> 4350 CE (Buy > ₹66.33)<br><b>Opt Targets:</b> T1:₹143.9 // T2:₹214.4 // T3:₹317.8 |
+| 1 | **ENGINERSIN (↑)** | 💥 Pre-Breakout Coil | ₹244.91 | 🔥 9/10 | 408 | ₹3227.28 | <b>Mode:</b> Cash Equity Only<br><b>Equity Targets:</b> T1:₹252.0 // T2:₹257.6 // T3:₹264.7 |
+| 2 | **PNB (↑)** | 💥 Pre-Breakout Coil (📉 +RSI Div) | ₹116.55 | 🔥 10/10 | 858 | ₹1844.7 | <b>Equity Targets:</b> T1:₹118.5 // T2:₹120.0 // T3:₹121.9<br><b>Option:</b> 115 CE (Buy > ₹3.06)<br><b>Opt Targets:</b> T1:₹4.5 // T2:₹5.7 // T3:₹7.4 |
+| 3 | **JINDALSTEL (↑)** | 💥 Pre-Breakout Coil | ₹1127.8 | 🔥 9/10 | 88 | ₹2138.4 | <b>Equity Targets:</b> T1:₹1150.0 // T2:₹1167.4 // T3:₹1189.6<br><b>Option:</b> 1120 CE (Buy > ₹25.08)<br><b>Opt Targets:</b> T1:₹40.2 // T2:₹54.4 // T3:₹74.3 |
+| 4 | **TVSMOTOR (↑)** | 💥 Pre-Breakout Coil | ₹4390.0 | 🔥 8/10 | 22 | ₹1773.2 | <b>Equity Targets:</b> T1:₹4496.0 // T2:₹4573.9 // T3:₹4679.9<br><b>Option:</b> 4400 CE (Buy > ₹53.19)<br><b>Opt Targets:</b> T1:₹123.8 // T2:₹191.3 // T3:₹293.2 |
+| 5 | **SONACOMS (↑)** | 💥 Pre-Breakout Coil (📉 +RSI Div) | ₹817.6 | 🔥 10/10 | 122 | ₹2598.6 | <b>Mode:</b> Cash Equity Only<br><b>Equity Targets:</b> T1:₹842.3 // T2:₹860.8 // T3:₹885.5 |
+| 6 | **PETRONET (↑)** | 💥 Pre-Breakout Coil | ₹293.0 | 🔥 9/10 | 341 | ₹2080.1 | <b>Equity Targets:</b> T1:₹298.1 // T2:₹302.2 // T3:₹307.2<br><b>Option:</b> 295 CE (Buy > ₹5.0)<br><b>Opt Targets:</b> T1:₹7.8 // T2:₹10.6 // T3:₹14.4 |
+| 7 | **AARTIIND (↑)** | 💥 Pre-Breakout Coil (📉 +RSI Div) | ₹527.2 | 🔥 10/10 | 189 | ₹3099.6 | <b>Equity Targets:</b> T1:₹541.6 // T2:₹553.0 // T3:₹567.5<br><b>Option:</b> 530 CE (Buy > ₹13.7)<br><b>Opt Targets:</b> T1:₹22.0 // T2:₹30.1 // T3:₹41.9 |
+| 8 | **CLEAN (↑)** | 💥 Pre-Breakout Coil | ₹825.5 | 🔥 9/10 | 121 | ₹2952.4 | <b>Mode:</b> Cash Equity Only<br><b>Equity Targets:</b> T1:₹850.4 // T2:₹869.6 // T3:₹894.5 |
+| 9 | **EICHERMOT (↑)** | 💥 Pre-Breakout Coil (📉 +RSI Div) | ₹8010.0 | 🔥 9/10 | 12 | ₹1606.8 | <b>Equity Targets:</b> T1:₹8133.9 // T2:₹8231.0 // T3:₹8354.9<br><b>Option:</b> 8000 CE (Buy > ₹104.44)<br><b>Opt Targets:</b> T1:₹187.5 // T2:₹267.7 // T3:₹382.0 |
+| 10 | **TITAN (↑)** | 💥 Pre-Breakout Coil (📉 +RSI Div) | ₹5086.1 | 🔥 10/10 | 19 | ₹1584.6 | <b>Equity Targets:</b> T1:₹5176.2 // T2:₹5244.7 // T3:₹5334.8<br><b>Option:</b> 5100 CE (Buy > ₹79.94)<br><b>Opt Targets:</b> T1:₹133.7 // T2:₹184.3 // T3:₹260.4 |
+| 11 | **RBLBANK (↑)** | 💥 Pre-Breakout Coil | ₹392.5 | 🔥 9/10 | 254 | ₹2006.6 | <b>Equity Targets:</b> T1:₹400.6 // T2:₹406.8 // T3:₹414.9<br><b>Option:</b> 390 CE (Buy > ₹7.18)<br><b>Opt Targets:</b> T1:₹13.0 // T2:₹18.4 // T3:₹26.2 |
+| 12 | **MOTHERSON (↑)** | 💥 Pre-Breakout Coil | ₹169.38 | 🔥 9/10 | 590 | ₹2407.2 | <b>Equity Targets:</b> T1:₹174.5 // T2:₹178.3 // T3:₹183.4<br><b>Option:</b> 170 CE (Buy > ₹2.45)<br><b>Opt Targets:</b> T1:₹5.8 // T2:₹9.0 // T3:₹13.9 |
+| 13 | **KRISHANA (↑)** | 💥 Pre-Breakout Coil | ₹198.41 | 🔥 8/10 | 504 | ₹3885.84 | <b>Mode:</b> Cash Equity Only<br><b>Equity Targets:</b> T1:₹206.3 // T2:₹212.3 // T3:₹220.2 |
+| 14 | **JUBLFOOD (↑)** | 💥 Pre-Breakout Coil | ₹506.75 | 🔥 10/10 | 197 | ₹2925.45 | <b>Equity Targets:</b> T1:₹524.6 // T2:₹537.9 // T3:₹555.7<br><b>Option:</b> 510 CE (Buy > ₹12.74)<br><b>Opt Targets:</b> T1:₹23.3 // T2:₹33.3 // T3:₹48.7 |
+| 15 | **INDIANB (↑)** | 💥 Pre-Breakout Coil | ₹876.9 | 🔥 9/10 | 114 | ₹2143.2 | <b>Mode:</b> Cash Equity Only<br><b>Equity Targets:</b> T1:₹894.6 // T2:₹908.4 // T3:₹926.1 |
