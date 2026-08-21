@@ -427,32 +427,51 @@ def run():
     for ticker in closes.columns:
         symbol = ticker.replace(".NS", "")
         try:
-            close_p, vol_today, vol_50_avg = float(closes[ticker].iloc[-1]), float(volumes.iloc[-1][ticker]), float(vol_50d_avg_daily.iloc[-1][ticker])
+            df_c, df_h, df_l = closes[ticker].dropna(), highs[ticker].dropna(), lows[ticker].dropna()
+            if len(df_c) < 20: continue
             
-            # FIXED: Liquidity gate adjusted to ₹1.5 Cr average daily turnover
-            if pd.isna(close_p) or close_p <= 0 or (close_p * vol_50_avg) < 15000000 or vol_50_avg < 50000: continue
+            close_p, vol_today, vol_50_avg = float(df_c.iloc[-1]), float(volumes.iloc[-1][ticker]), float(vol_50d_avg_daily.iloc[-1][ticker])
+            turnover_avg = close_p * vol_50_avg
+            
+            # 1. Base Liquidity Floor & Penny Stock Filter
+            if close_p < 20 or turnover_avg < 15000000 or vol_50_avg < 50000: continue
+            
+            is_micro_tier = turnover_avg < 50000000 # Tier 2: Between 1.5 Cr and 5 Cr
+            
+            vol_vs = round(vol_today / vol_50_avg, 2) if vol_50_avg > 0 else 1.0
+            
+            # 2. ANTI-DUMP FILTER: Massive upper wick rejection on extreme volume
+            daily_range = float(df_h.iloc[-1] - df_l.iloc[-1])
+            prev_close = float(df_c.iloc[-2]) if len(df_c) > 1 else close_p
+            if daily_range > 0:
+                upper_wick_ratio = (float(df_h.iloc[-1]) - max(close_p, prev_close)) / daily_range
+                if upper_wick_ratio > 0.5 and vol_vs > 2.0 and close_p < prev_close:
+                    continue # Operator dump detected
+                    
+            # 3. ANTI-PUMP FILTER: Exhaustion chasing
+            recent_10d_return = (close_p / float(df_c.iloc[-10])) - 1 if len(df_c) >= 10 else 0
+            if recent_10d_return > 0.40 and vol_vs > 3.0 and close_p < float(df_h.iloc[-1]):
+                continue # Exhausted parabolic pump
             
             rsi_val, macd_val, macd_sig = float(rsi_daily.iloc[-1][ticker]), float(macd_daily.iloc[-1][ticker]), float(macd_signal_daily.iloc[-1][ticker])
             d_ema, w_ema, atr = float(ema_50_daily.iloc[-1][ticker]), float(ema_50_weekly.iloc[-1][ticker]), float(atr_daily.iloc[-1][ticker])
             d_ema20, d_ema200 = float(ema_20_daily.iloc[-1][ticker]), float(ema_200_daily.iloc[-1][ticker]) if not pd.isna(ema_200_daily.iloc[-1][ticker]) else 0.0
             
-            vol_vs = round(vol_today / vol_50_avg, 2) if vol_50_avg > 0 else 1.0
             recent_vol_avg, recent_range_avg = float(volumes[ticker].tail(3).mean()), float((highs[ticker].tail(3) - lows[ticker].tail(3)).mean())
             recent_high = float(highs[ticker].tail(20).max())
             
             is_squeeze = (recent_vol_avg < vol_50_avg * 0.85) and (recent_range_avg < atr * 0.85)
-            is_relative_strong = (float(closes[ticker].dropna().iloc[-1] / closes[ticker].dropna().iloc[-20] - 1) > nifty_return_20d) if len(closes[ticker].dropna()) >= 20 else False
+            is_relative_strong = (float(df_c.iloc[-1] / df_c.iloc[-20] - 1) > nifty_return_20d) if len(df_c) >= 20 else False
             
             is_pre_breakout = (0.002 <= ((recent_high - close_p)/close_p) <= 0.035) and (close_p > d_ema20) and (vol_vs <= 1.25)
             is_200ma_retest = (d_ema200 > 0) and (abs(close_p - d_ema200)/d_ema200 <= 0.025) and (vol_vs <= 1.0) and (close_p >= d_ema200)
             is_swing_retest = (0.025 <= ((recent_high - close_p)/close_p) <= 0.15) and (0.0 <= ((close_p - d_ema20)/d_ema20) <= 0.04) and (vol_vs <= 1.0)
             
-            recent_daily_high = float(highs[ticker].iloc[-1])
-            prev_daily_close = float(closes[ticker].iloc[-2]) if len(closes[ticker]) > 1 else 0
-            is_btst = (close_p >= 0.98 * recent_daily_high) and (close_p > prev_daily_close) and (close_p > d_ema20) and (vol_vs >= 1.0) and (50 <= rsi_val <= 75)
+            recent_daily_high = float(df_h.iloc[-1])
+            is_btst = (close_p >= 0.98 * recent_daily_high) and (close_p > prev_close) and (close_p > d_ema20) and (vol_vs >= 1.0) and (50 <= rsi_val <= 75)
 
-            is_rsi_div = check_bullish_divergence(closes[ticker].dropna(), rsi_daily[ticker].dropna())
-            sqz_on, sqz_fired = check_ttm_squeeze(closes[ticker].dropna(), highs[ticker].dropna(), lows[ticker].dropna())
+            is_rsi_div = check_bullish_divergence(df_c, rsi_daily[ticker].dropna())
+            sqz_on, sqz_fired = check_ttm_squeeze(df_c, df_h, df_l)
 
             if sqz_fired: hor, sl_m, tag = "Pre-Breakout", 1.0, "🔥 Squeeze Breakout"
             elif sqz_on and is_pre_breakout: hor, sl_m, tag = "Pre-Breakout", 1.0, "🗜️ TTM Squeeze Coil"
@@ -465,8 +484,8 @@ def run():
             
             if is_rsi_div: tag += " (📉 +RSI Div)"
 
-            if (close_p > d_ema and close_p > w_ema and check_structure_hh_hl(highs[ticker], lows[ticker])) and ((macd_val > macd_sig) if hor not in ["Pre-Breakout", "Swing"] else True) and (45 <= rsi_val <= 85) and (is_relative_strong if hor not in ["Pre-Breakout", "Swing"] else True):
-                t1, t2, t3, t4, t5 = calculate_dynamic_targets(close_p, atr, highs[ticker], lows[ticker], "Bullish", is_squeeze)
+            if (close_p > d_ema and close_p > w_ema and check_structure_hh_hl(df_h, df_l)) and ((macd_val > macd_sig) if hor not in ["Pre-Breakout", "Swing"] else True) and (45 <= rsi_val <= 85) and (is_relative_strong if hor not in ["Pre-Breakout", "Swing"] else True):
+                t1, t2, t3, t4, t5 = calculate_dynamic_targets(close_p, atr, df_h, df_l, "Bullish", is_squeeze)
                 eq_sl = round(close_p - sl_m * atr, 1)
                 
                 if (close_p - eq_sl) <= 0: continue
@@ -482,10 +501,20 @@ def run():
                     1 if is_rsi_div else 0
                 ]))
                 
-                if score >= 8 and hor not in ["Pre-Breakout", "Swing"]: tag += " (⭐ 2x Size)"
-                cash_qty = int(((BASE_CAPITAL_PER_TRADE * 0.5 if nifty_regime == "Bearish" else BASE_CAPITAL_PER_TRADE) * (2 if score >= 8 else 1)) / close_p)
+                active_base_capital = BASE_CAPITAL_PER_TRADE * 0.5 if nifty_regime == "Bearish" else BASE_CAPITAL_PER_TRADE
+                
+                # Apply Micro-Tier Tag and Risk Penalty
+                if is_micro_tier:
+                    tag += " ⚠️[Micro-Risk]"
+                    score = max(0, score - 1)
+                    cash_qty = int((active_base_capital * 0.5) / close_p) # Half position sizing
+                else:
+                    if score >= 8 and hor not in ["Pre-Breakout", "Swing"]: 
+                        tag += " (⭐ 2x Size)"
+                        cash_qty = int((active_base_capital * HIGH_CONVICTION_MULTIPLIER) / close_p)
+                    else:
+                        cash_qty = int(active_base_capital / close_p)
 
-                df_h, df_l, df_c = highs[ticker].dropna(), lows[ticker].dropna(), closes[ticker].dropna()
                 opt_info = generate_quant_option(symbol, close_p, t1, t2, t3, t4, t5, eq_sl, df_h, df_l, df_c, "Bullish") if symbol in STATIC_FNO else ("N/A (Cash)", "-", "-", "-", "-", "-", "-", "-")
                 
                 valid_setups.append({
@@ -496,7 +525,6 @@ def run():
                 })
         except: continue
 
-    # FIXED: Strictly sorts by Score descending (10/10 -> 9/10 -> 8/10)
     df_all = pd.DataFrame(valid_setups).drop_duplicates(subset=['Stock']).sort_values(by=['Score', 'Vol vs 50d'], ascending=[False, False]) if valid_setups else pd.DataFrame()
     if not df_all.empty: df_all.to_csv("all_setups.csv", index=False)
     else: pd.DataFrame(columns=['Stock','RawStock','Horizon','Tag','Entry','Qty','Risk','RSI','Vol vs 50d','EqSL','EqT1','EqT2','EqT3','EqT4','EqT5','Opt','Prem','PT1','PT2','PT3','PT4','PT5','OptSL','Score']).to_csv("all_setups.csv", index=False)
@@ -504,7 +532,6 @@ def run():
     if not df_index.empty: df_index.to_csv("index_setups.csv", index=False)
     else: pd.DataFrame(columns=['Stock','RawStock','Horizon','Entry','RSI','EqSL','EqT1','EqT2','EqT3','EqT4','EqT5','Opt','Prem','PT1','PT2','PT3','PT4','PT5','OptSL','Score','Tag']).to_csv("index_setups.csv", index=False)
 
-    # Sub-tables sorted strictly by Score descending
     df_pre = df_all[df_all['Horizon'] == 'Pre-Breakout'].sort_values(by=['Score', 'RSI'], ascending=[False, False]).head(25) if not df_all.empty else pd.DataFrame()
     df_intra = df_all[df_all['Horizon'] == 'Intraday'].sort_values(by=['Score', 'Vol vs 50d'], ascending=[False, False]).head(25) if not df_all.empty else pd.DataFrame()
     df_btst = df_all[df_all['Horizon'] == 'BTST'].sort_values(by=['Score', 'Vol vs 50d'], ascending=[False, False]).head(25) if not df_all.empty else pd.DataFrame()
