@@ -246,7 +246,9 @@ def get_index_options_ideas():
             opt, prem, pt1, pt2, pt3, pt4, pt5, opt_sl = generate_quant_option(ticker, close_p, t1, t2, t3, t4, t5, eq_sl, df_h, df_l, df_c, direction)
             results.append({
                 'Stock': f"{name} ({'Call' if direction == 'Bullish' else 'Put'})", 'RawStock': "NIFTY" if "NIFTY 50" in name else "BANKNIFTY", 
-                'Horizon': 'Intraday', 'Entry': round(close_p, 2), 'EntryZone': f"₹{round(close_p - 0.2*atr_5m,1)} - ₹{round(close_p + 0.2*atr_5m,1)}", 'RSI': round(rsi_val, 1), 'EqSL': eq_sl,
+                'Horizon': 'Intraday', 'Entry': round(close_p, 2), 
+                'EntryZone': f"₹{round(close_p - 0.2*atr_5m,1)} - ₹{round(close_p + 0.2*atr_5m,1)} (🎯 ₹{round(close_p, 1)})", 
+                'RSI': round(rsi_val, 1), 'EqSL': eq_sl,
                 'EqT1': t1, 'EqT2': t2, 'EqT3': t3, 'EqT4': t4, 'EqT5': t5,
                 'Opt': opt, 'Prem': prem, 'PT1': pt1, 'PT2': pt2, 'PT3': pt3, 'PT4': pt4, 'PT5': pt5, 'OptSL': opt_sl, 'Score': 10, 'Tag': 'Index 5m Scalp'
             })
@@ -270,7 +272,6 @@ def generate_tabular_markdown(df_stocks, df_index, title, filename, regime="Neut
             f.write("\n---\n\n")
         if not df_stocks.empty:
             f.write("## 📊 Validated Setups & Options\n\n")
-            # UPDATED to show Entry Zone
             f.write("| # | Stock | Setup Type | Entry Zone (Bracket) | Score | Qty | Risk | Execution Strategy & Targets |\n")
             f.write("| :--- | :--- | :--- | :---: | :---: | :---: | :---: | :--- |\n")
             for idx, r in df_stocks.reset_index().iterrows():
@@ -299,7 +300,6 @@ def format_telegram_text(df_stocks, df_index, title, regime="Neutral"):
         for idx, r in df_stocks.head(25).reset_index().iterrows():
             stock_clean = r['Stock'].replace(" (↑)", "")
             msg += f"{idx+1}. *{stock_clean}* | *{r['Tag']}* (Score: *{r['Score']}/10*)\n"
-            # UPDATED to show Entry Zone
             msg += f"   ⚡ *Entry Zone: {r.get('EntryZone', '₹'+str(r['Entry']))}* | SL: ₹{r['EqSL']}\n"
             msg += f"   🎯 TGT: T1:{r['EqT1']} | T2:{r['EqT2']} | T3:{r['EqT3']}\n"
             
@@ -442,12 +442,11 @@ def run():
             if close_p < 20 or turnover_avg < 15000000 or vol_50_avg < 50000: continue
             is_micro_tier = turnover_avg < 50000000 
             
-            # FIXED: BOLLINGER BAND RUBBER-BAND FILTER
+            # BOLLINGER BAND RUBBER-BAND FILTER
             std_20 = float(df_c.rolling(20).std().iloc[-1])
             sma_20 = float(df_c.rolling(20).mean().iloc[-1])
             bb_upper = sma_20 + (2 * std_20)
             
-            # If the LOW of the current candle is above the Upper BB, the stock is extremely overextended (FOMO trap). Reject it.
             if float(df_l.iloc[-1]) > bb_upper:
                 continue
             
@@ -526,14 +525,29 @@ def run():
                     else:
                         cash_qty = int(active_base_capital / close_p)
 
-                # FIXED: Dynamic ATR Entry Bracket (Accumulation Zone)
-                if hor in ["Swing", "BTST"]:
-                    ez_low = round(close_p - 0.4 * atr, 1)
+                # NEW: SNIPER ENTRY CALCULATION (Dynamic per setup)
+                if "200 MA Retest" in tag:
+                    ez_low = round(d_ema200 - 0.15 * atr, 1)
                     ez_high = round(close_p + 0.1 * atr, 1)
+                    best_entry = round(d_ema200 + 0.05 * atr, 1) # Exact MA support line
+                elif "Breakout Retest" in tag:
+                    ez_low = round(d_ema20 - 0.15 * atr, 1)
+                    ez_high = round(close_p + 0.1 * atr, 1)
+                    best_entry = round(d_ema20 + 0.05 * atr, 1) # Exact MA support line
+                elif hor in ["Swing", "BTST"]:
+                    ez_low = round(close_p - 0.3 * atr, 1)
+                    ez_high = round(close_p + 0.1 * atr, 1)
+                    best_entry = round(close_p - 0.15 * atr, 1) # Mid-dip accumulation
                 else:
                     ez_low = round(close_p - 0.1 * atr, 1)
                     ez_high = round(close_p + 0.4 * atr, 1)
-                entry_zone_str = f"₹{ez_low} - ₹{ez_high}"
+                    best_entry = round(close_p + 0.05 * atr, 1) # Breakout confirmation
+
+                # Safety clamp
+                ez_low, ez_high = min(ez_low, ez_high), max(ez_low, ez_high)
+                best_entry = max(ez_low, min(best_entry, ez_high))
+                
+                entry_zone_str = f"₹{ez_low} - ₹{ez_high} (🎯 ₹{best_entry})"
 
                 opt_info = generate_quant_option(symbol, close_p, t1, t2, t3, t4, t5, eq_sl, df_h, df_l, df_c, "Bullish") if symbol in STATIC_FNO else ("N/A (Cash)", "-", "-", "-", "-", "-", "-", "-")
                 
