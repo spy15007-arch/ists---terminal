@@ -1,6 +1,3 @@
 Stock,RawStock,Horizon,Tag,Entry,Qty,Risk,RSI,Vol vs 50d,EqSL,EqT1,EqT2,EqT3,EqT4,EqT5,Opt,Prem,PT1,PT2,PT3,PT4,PT5,OptSL,Score
-BANKINDIA (↑),BANKINDIA,Pre-Breakout,💥 Pre-Breakout Coil (📉 +RSI Div),143.05,699,2062.05,57.0,0.71,140.1,145.5,147.5,149.9,153.1,157.6,N/A (Cash),-,-,-,-,-,-,-,10
-BECTORFOOD (↑),BECTORFOOD,Pre-Breakout,💥 Pre-Breakout Coil,261.19,382,3892.58,84.7,0.2,251.0,272.4,280.9,292.2,307.9,330.7,N/A (Cash),-,-,-,-,-,-,-,9
-PETRONET (↑),PETRONET,Pre-Breakout,💥 Pre-Breakout Coil,292.45,341,2063.05,61.3,0.62,286.4,297.5,301.6,306.6,313.3,322.6,290 CE,7.27,10.7,13.8,18.2,24.4,33.5,5.0,9
-M&M (↑),M&M,Pre-Breakout,💥 Pre-Breakout Coil,3428.5,29,1905.3,50.0,0.51,3362.8,3496.8,3549.0,3617.3,3711.5,3847.7,3450 CE,35.19,75.6,116.8,179.2,271.6,407.6,12.9,8
-REDINGTON (↑),REDINGTON,Pre-Breakout,💥 Pre-Breakout Coil,355.3,140,2058.0,54.4,1.12,340.6,373.5,387.0,405.1,430.9,469.0,N/A (Cash),-,-,-,-,-,-,-,7
+BECTORFOOD (↑),BECTORFOOD,Pre-Breakout,💥 Pre-Breakout Coil,259.33,385,3938.54,84.3,0.31,249.1,270.6,279.1,290.4,306.1,329.0,N/A (Cash),-,-,-,-,-,-,-,9
+M&M (↑),M&M,Pre-Breakout,💥 Pre-Breakout Coil,3427.3,29,1919.8,49.8,0.48,3361.1,3495.8,3548.2,3616.7,3711.1,3847.4,3450 CE,35.01,75.2,116.3,178.7,271.2,407.3,12.8,8
