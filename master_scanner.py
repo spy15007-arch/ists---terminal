@@ -139,7 +139,6 @@ def get_new_alerts(df, category_name):
     with open(alert_file, "w") as f: json.dump(alerts_db, f)
     return pd.DataFrame(new_rows)
 
-# FIXED: Session strictly shifts to BTST/Afternoon at exactly 2:40 PM IST
 def get_session_info():
     now_ist = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=5, minutes=30)
     is_github_action = os.environ.get("GITHUB_ACTIONS") == "true"
@@ -247,7 +246,7 @@ def get_index_options_ideas():
             opt, prem, pt1, pt2, pt3, pt4, pt5, opt_sl = generate_quant_option(ticker, close_p, t1, t2, t3, t4, t5, eq_sl, df_h, df_l, df_c, direction)
             results.append({
                 'Stock': f"{name} ({'Call' if direction == 'Bullish' else 'Put'})", 'RawStock': "NIFTY" if "NIFTY 50" in name else "BANKNIFTY", 
-                'Horizon': 'Intraday', 'Entry': round(close_p, 2), 'RSI': round(rsi_val, 1), 'EqSL': eq_sl,
+                'Horizon': 'Intraday', 'Entry': round(close_p, 2), 'EntryZone': f"₹{round(close_p - 0.2*atr_5m,1)} - ₹{round(close_p + 0.2*atr_5m,1)}", 'RSI': round(rsi_val, 1), 'EqSL': eq_sl,
                 'EqT1': t1, 'EqT2': t2, 'EqT3': t3, 'EqT4': t4, 'EqT5': t5,
                 'Opt': opt, 'Prem': prem, 'PT1': pt1, 'PT2': pt2, 'PT3': pt3, 'PT4': pt4, 'PT5': pt5, 'OptSL': opt_sl, 'Score': 10, 'Tag': 'Index 5m Scalp'
             })
@@ -271,7 +270,8 @@ def generate_tabular_markdown(df_stocks, df_index, title, filename, regime="Neut
             f.write("\n---\n\n")
         if not df_stocks.empty:
             f.write("## 📊 Validated Setups & Options\n\n")
-            f.write("| # | Stock | Setup Type | Buy Above | Score | Qty | Risk | Execution Strategy & Targets |\n")
+            # UPDATED to show Entry Zone
+            f.write("| # | Stock | Setup Type | Entry Zone (Bracket) | Score | Qty | Risk | Execution Strategy & Targets |\n")
             f.write("| :--- | :--- | :--- | :---: | :---: | :---: | :---: | :--- |\n")
             for idx, r in df_stocks.reset_index().iterrows():
                 badge = f"🔥 {r['Score']}/10"
@@ -280,7 +280,7 @@ def generate_tabular_markdown(df_stocks, df_index, title, filename, regime="Neut
                     strat_info = f"{eq_block}<br><b>Option:</b> {r['Opt']} (Buy > ₹{r['Prem']})<br><b>Opt Targets:</b> T1:₹{r['PT1']} // T2:₹{r['PT2']} // T3:₹{r['PT3']}"
                 else: strat_info = f"<b>Mode:</b> Cash Equity Only<br>{eq_block}"
                 
-                f.write(f"| {idx+1} | **{r['Stock']}** | {r['Tag']} | **₹{r['Entry']}** | {badge} | {r['Qty']} | ₹{r['Risk']} | {strat_info} |\n")
+                f.write(f"| {idx+1} | **{r['Stock']}** | {r['Tag']} | **{r.get('EntryZone', '₹'+str(r['Entry']))}** | {badge} | {r['Qty']} | ₹{r['Risk']} | {strat_info} |\n")
 
 def format_telegram_text(df_stocks, df_index, title, regime="Neutral"):
     msg = f"🚨 *{title}* 🚨\n"
@@ -299,7 +299,8 @@ def format_telegram_text(df_stocks, df_index, title, regime="Neutral"):
         for idx, r in df_stocks.head(25).reset_index().iterrows():
             stock_clean = r['Stock'].replace(" (↑)", "")
             msg += f"{idx+1}. *{stock_clean}* | *{r['Tag']}* (Score: *{r['Score']}/10*)\n"
-            msg += f"   ⚡ *Buy Above: ₹{r['Entry']}* | SL: ₹{r['EqSL']}\n"
+            # UPDATED to show Entry Zone
+            msg += f"   ⚡ *Entry Zone: {r.get('EntryZone', '₹'+str(r['Entry']))}* | SL: ₹{r['EqSL']}\n"
             msg += f"   🎯 TGT: T1:{r['EqT1']} | T2:{r['EqT2']} | T3:{r['EqT3']}\n"
             
             if "N/A" not in str(r['Opt']) and str(r['Prem']) not in ["-", "nan"]:
@@ -372,11 +373,9 @@ def run():
     sess_title, sess_type = get_session_info()
     now_ist = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=5, minutes=30)
     
-    # FIXED: Hard 2:40 PM cutoff for ALL Options Logic & Telegram Alerts
     is_options_window = now_ist.hour < 14 or (now_ist.hour == 14 and now_ist.minute < 40)
     df_index = get_index_options_ideas() if (sess_type in ["Intraday", "Manual"] and is_options_window) else pd.DataFrame()
     
-    # FIXED: Re-mapped the "Volume Day" to perfectly match broker auto-square-off at 3:15 PM (360 total minutes)
     market_open = now_ist.replace(hour=9, minute=15, second=0, microsecond=0)
     market_close = now_ist.replace(hour=15, minute=15, second=0, microsecond=0) 
     minutes_elapsed = 360.0 if (now_ist.weekday() >= 5 or now_ist > market_close or now_ist < market_open) else min(max(1.0, (now_ist - market_open).total_seconds() / 60.0), 360.0)
@@ -443,7 +442,16 @@ def run():
             if close_p < 20 or turnover_avg < 15000000 or vol_50_avg < 50000: continue
             is_micro_tier = turnover_avg < 50000000 
             
-            adjusted_vol_50 = vol_50_avg * (minutes_elapsed / 360.0) # FIXED: Uses 360 minutes for accurate afternoon volume projection
+            # FIXED: BOLLINGER BAND RUBBER-BAND FILTER
+            std_20 = float(df_c.rolling(20).std().iloc[-1])
+            sma_20 = float(df_c.rolling(20).mean().iloc[-1])
+            bb_upper = sma_20 + (2 * std_20)
+            
+            # If the LOW of the current candle is above the Upper BB, the stock is extremely overextended (FOMO trap). Reject it.
+            if float(df_l.iloc[-1]) > bb_upper:
+                continue
+            
+            adjusted_vol_50 = vol_50_avg * (minutes_elapsed / 360.0) 
             vol_vs = round(vol_today / adjusted_vol_50, 2) if adjusted_vol_50 > 0 else 1.0
             
             daily_range = float(df_h.iloc[-1] - df_l.iloc[-1])
@@ -518,10 +526,20 @@ def run():
                     else:
                         cash_qty = int(active_base_capital / close_p)
 
+                # FIXED: Dynamic ATR Entry Bracket (Accumulation Zone)
+                if hor in ["Swing", "BTST"]:
+                    ez_low = round(close_p - 0.4 * atr, 1)
+                    ez_high = round(close_p + 0.1 * atr, 1)
+                else:
+                    ez_low = round(close_p - 0.1 * atr, 1)
+                    ez_high = round(close_p + 0.4 * atr, 1)
+                entry_zone_str = f"₹{ez_low} - ₹{ez_high}"
+
                 opt_info = generate_quant_option(symbol, close_p, t1, t2, t3, t4, t5, eq_sl, df_h, df_l, df_c, "Bullish") if symbol in STATIC_FNO else ("N/A (Cash)", "-", "-", "-", "-", "-", "-", "-")
                 
                 valid_setups.append({
-                    'Stock': f"{symbol} (↑)", 'RawStock': symbol, 'Horizon': hor, 'Tag': tag, 'Entry': round(close_p, 2), 
+                    'Stock': f"{symbol} (↑)", 'RawStock': symbol, 'Horizon': hor, 'Tag': tag, 
+                    'Entry': round(close_p, 2), 'EntryZone': entry_zone_str, 
                     'Qty': cash_qty, 'Risk': round(cash_qty * (close_p - eq_sl), 2), 'RSI': round(rsi_val,1), 'Vol vs 50d': vol_vs,
                     'EqSL': eq_sl, 'EqT1': t1, 'EqT2': t2, 'EqT3': t3, 'EqT4': t4, 'EqT5': t5, 
                     'Opt': opt_info[0], 'Prem': opt_info[1], 'PT1': opt_info[2], 'PT2': opt_info[3], 'PT3': opt_info[4], 'PT4': opt_info[5], 'PT5': opt_info[6], 'OptSL': opt_info[7], 'Score': score
@@ -530,10 +548,10 @@ def run():
 
     df_all = pd.DataFrame(valid_setups).drop_duplicates(subset=['Stock']).sort_values(by=['Score', 'Vol vs 50d'], ascending=[False, False]) if valid_setups else pd.DataFrame()
     if not df_all.empty: df_all.to_csv("all_setups.csv", index=False)
-    else: pd.DataFrame(columns=['Stock','RawStock','Horizon','Tag','Entry','Qty','Risk','RSI','Vol vs 50d','EqSL','EqT1','EqT2','EqT3','EqT4','EqT5','Opt','Prem','PT1','PT2','PT3','PT4','PT5','OptSL','Score']).to_csv("all_setups.csv", index=False)
+    else: pd.DataFrame(columns=['Stock','RawStock','Horizon','Tag','Entry','EntryZone','Qty','Risk','RSI','Vol vs 50d','EqSL','EqT1','EqT2','EqT3','EqT4','EqT5','Opt','Prem','PT1','PT2','PT3','PT4','PT5','OptSL','Score']).to_csv("all_setups.csv", index=False)
     
     if not df_index.empty: df_index.to_csv("index_setups.csv", index=False)
-    else: pd.DataFrame(columns=['Stock','RawStock','Horizon','Entry','RSI','EqSL','EqT1','EqT2','EqT3','EqT4','EqT5','Opt','Prem','PT1','PT2','PT3','PT4','PT5','OptSL','Score','Tag']).to_csv("index_setups.csv", index=False)
+    else: pd.DataFrame(columns=['Stock','RawStock','Horizon','Entry','EntryZone','RSI','EqSL','EqT1','EqT2','EqT3','EqT4','EqT5','Opt','Prem','PT1','PT2','PT3','PT4','PT5','OptSL','Score','Tag']).to_csv("index_setups.csv", index=False)
 
     df_pre = df_all[df_all['Horizon'] == 'Pre-Breakout'].sort_values(by=['Score', 'RSI'], ascending=[False, False]).head(25) if not df_all.empty else pd.DataFrame()
     df_intra = df_all[df_all['Horizon'] == 'Intraday'].sort_values(by=['Score', 'Vol vs 50d'], ascending=[False, False]).head(25) if not df_all.empty else pd.DataFrame()
@@ -550,7 +568,6 @@ def run():
         generate_ai_deep_dive(top_candidates)
     else: generate_ai_deep_dive([])
 
-    # TIME-GATED TELEGRAM ALERTS (Cutoff at 2:40 PM exactly)
     if not df_pre.empty: 
         new_pre = get_new_alerts(df_pre.head(25), "PreBreakout")
         if not new_pre.empty: send_telegram_message(format_telegram_text(new_pre, pd.DataFrame(), f"💥 Soon to Breakout — {sess_title}", nifty_regime))
