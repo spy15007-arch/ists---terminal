@@ -139,13 +139,14 @@ def get_new_alerts(df, category_name):
     with open(alert_file, "w") as f: json.dump(alerts_db, f)
     return pd.DataFrame(new_rows)
 
+# FIXED: Session strictly shifts to BTST/Afternoon at exactly 2:40 PM IST
 def get_session_info():
     now_ist = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=5, minutes=30)
     is_github_action = os.environ.get("GITHUB_ACTIONS") == "true"
     is_manual = (not is_github_action) or (os.environ.get("GITHUB_EVENT_NAME") == "workflow_dispatch")
 
     if is_manual: return now_ist.strftime("%d %b %Y | %I:%M %p (Manual Override)"), "Manual"
-    elif now_ist.hour < 14 or (now_ist.hour == 14 and now_ist.minute < 30): return now_ist.strftime("%d %b %Y | %I:%M %p (Intraday)"), "Intraday"
+    elif now_ist.hour < 14 or (now_ist.hour == 14 and now_ist.minute < 40): return now_ist.strftime("%d %b %Y | %I:%M %p (Intraday)"), "Intraday"
     else: return now_ist.strftime("%d %b %Y | %I:%M %p (BTST/Afternoon)"), "Afternoon"
 
 def black_scholes(S, K, T, r, sigma, opt_type="CE"):
@@ -371,8 +372,14 @@ def run():
     sess_title, sess_type = get_session_info()
     now_ist = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=5, minutes=30)
     
-    is_options_window = now_ist.hour < 14 or (now_ist.hour == 14 and now_ist.minute <= 45)
+    # FIXED: Hard 2:40 PM cutoff for ALL Options Logic & Telegram Alerts
+    is_options_window = now_ist.hour < 14 or (now_ist.hour == 14 and now_ist.minute < 40)
     df_index = get_index_options_ideas() if (sess_type in ["Intraday", "Manual"] and is_options_window) else pd.DataFrame()
+    
+    # FIXED: Re-mapped the "Volume Day" to perfectly match broker auto-square-off at 3:15 PM (360 total minutes)
+    market_open = now_ist.replace(hour=9, minute=15, second=0, microsecond=0)
+    market_close = now_ist.replace(hour=15, minute=15, second=0, microsecond=0) 
+    minutes_elapsed = 360.0 if (now_ist.weekday() >= 5 or now_ist > market_close or now_ist < market_open) else min(max(1.0, (now_ist - market_open).total_seconds() / 60.0), 360.0)
     
     nifty_df = yf.download("^NSEI", period="1y", interval="1d", progress=False)
     nifty_return_20d, nifty_regime = 0.0, "Neutral"
@@ -433,25 +440,22 @@ def run():
             close_p, vol_today, vol_50_avg = float(df_c.iloc[-1]), float(volumes.iloc[-1][ticker]), float(vol_50d_avg_daily.iloc[-1][ticker])
             turnover_avg = close_p * vol_50_avg
             
-            # 1. Base Liquidity Floor & Penny Stock Filter
             if close_p < 20 or turnover_avg < 15000000 or vol_50_avg < 50000: continue
+            is_micro_tier = turnover_avg < 50000000 
             
-            is_micro_tier = turnover_avg < 50000000 # Tier 2: Between 1.5 Cr and 5 Cr
+            adjusted_vol_50 = vol_50_avg * (minutes_elapsed / 360.0) # FIXED: Uses 360 minutes for accurate afternoon volume projection
+            vol_vs = round(vol_today / adjusted_vol_50, 2) if adjusted_vol_50 > 0 else 1.0
             
-            vol_vs = round(vol_today / vol_50_avg, 2) if vol_50_avg > 0 else 1.0
-            
-            # 2. ANTI-DUMP FILTER: Massive upper wick rejection on extreme volume
             daily_range = float(df_h.iloc[-1] - df_l.iloc[-1])
             prev_close = float(df_c.iloc[-2]) if len(df_c) > 1 else close_p
             if daily_range > 0:
                 upper_wick_ratio = (float(df_h.iloc[-1]) - max(close_p, prev_close)) / daily_range
                 if upper_wick_ratio > 0.5 and vol_vs > 2.0 and close_p < prev_close:
-                    continue # Operator dump detected
+                    continue 
                     
-            # 3. ANTI-PUMP FILTER: Exhaustion chasing
             recent_10d_return = (close_p / float(df_c.iloc[-10])) - 1 if len(df_c) >= 10 else 0
             if recent_10d_return > 0.40 and vol_vs > 3.0 and close_p < float(df_h.iloc[-1]):
-                continue # Exhausted parabolic pump
+                continue 
             
             rsi_val, macd_val, macd_sig = float(rsi_daily.iloc[-1][ticker]), float(macd_daily.iloc[-1][ticker]), float(macd_signal_daily.iloc[-1][ticker])
             d_ema, w_ema, atr = float(ema_50_daily.iloc[-1][ticker]), float(ema_50_weekly.iloc[-1][ticker]), float(atr_daily.iloc[-1][ticker])
@@ -503,11 +507,10 @@ def run():
                 
                 active_base_capital = BASE_CAPITAL_PER_TRADE * 0.5 if nifty_regime == "Bearish" else BASE_CAPITAL_PER_TRADE
                 
-                # Apply Micro-Tier Tag and Risk Penalty
                 if is_micro_tier:
                     tag += " ⚠️[Micro-Risk]"
                     score = max(0, score - 1)
-                    cash_qty = int((active_base_capital * 0.5) / close_p) # Half position sizing
+                    cash_qty = int((active_base_capital * 0.5) / close_p)
                 else:
                     if score >= 8 and hor not in ["Pre-Breakout", "Swing"]: 
                         tag += " (⭐ 2x Size)"
@@ -547,6 +550,7 @@ def run():
         generate_ai_deep_dive(top_candidates)
     else: generate_ai_deep_dive([])
 
+    # TIME-GATED TELEGRAM ALERTS (Cutoff at 2:40 PM exactly)
     if not df_pre.empty: 
         new_pre = get_new_alerts(df_pre.head(25), "PreBreakout")
         if not new_pre.empty: send_telegram_message(format_telegram_text(new_pre, pd.DataFrame(), f"💥 Soon to Breakout — {sess_title}", nifty_regime))
