@@ -22,16 +22,48 @@ def load_csv(filepath):
     return pd.DataFrame()
 
 st.sidebar.title("ISTS Pro Terminal")
-page = st.sidebar.radio("Navigation", ["Dashboard", "Scan Market", "Budget Scanner (< ₹500)"])
+page = st.sidebar.radio("Navigation", ["Dashboard", "Scan Market", "Active Trade Tracker", "Budget Scanner (< ₹500)"])
 
 if page == "Dashboard":
     st.title("Institutional Quant Trading System (ISTS Pro)")
     st.markdown("Live Market Top-Down MTF Momentum, AI Research & Options Engine")
+    
+    # Check Market Regime
+    nifty_df = yf.download("^NSEI", period="60d", interval="1d", progress=False)
+    regime = "Calculating..."
+    if not nifty_df.empty:
+        if isinstance(nifty_df.columns, pd.MultiIndex): nifty_df.columns = nifty_df.columns.get_level_values(0)
+        c = nifty_df['Close'].dropna()
+        n20 = c.ewm(span=20).mean().iloc[-1]
+        n50 = c.ewm(span=50).mean().iloc[-1]
+        n_p = c.iloc[-1]
+        if n_p > n20 and n20 > n50: regime = "🟢 BULLISH"
+        elif n_p < n50: regime = "🔴 BEARISH (50% Sizing)"
+        else: regime = "🟡 NEUTRAL"
+
     col1, col2, col3, col4 = st.columns(4)
-    col1.metric("Market Status", "15M LIVE TRACKING", "NSE Live Feed")
+    col1.metric("Market Regime", regime, "Nifty 50 Trend Filter")
     col2.metric("Scan Universe", "1200+ Equities", "Liquidity Protected")
     col3.metric("Research Engine", "AI 14-Pillar Deep Dive", "Gemini 3.6 Active")
-    col4.metric("Strategy", "TTM Squeeze & ATR", "Scalp/Swing/Pre")
+    col4.metric("Strategy Engine", "TTM Squeeze & Trailing SL", "Scalp/Swing/Pre")
+
+elif page == "Active Trade Tracker":
+    st.title("🗂️ Active Trade Tracker & ATR Trailing Stop Engine")
+    st.markdown("Log your open positions here. The scanner runs every 15 minutes, checks your targets, automatically trails your Stop Loss, and alerts your Telegram!")
+    
+    pf_file = "portfolio.csv"
+    if not os.path.exists(pf_file):
+        pd.DataFrame(columns=['Stock', 'RawStock', 'Entry', 'Qty', 'Current_SL', 'T1', 'T2', 'T3', 'Status']).to_csv(pf_file, index=False)
+    
+    pf = pd.read_csv(pf_file)
+    
+    st.markdown("### Edit Your Active Positions")
+    st.caption("Change `Status` to 'Active' to start tracking. The system changes it to 'Closed' if the Stop Loss gets hit.")
+    edited_pf = st.data_editor(pf, num_rows="dynamic", use_container_width=True)
+    
+    if st.button("💾 Save Portfolio Settings", type="primary"):
+        edited_pf.to_csv(pf_file, index=False)
+        st.success("Portfolio saved! The GitHub Action will now monitor and trail your Stop Losses.")
 
 elif page == "Scan Market":
     st.title("🚀 Master Quant Scanner & Institutional Reports")
@@ -123,7 +155,6 @@ elif page == "Scan Market":
             m2.metric("Total Investment", f"₹{(qty * entry_p):,.2f}")
             m3.metric("Max Capital at Risk", f"₹{max_risk:,.2f}")
             
-            # Now calculating max profit potential utilizing the T5 runner target
             runner_tgt = float(stock_row.get('EqT5', stock_row.get('EqT3', entry_p)))
             m4.metric("Max Runner Profit (T5)", f"₹{(qty * abs(runner_tgt - entry_p)):,.2f}")
 
@@ -139,10 +170,7 @@ elif page == "Budget Scanner (< ₹500)":
             st.success(f"Found {len(budget_res)} quant setups under ₹{budget_limit}!")
             
             st.subheader(f"🏆 Top Budget Quant Setups Under ₹{budget_limit}")
-            # Added the 'Tag' and 'Vol vs 50d' columns to display active TTM Squeezes
             b_cols = ['#', 'Stock', 'Tag', 'Vol vs 50d', 'Score', 'Entry', 'EqSL', 'EqT1', 'EqT2', 'EqT3', 'Opt']
-            
-            # Ensure columns exist before filtering
             b_cols = [c for c in b_cols if c in budget_res.columns]
             st.dataframe(budget_res[b_cols], use_container_width=True, hide_index=True)
 
