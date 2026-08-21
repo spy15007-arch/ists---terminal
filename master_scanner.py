@@ -23,6 +23,36 @@ def send_telegram_message(message):
     try: requests.post(url, json={"chat_id": TELEGRAM_CHAT_ID, "text": message, "parse_mode": "Markdown", "disable_web_page_preview": True})
     except Exception: pass
 
+# --- NEW: MAINTENANCE & HOLIDAY GATEKEEPER ---
+def maintenance_purge():
+    """Wipes alert memory files on weekends to keep the system ultra-lightweight."""
+    now_ist = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=5, minutes=30)
+    if now_ist.weekday() >= 5:  # Saturday or Sunday
+        if os.path.exists("sent_alerts.json"):
+            os.remove("sent_alerts.json")
+            print("🧹 Weekend Maintenance: Purged sent_alerts.json memory file.")
+
+def is_market_open():
+    """Checks if today is a weekend or an NSE Holiday."""
+    now_ist = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=5, minutes=30)
+    
+    if now_ist.weekday() >= 5: return False  # Weekend
+    
+    # Standard NSE Trading Holidays (Adjust dates per current year)
+    nse_holidays = [
+        "01-26", # Republic Day
+        "03-24", # Holi (Adjustable)
+        "04-14", # Ambedkar Jayanti
+        "05-01", # Maharashtra Day
+        "08-15", # Independence Day
+        "10-02", # Gandhi Jayanti
+        "12-25"  # Christmas
+    ]
+    today_str = now_ist.strftime("%m-%d")
+    if today_str in nse_holidays:
+        return False
+    return True
+
 STATIC_FNO = [
     "AARTIIND", "ABB", "ABBOTINDIA", "ABCAPITAL", "ABFRL", "ACC", "ACCELYA", "ACTIONCONST", "ADANIENSOL", "ADANIENT", 
     "ADANIGREEN", "ADANIPORTS", "ADANIPOWER", "ALKEM", "AMBUJACEM", "APOLLOHOSP", "APOLLOTYRE", "ASHOKLEY", "ASIANPAINT", 
@@ -104,7 +134,6 @@ raw_symbols_fallback = (
 )
 EXTENDED_UNIVERSE_FALLBACK = list(set(raw_symbols_fallback.split()))
 
-# --- NEW: DYNAMIC 1800+ NSE UNIVERSE LOADER ---
 def get_complete_nse_universe():
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
@@ -134,7 +163,6 @@ def get_complete_nse_universe():
         return sorted(list(symbols))
     return sorted(list(set(STATIC_FNO + EXTENDED_UNIVERSE_FALLBACK)))
 
-# --- NEW: CHUNKED DOWNLOADING ENGINE (Anti-Timeout) ---
 def download_in_chunks(tickers, chunk_size=300):
     closes_list, highs_list, lows_list, vols_list = [], [], [], []
     for i in range(0, len(tickers), chunk_size):
@@ -167,7 +195,6 @@ def download_in_chunks(tickers, chunk_size=300):
     
     return closes, highs, lows, volumes
 
-# --- NEW: SECTOR CONFLUENCE ENGINE ---
 def get_top_sectors():
     sector_map = {
         'Technology': '^CNXIT', 'Consumer Cyclical': '^CNXAUTO', 'Basic Materials': '^CNXMETAL',
@@ -190,7 +217,6 @@ def get_top_sectors():
     except Exception:
         return []
 
-# --- NEW: INTELLIGENT ALERT MEMORY (Anti-Spam) ---
 def get_new_alerts(df, category_name):
     if df.empty: return df
     today_str = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d")
@@ -581,6 +607,16 @@ You MUST strictly follow this exact 14-section format with rich markdown tables,
 
 def run():
     print("🚀 Starting Automated Master Quant Scanner...")
+    
+    # 1. Maintenance & Holiday Gate
+    maintenance_purge()
+    is_github_action = os.environ.get("GITHUB_ACTIONS") == "true"
+    is_manual_dispatch = os.environ.get("GITHUB_EVENT_NAME") == "workflow_dispatch"
+    if is_github_action and not is_manual_dispatch:
+        if not is_market_open():
+            print("🛑 Market is closed (Weekend/Holiday). Exiting to save server resources.")
+            return
+
     sess_title, sess_type = get_session_info()
     now_ist = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=5, minutes=30)
     
@@ -679,7 +715,12 @@ def run():
         try:
             close_p = float(closes[ticker].iloc[-1])
             vol_today, vol_50_avg = float(last_vol[ticker]), float(last_vol_50[ticker])
-            if pd.isna(close_p) or close_p <= 0 or vol_today < 200000 or vol_50_avg < 200000: continue
+            
+            # --- NEW: ₹10 CRORE MINIMUM TURNOVER FILTER (Institutional Liquidity Wall) ---
+            turnover_today = close_p * vol_today
+            turnover_avg = close_p * vol_50_avg
+            if pd.isna(close_p) or close_p <= 0 or turnover_today < 100000000 or turnover_avg < 100000000: 
+                continue
             
             rsi_val, macd_val, macd_sig = float(last_rsi[ticker]), float(last_macd[ticker]), float(last_macd_signal[ticker])
             d_ema, w_ema, atr = float(last_ema_50[ticker]), float(last_ema_50_weekly[ticker]), float(last_atr[ticker])
