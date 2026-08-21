@@ -42,7 +42,7 @@ STATIC_FNO = [
     "TRENT", "TVSMOTOR", "UBL", "ULTRACEMCO", "UPL", "VEDL", "VOLTAS", "WIPRO", "ZEEL", "ZYDUSLIFE"
 ]
 
-raw_symbols = (
+raw_symbols_fallback = (
     "360ONE 3IINFOTECH 3MINDIA 5PAISA 63MOONS AARTIIND AARTIPHARM AARTISURF AAVAS ABBOTINDIA ABCAPITAL ABFRL ACC ACCELYA ACTIONCONST "
     "ADANIENSOL ADANIENT ADANIGREEN ADANIPORTS ADANIPOWER ADVENZYMES AEGISCHEM AETHER AFFLE AGARIND AGI AGL AJANTPHARM ALKALI "
     "ALKEM ALKYLAMINE ALLCARGO ALLSEC ALOKINDS AMARAJABAT AMBER AMBIKCO AMBUJACEM AMIORG ANANDAMAC ANANDRATHI ANDHRAPAP ANGELONE "
@@ -100,7 +100,39 @@ raw_symbols = (
     "WELENT WESCG WELSPUNIND WHIRLPOOL WINDLAS WIPRO WOCKPHARMA WONDERLA XPROINDIA YESBANK YUKEN ZEELEARN ZEEL ZENSARTECH "
     "ZFCVINDIA ZOMATO ZOTA ZUARI ZUARIIND ZYDUSLIFE ZYDUSWELL TFCI SHIVALIK SWANDEFENCE AVALON AIMTRON INDOTECH PEARLGLOBAL DIL"
 )
-EXTENDED_UNIVERSE = list(set(raw_symbols.split()))
+EXTENDED_UNIVERSE_FALLBACK = list(set(raw_symbols_fallback.split()))
+
+# --- NEW: DYNAMIC 1800+ NSE UNIVERSE LOADER ---
+def get_complete_nse_universe():
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.5'
+    }
+    symbols = set()
+    urls = [
+        "https://archives.nseindia.com/content/equities/EQUITY_L.csv",
+        "https://archives.nseindia.com/content/indices/ind_niftytotalmarket_list.csv",
+        "https://archives.nseindia.com/content/indices/ind_niftymicrocap250_list.csv"
+    ]
+    
+    for url in urls:
+        try:
+            r = requests.get(url, headers=headers, timeout=10)
+            if r.status_code == 200:
+                lines = r.text.splitlines()
+                for line in lines[1:]:
+                    parts = line.split(',')
+                    if parts and parts[0].strip():
+                        sym = parts[0].strip().replace('"', '')
+                        if sym.isalnum() and not sym.startswith("SGB") and not sym.startswith("EBB"):
+                            symbols.add(sym)
+        except Exception:
+            continue
+
+    if len(symbols) > 500:
+        return sorted(list(symbols))
+    return sorted(list(set(STATIC_FNO + EXTENDED_UNIVERSE_FALLBACK)))
 
 def get_session_info():
     now_ist = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=5, minutes=30)
@@ -304,7 +336,7 @@ def get_index_options_ideas():
 def generate_tabular_markdown(df_stocks, df_index, title, filename, regime="Neutral", include_index=False):
     with open(filename, "w", encoding="utf-8") as f:
         f.write(f"# {title}\n\n")
-        f.write(f"> **Market Regime Filter:** {regime} | **System:** 1200+ Universe\n\n")
+        f.write(f"> **Market Regime Filter:** {regime} | **System:** 1800+ Mega Universe\n\n")
         if df_stocks.empty and df_index.empty:
             f.write("*Market conditions did not trigger any quantitative setups meeting institutional gates for this timeframe.*\n")
             return
@@ -361,7 +393,6 @@ def format_telegram_text(df_stocks, df_index, title, regime="Neutral"):
                 msg += f"   🔹 *Option:* {r['Opt']} @ Buy > ₹{r['Prem']}\n"
                 msg += f"      Opt Tgts: T1:{r['PT1']} | T2:{r['PT2']} | T3:{r['PT3']}\n"
                 
-            # DEEP LINKS IN TELEGRAM
             tv_link = f"https://in.tradingview.com/chart/?symbol=NSE:{r['RawStock']}"
             msg += f"   🔗 [TradingView]({tv_link}) | [Dhan](https://web.dhan.co/) | [AngelOne](https://trade.angelone.in/)\n\n"
     else: msg += "No setups cleared the institutional gates for this scan."
@@ -492,7 +523,11 @@ def run():
             elif n_close < n_ema50: nifty_regime = "Bearish"
             else: nifty_regime = "Neutral"
 
-    tickers = [f"{s}.NS" for s in EXTENDED_UNIVERSE]
+    # --- FETCH DYNAMIC 1800+ UNIVERSE ---
+    universe = get_complete_nse_universe()
+    tickers = [f"{s}.NS" for s in universe]
+    print(f"📡 Batch downloading market data for {len(tickers)} equities across NSE...")
+    
     data = yf.download(tickers, period="1y", interval="1d", progress=False, threads=True)
     if data.empty: return
     
