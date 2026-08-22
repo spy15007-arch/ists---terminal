@@ -328,7 +328,7 @@ def generate_ai_deep_dive(top_candidates):
             f.write("# 🔬 Institutional Deep Dive Analysis\n\n*Pending Analysis: Waiting for active market setups.*")
         return
 
-    print("🤖 Initiating Automated AI 14-Pillar Fundamental Analysis...")
+    print("🤖 Initiating Automated AI 14-Pillar Fundamental Analysis (Local File Only)...")
     all_dossiers = []
 
     for candidate in top_candidates[:2]:
@@ -369,6 +369,7 @@ Format EXACTLY as:
             if res.status_code == 200: all_dossiers.append(res.json()['candidates'][0]['content']['parts'][0]['text'])
         except Exception: pass
 
+    # Saves to local file ONLY. Never sends to Telegram.
     with open("deep_dive_analysis.md", "w", encoding="utf-8") as f:
         f.write("\n\n---\n\n".join(all_dossiers) if all_dossiers else "# 🔬 Analysis Completed.")
 
@@ -519,7 +520,7 @@ def run():
             is_rsi_div = check_bullish_divergence(df_c, rsi_daily[ticker].dropna())
             sqz_on, sqz_fired = check_ttm_squeeze(df_c, df_h, df_l)
 
-            # Master Tag Logic (Safe Formatting Without Bracket Clashes)
+            # Master Tag Logic
             if is_base_ignition: hor, sl_m, tag = "Pre-Breakout", 0.8, "🌱 Base Ignition"
             elif sqz_fired: hor, sl_m, tag = "Pre-Breakout", 1.0, "🔥 Squeeze Breakout"
             elif sqz_on and is_pre_breakout: hor, sl_m, tag = "Pre-Breakout", 1.0, "🗜️ TTM Squeeze Coil"
@@ -601,7 +602,7 @@ def run():
                     'Entry': round(close_p, 2), 'EntryZone': entry_zone_str, 
                     'Qty': cash_qty, 'Risk': round(cash_qty * (close_p - eq_sl), 2), 'RSI': round(rsi_val,1), 'Vol vs 50d': vol_vs,
                     'EqSL': eq_sl, 'EqT1': t1, 'EqT2': t2, 'EqT3': t3, 'EqT4': t4, 'EqT5': t5, 
-                    'Opt': opt_info[0], 'Prem': opt_info[1], 'PT1': opt_info[2], 'PT2': opt_info[3], 'PT3': opt_info[4], 'PT4': opt_info[5], 'PT5': opt_info[6], 'OptSL': opt_info[7], 'Score': score
+                    'Opt': opt_info[0], 'Prem': opt_info[1], 'PT1': opt_info[2], 'PT2': opt_info[3], 'PT3': opt_info[4], 'PT4': opt_info[5], 'PT5': opt_info[6], 'PTsL': opt_info[7], 'Score': score
                 })
         except: continue
 
