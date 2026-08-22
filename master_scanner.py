@@ -22,20 +22,28 @@ def send_telegram_message(message):
         print("⚠️ Telegram token or Chat ID is missing!")
         return
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-    try: 
-        res = requests.post(url, json={"chat_id": TELEGRAM_CHAT_ID, "text": message, "parse_mode": "Markdown", "disable_web_page_preview": True})
-        if res.status_code != 200:
-            print(f"⚠️ Telegram Markdown Error ({res.status_code}: {res.text}). Retrying in Plain Text...")
-            clean_text = message.replace("*", "").replace("`", "")
-            res_fb = requests.post(url, json={"chat_id": TELEGRAM_CHAT_ID, "text": clean_text, "disable_web_page_preview": True})
-            if res_fb.status_code == 200:
-                print("✅ Telegram alert sent successfully via plain-text fallback!")
+    
+    # SAFEGUARD: If message exceeds Telegram's 4096 limit, split it safely
+    if len(message) > 3800:
+        message_chunks = [message[i:i+3800] for i in range(0, len(message), 3800)]
+    else:
+        message_chunks = [message]
+
+    for chunk in message_chunks:
+        try: 
+            res = requests.post(url, json={"chat_id": TELEGRAM_CHAT_ID, "text": chunk, "parse_mode": "Markdown", "disable_web_page_preview": True})
+            if res.status_code != 200:
+                print(f"⚠️ Telegram Markdown Error ({res.status_code}: {res.text}). Retrying in Plain Text...")
+                clean_text = chunk.replace("*", "").replace("`", "")
+                res_fb = requests.post(url, json={"chat_id": TELEGRAM_CHAT_ID, "text": clean_text, "disable_web_page_preview": True})
+                if res_fb.status_code == 200:
+                    print("✅ Telegram alert sent successfully via plain-text fallback!")
+                else:
+                    print(f"❌ Telegram fallback failed: {res_fb.text}")
             else:
-                print(f"❌ Telegram fallback failed: {res_fb.text}")
-        else:
-            print("✅ Telegram alert delivered successfully!")
-    except Exception as e:
-        print(f"❌ Exception in send_telegram_message: {e}")
+                print("✅ Telegram alert delivered successfully!")
+        except Exception as e:
+            print(f"❌ Exception in send_telegram_message: {e}")
 
 def maintenance_purge():
     now_ist = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=5, minutes=30)
@@ -364,12 +372,12 @@ Format EXACTLY as:
 ### 14. Executive Summary
 """
         try:
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key={GEMINI_API_KEY}"
+            # UPGRADED TO PRO MODEL FOR DEEPER ANALYSIS
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key={GEMINI_API_KEY}"
             res = requests.post(url, json={"contents": [{"parts": [{"text": prompt}]}]}, timeout=60)
             if res.status_code == 200: all_dossiers.append(res.json()['candidates'][0]['content']['parts'][0]['text'])
         except Exception: pass
 
-    # Saves to local file ONLY. Never sends to Telegram.
     with open("deep_dive_analysis.md", "w", encoding="utf-8") as f:
         f.write("\n\n---\n\n".join(all_dossiers) if all_dossiers else "# 🔬 Analysis Completed.")
 
@@ -457,7 +465,6 @@ def run():
             if close_p < 20 or turnover_avg < 15000000 or vol_50_avg < 50000: continue
             is_micro_tier = turnover_avg < 50000000 
             
-            # BOLLINGER BAND RUBBER-BAND FILTER
             std_20_series = df_c.rolling(20).std()
             std_20 = float(std_20_series.iloc[-1])
             sma_20 = float(df_c.rolling(20).mean().iloc[-1])
@@ -480,7 +487,6 @@ def run():
             if recent_10d_return > 0.40 and vol_vs > 3.0 and close_p < float(df_h.iloc[-1]):
                 continue 
             
-            # 🏆 6-MONTH PRIOR MOMENTUM (SUPER-TREND CHECK)
             momentum_6m = (close_p / float(df_c.iloc[-125])) - 1 if len(df_c) >= 125 else 0
             is_super_trend = momentum_6m >= 0.50
 
@@ -493,7 +499,6 @@ def run():
             recent_vol_avg, recent_range_avg = float(volumes[ticker].tail(3).mean()), float((highs[ticker].tail(3) - lows[ticker].tail(3)).mean())
             recent_high = float(highs[ticker].tail(20).max())
             
-            # 🌱 BASE IGNITION (FIRST CANDLE) LOGIC
             min_std_20 = float(std_20_series.tail(20).min())
             is_base_contracted = (std_20 <= min_std_20 * 1.1) if min_std_20 > 0 else False
             is_base_ignition = (is_base_contracted) and (prev_close < prev_ema20) and (close_p > d_ema20) and (1.0 <= vol_vs <= 2.5) and (45 <= rsi_val <= 65)
@@ -503,7 +508,6 @@ def run():
             is_pre_breakout = (0.002 <= ((recent_high - close_p)/close_p) <= 0.035) and (close_p > d_ema20) and (vol_vs <= 1.25)
             is_200ma_retest = (d_ema200 > 0) and (abs(close_p - d_ema200)/d_ema200 <= 0.025) and (vol_vs <= 1.0) and (close_p >= d_ema200)
             
-            # 🛡️ STRICT RETEST GUARDRAILS
             lower_wick_ok = True if daily_range == 0 else (close_p >= (float(df_l.iloc[-1]) + 0.35 * daily_range))
             is_swing_retest = (
                 (0.025 <= ((recent_high - close_p) / close_p) <= 0.15) and
@@ -520,7 +524,6 @@ def run():
             is_rsi_div = check_bullish_divergence(df_c, rsi_daily[ticker].dropna())
             sqz_on, sqz_fired = check_ttm_squeeze(df_c, df_h, df_l)
 
-            # Master Tag Logic
             if is_base_ignition: hor, sl_m, tag = "Pre-Breakout", 0.8, "🌱 Base Ignition"
             elif sqz_fired: hor, sl_m, tag = "Pre-Breakout", 1.0, "🔥 Squeeze Breakout"
             elif sqz_on and is_pre_breakout: hor, sl_m, tag = "Pre-Breakout", 1.0, "🗜️ TTM Squeeze Coil"
@@ -565,7 +568,6 @@ def run():
                     else:
                         cash_qty = int(active_base_capital / close_p)
 
-                # DYNAMIC SNIPER ENTRY CALCULATION
                 is_pullback_candle = (close_p < prev_close) or ((recent_daily_high - close_p) > 0.35 * atr)
                 
                 if "Base Ignition" in tag:
@@ -602,7 +604,7 @@ def run():
                     'Entry': round(close_p, 2), 'EntryZone': entry_zone_str, 
                     'Qty': cash_qty, 'Risk': round(cash_qty * (close_p - eq_sl), 2), 'RSI': round(rsi_val,1), 'Vol vs 50d': vol_vs,
                     'EqSL': eq_sl, 'EqT1': t1, 'EqT2': t2, 'EqT3': t3, 'EqT4': t4, 'EqT5': t5, 
-                    'Opt': opt_info[0], 'Prem': opt_info[1], 'PT1': opt_info[2], 'PT2': opt_info[3], 'PT3': opt_info[4], 'PT4': opt_info[5], 'PT5': opt_info[6], 'PTsL': opt_info[7], 'Score': score
+                    'Opt': opt_info[0], 'Prem': opt_info[1], 'PT1': opt_info[2], 'PT2': opt_info[3], 'PT3': opt_info[4], 'PT4': opt_info[5], 'PT5': opt_info[6], 'OptSL': opt_info[7], 'Score': score
                 })
         except: continue
 
@@ -623,10 +625,13 @@ def run():
     generate_tabular_markdown(df_btst, pd.DataFrame(), f"🌙 BTST Report (Top 25) — {sess_title}", "btst_report.md", nifty_regime, False)
     generate_tabular_markdown(df_swing, pd.DataFrame(), f"📈 Swing Trade Retest Report (Top 25) — {sess_title}", "swing_report.md", nifty_regime, False)
 
+    # ONLY run AI deep dive if we actually have valid candidates
     if not df_all.empty:
         top_candidates = sorted(valid_setups, key=lambda x: (x['Score'], x['Horizon'] == 'Swing'), reverse=True)
         generate_ai_deep_dive(top_candidates)
-    else: generate_ai_deep_dive([])
+    else:
+        with open("deep_dive_analysis.md", "w", encoding="utf-8") as f:
+            f.write("# 🔬 Institutional Deep Dive Analysis\n\n*No qualifying setups found today.*")
 
     if not df_pre.empty: 
         new_pre = get_new_alerts(df_pre.head(25), "PreBreakout")
