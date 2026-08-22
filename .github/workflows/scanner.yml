@@ -2,40 +2,46 @@ name: Master Quant Scanner
 
 on:
   schedule:
-    # Runs every 15 mins from 03:00 UTC (8:30 AM IST) to 10:59 UTC (4:29 PM IST) Mon-Fri
-    - cron: '*/15 3-10 * * 1-5' 
-  workflow_dispatch:
+    # 🌅 Morning Intraday & Scalp Scan: 9:30 AM IST (04:00 UTC) Monday-Friday
+    - cron: '0 4 * * 1-5'
+    # 🌇 Afternoon Swing, BTST & Base Ignition Scan: 2:40 PM IST (09:10 UTC) Monday-Friday
+    - cron: '10 9 * * 1-5'
+  workflow_dispatch: # Allows you to manually click "Run workflow" in GitHub anytime
 
 jobs:
-  scan:
+  run-scanner:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # CRITICAL: Allows the bot to save CSVs and JSON memory back to the repo
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.10'
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          cache: 'pip' # Caches dependencies to make the run much faster
 
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install yfinance pandas numpy scipy requests
+      - name: Install Required Libraries
+        run: |
+          python -m pip install --upgrade pip
+          pip install yfinance pandas numpy scipy requests
 
-    - name: Run Master Scanner
-      env:
-        TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-        TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-        GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-      run: python master_scanner.py
+      - name: Execute Master Scanner Engine
+        env:
+          # Pulls your secure API keys from GitHub Secrets
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: python master_scanner.py
 
-    - name: Commit and push changes
-      run: |
-        git config --local user.name "github-actions[bot]"
-        git config --local user.email "github-actions[bot]@users.noreply.github.com"
-        git add -A
-        git pull --rebase origin main || true
-        git commit -m "Auto-update quant reports and CSV databases" || echo "No changes to commit"
-        git push origin main
+      - name: Save and Commit Results
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add .
+          # This line checks if any files were changed (like sent_alerts.json). 
+          # If yes, it commits them. If no, it completes gracefully without crashing.
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Auto-update scanner reports and alerts memory" && git push)
