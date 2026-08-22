@@ -645,5 +645,9 @@ def run():
         new_swing = get_new_alerts(df_swing.head(25), "Swing")
         if not new_swing.empty: send_telegram_message(format_telegram_text(new_swing, pd.DataFrame(), f"📈 Swing Trade (Retest) Report — {sess_title}", nifty_regime))
 
+    # --- HEARTBEAT NOTIFICATION ---
+    if df_pre.empty and df_intra.empty and df_btst.empty and df_swing.empty and df_index.empty:
+        send_telegram_message(f"✅ *{sess_title} Complete*\n\n📉 *Result:* Zero stocks passed the institutional guardrails today. Capital protected.")
+
 if __name__ == "__main__":
     run()
