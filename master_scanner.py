@@ -525,25 +525,28 @@ def run():
                     else:
                         cash_qty = int(active_base_capital / close_p)
 
-                # NEW: SNIPER ENTRY CALCULATION (Dynamic per setup)
+                # DYNAMIC SNIPER ENTRY CALCULATION (With Active Pullback Detection)
+                is_pullback_candle = (close_p < prev_close) or ((recent_daily_high - close_p) > 0.35 * atr)
+                
                 if "200 MA Retest" in tag:
                     ez_low = round(d_ema200 - 0.15 * atr, 1)
                     ez_high = round(close_p + 0.1 * atr, 1)
-                    best_entry = round(d_ema200 + 0.05 * atr, 1) # Exact MA support line
-                elif "Breakout Retest" in tag:
+                    best_entry = round(d_ema200 + 0.05 * atr, 1)
+                elif "Breakout Retest" in tag or (is_pullback_candle and close_p > d_ema20):
+                    # Retesting the 20 EMA floor during a pullback
                     ez_low = round(d_ema20 - 0.15 * atr, 1)
-                    ez_high = round(close_p + 0.1 * atr, 1)
-                    best_entry = round(d_ema20 + 0.05 * atr, 1) # Exact MA support line
+                    ez_high = round(close_p, 1)
+                    best_entry = round(d_ema20 + 0.1 * atr, 1) # Anchors directly to 20-EMA
                 elif hor in ["Swing", "BTST"]:
                     ez_low = round(close_p - 0.3 * atr, 1)
                     ez_high = round(close_p + 0.1 * atr, 1)
-                    best_entry = round(close_p - 0.15 * atr, 1) # Mid-dip accumulation
+                    best_entry = round(close_p - 0.15 * atr, 1)
                 else:
                     ez_low = round(close_p - 0.1 * atr, 1)
                     ez_high = round(close_p + 0.4 * atr, 1)
-                    best_entry = round(close_p + 0.05 * atr, 1) # Breakout confirmation
+                    best_entry = round(close_p + 0.05 * atr, 1)
 
-                # Safety clamp
+                # Safety boundaries
                 ez_low, ez_high = min(ez_low, ez_high), max(ez_low, ez_high)
                 best_entry = max(ez_low, min(best_entry, ez_high))
                 
