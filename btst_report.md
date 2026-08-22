@@ -1,4 +1,4 @@
-# 🌙 BTST Report (Top 25) — 22 Aug 2026 | 01:04 PM (Manual Override)
+# 🌙 BTST Report (Top 25) — 22 Aug 2026 | 01:19 PM (Manual Override)
 
 > **Market Regime Filter:** Neutral | **System:** 1800+ Mega Universe
 
