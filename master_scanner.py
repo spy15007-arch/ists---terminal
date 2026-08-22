@@ -329,7 +329,7 @@ def generate_ai_deep_dive(top_candidates):
 
         prompt = f"""
 You are an Elite Institutional Equity Research Analyst. Write a rigorous 14-section institutional research report on **{sym} (NSE: {sym})**.
-Context: Setup Type: {tag} (Score: {score}/10) | Buy Trigger: ₹{entry} | SL: ₹{eq_sl} | Targets: ₹{t1}/₹{t2}/₹{t3} | Sector: {sector} | P/E: {pe}
+Context: Setup Type: {tag} (Score: {score}/10) | Buy Trigger: ₹{entry} | SL: ₹{eq_sl} | Targets: ₹{t1}/Factor | Sector: {sector} | P/E: {pe}
 
 Format EXACTLY as:
 # Detailed Stock Analysis: {sym} (NSE: {sym})
@@ -443,7 +443,8 @@ def run():
             is_micro_tier = turnover_avg < 50000000 
             
             # BOLLINGER BAND RUBBER-BAND FILTER
-            std_20 = float(df_c.rolling(20).std().iloc[-1])
+            std_20_series = df_c.rolling(20).std()
+            std_20 = float(std_20_series.iloc[-1])
             sma_20 = float(df_c.rolling(20).mean().iloc[-1])
             bb_upper = sma_20 + (2 * std_20)
             
@@ -464,13 +465,24 @@ def run():
             if recent_10d_return > 0.40 and vol_vs > 3.0 and close_p < float(df_h.iloc[-1]):
                 continue 
             
+            # 🏆 6-MONTH PRIOR MOMENTUM (SUPER-TREND CHECK)
+            momentum_6m = (close_p / float(df_c.iloc[-125])) - 1 if len(df_c) >= 125 else 0
+            is_super_trend = momentum_6m >= 0.50
+
             rsi_val, macd_val, macd_sig = float(rsi_daily.iloc[-1][ticker]), float(macd_daily.iloc[-1][ticker]), float(macd_signal_daily.iloc[-1][ticker])
             d_ema, w_ema, atr = float(ema_50_daily.iloc[-1][ticker]), float(ema_50_weekly.iloc[-1][ticker]), float(atr_daily.iloc[-1][ticker])
-            d_ema20, d_ema200 = float(ema_20_daily.iloc[-1][ticker]), float(ema_200_daily.iloc[-1][ticker]) if not pd.isna(ema_200_daily.iloc[-1][ticker]) else 0.0
+            d_ema20 = float(ema_20_daily.iloc[-1][ticker])
+            d_ema200 = float(ema_200_daily.iloc[-1][ticker]) if not pd.isna(ema_200_daily.iloc[-1][ticker]) else 0.0
+            prev_ema20 = float(ema_20_daily.iloc[-2][ticker]) if len(ema_20_daily) > 1 else d_ema20
             
             recent_vol_avg, recent_range_avg = float(volumes[ticker].tail(3).mean()), float((highs[ticker].tail(3) - lows[ticker].tail(3)).mean())
             recent_high = float(highs[ticker].tail(20).max())
             
+            # 🌱 BASE IGNITION (FIRST CANDLE) LOGIC
+            min_std_20 = float(std_20_series.tail(20).min())
+            is_base_contracted = (std_20 <= min_std_20 * 1.1) if min_std_20 > 0 else False
+            is_base_ignition = (is_base_contracted) and (prev_close < prev_ema20) and (close_p > d_ema20) and (1.0 <= vol_vs <= 2.5) and (45 <= rsi_val <= 65)
+
             is_squeeze = (recent_vol_avg < vol_50_avg * 0.85) and (recent_range_avg < atr * 0.85)
             is_relative_strong = (float(df_c.iloc[-1] / df_c.iloc[-20] - 1) > nifty_return_20d) if len(df_c) >= 20 else False
             
@@ -484,7 +496,9 @@ def run():
             is_rsi_div = check_bullish_divergence(df_c, rsi_daily[ticker].dropna())
             sqz_on, sqz_fired = check_ttm_squeeze(df_c, df_h, df_l)
 
-            if sqz_fired: hor, sl_m, tag = "Pre-Breakout", 1.0, "🔥 Squeeze Breakout"
+            # Master Tag Logic (Added Base Ignition)
+            if is_base_ignition: hor, sl_m, tag = "Pre-Breakout", 0.8, "🌱 Base Ignition"
+            elif sqz_fired: hor, sl_m, tag = "Pre-Breakout", 1.0, "🔥 Squeeze Breakout"
             elif sqz_on and is_pre_breakout: hor, sl_m, tag = "Pre-Breakout", 1.0, "🗜️ TTM Squeeze Coil"
             elif is_pre_breakout: hor, sl_m, tag = "Pre-Breakout", 1.0, "💥 Pre-Breakout Coil"
             elif is_200ma_retest: hor, sl_m, tag = "Swing", 1.5, "🏦 200 MA Retest"
@@ -494,6 +508,7 @@ def run():
             else: continue
             
             if is_rsi_div: tag += " (📉 +RSI Div)"
+            if is_super_trend: tag += " 🏆[Super-Trend]"
 
             if (close_p > d_ema and close_p > w_ema and check_structure_hh_hl(df_h, df_l)) and ((macd_val > macd_sig) if hor not in ["Pre-Breakout", "Swing"] else True) and (45 <= rsi_val <= 85) and (is_relative_strong if hor not in ["Pre-Breakout", "Swing"] else True):
                 t1, t2, t3, t4, t5 = calculate_dynamic_targets(close_p, atr, df_h, df_l, "Bullish", is_squeeze)
@@ -501,6 +516,7 @@ def run():
                 
                 if (close_p - eq_sl) <= 0: continue
                 
+                # Boost Score for Super-Trend
                 score = min(10, sum([
                     1 if close_p > d_ema else 0,
                     1 if close_p > w_ema else 0,
@@ -508,8 +524,9 @@ def run():
                     1 if macd_val > macd_sig else 0,
                     1 if macd_val > 0 else 0,
                     1 if is_relative_strong else 0,
-                    2 if sqz_on else (3 if sqz_fired else 0),
-                    1 if is_rsi_div else 0
+                    2 if sqz_on or is_base_ignition else (3 if sqz_fired else 0),
+                    1 if is_rsi_div else 0,
+                    1 if is_super_trend else 0
                 ]))
                 
                 active_base_capital = BASE_CAPITAL_PER_TRADE * 0.5 if nifty_regime == "Bearish" else BASE_CAPITAL_PER_TRADE
@@ -525,18 +542,22 @@ def run():
                     else:
                         cash_qty = int(active_base_capital / close_p)
 
-                # DYNAMIC SNIPER ENTRY CALCULATION (With Active Pullback Detection)
+                # DYNAMIC SNIPER ENTRY CALCULATION
                 is_pullback_candle = (close_p < prev_close) or ((recent_daily_high - close_p) > 0.35 * atr)
                 
-                if "200 MA Retest" in tag:
+                if "Base Ignition" in tag:
+                    ez_low = round(d_ema20, 1)
+                    ez_high = round(close_p, 1)
+                    best_entry = round(close_p, 1) # Buy the immediate confirmation
+                    eq_sl = round(d_ema20 - 0.5 * atr, 1) # Ultra-tight stop
+                elif "200 MA Retest" in tag:
                     ez_low = round(d_ema200 - 0.15 * atr, 1)
                     ez_high = round(close_p + 0.1 * atr, 1)
                     best_entry = round(d_ema200 + 0.05 * atr, 1)
                 elif "Breakout Retest" in tag or (is_pullback_candle and close_p > d_ema20):
-                    # Retesting the 20 EMA floor during a pullback
                     ez_low = round(d_ema20 - 0.15 * atr, 1)
                     ez_high = round(close_p, 1)
-                    best_entry = round(d_ema20 + 0.1 * atr, 1) # Anchors directly to 20-EMA
+                    best_entry = round(d_ema20 + 0.1 * atr, 1) 
                 elif hor in ["Swing", "BTST"]:
                     ez_low = round(close_p - 0.3 * atr, 1)
                     ez_high = round(close_p + 0.1 * atr, 1)
@@ -546,7 +567,6 @@ def run():
                     ez_high = round(close_p + 0.4 * atr, 1)
                     best_entry = round(close_p + 0.05 * atr, 1)
 
-                # Safety boundaries
                 ez_low, ez_high = min(ez_low, ez_high), max(ez_low, ez_high)
                 best_entry = max(ez_low, min(best_entry, ez_high))
                 
