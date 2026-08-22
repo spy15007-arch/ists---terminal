@@ -18,10 +18,24 @@ BASE_CAPITAL_PER_TRADE = 50000
 HIGH_CONVICTION_MULTIPLIER = 2  
 
 def send_telegram_message(message):
-    if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID: return
+    if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
+        print("⚠️ Telegram token or Chat ID is missing!")
+        return
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-    try: requests.post(url, json={"chat_id": TELEGRAM_CHAT_ID, "text": message, "parse_mode": "Markdown", "disable_web_page_preview": True})
-    except Exception: pass
+    try: 
+        res = requests.post(url, json={"chat_id": TELEGRAM_CHAT_ID, "text": message, "parse_mode": "Markdown", "disable_web_page_preview": True})
+        if res.status_code != 200:
+            print(f"⚠️ Telegram Markdown Error ({res.status_code}: {res.text}). Retrying in Plain Text...")
+            clean_text = message.replace("*", "").replace("`", "")
+            res_fb = requests.post(url, json={"chat_id": TELEGRAM_CHAT_ID, "text": clean_text, "disable_web_page_preview": True})
+            if res_fb.status_code == 200:
+                print("✅ Telegram alert sent successfully via plain-text fallback!")
+            else:
+                print(f"❌ Telegram fallback failed: {res_fb.text}")
+        else:
+            print("✅ Telegram alert delivered successfully!")
+    except Exception as e:
+        print(f"❌ Exception in send_telegram_message: {e}")
 
 def maintenance_purge():
     now_ist = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=5, minutes=30)
@@ -329,7 +343,7 @@ def generate_ai_deep_dive(top_candidates):
 
         prompt = f"""
 You are an Elite Institutional Equity Research Analyst. Write a rigorous 14-section institutional research report on **{sym} (NSE: {sym})**.
-Context: Setup Type: {tag} (Score: {score}/10) | Buy Trigger: ₹{entry} | SL: ₹{eq_sl} | Targets: ₹{t1}/Factor | Sector: {sector} | P/E: {pe}
+Context: Setup Type: {tag} (Score: {score}/10) | Buy Trigger: ₹{entry} | SL: ₹{eq_sl} | Targets: ₹{t1} | Sector: {sector} | P/E: {pe}
 
 Format EXACTLY as:
 # Detailed Stock Analysis: {sym} (NSE: {sym})
@@ -488,7 +502,7 @@ def run():
             is_pre_breakout = (0.002 <= ((recent_high - close_p)/close_p) <= 0.035) and (close_p > d_ema20) and (vol_vs <= 1.25)
             is_200ma_retest = (d_ema200 > 0) and (abs(close_p - d_ema200)/d_ema200 <= 0.025) and (vol_vs <= 1.0) and (close_p >= d_ema200)
             
-            # 🛡️ STRICT RETEST GUARDRAILS (Floor, Wick, Momentum)
+            # 🛡️ STRICT RETEST GUARDRAILS
             lower_wick_ok = True if daily_range == 0 else (close_p >= (float(df_l.iloc[-1]) + 0.35 * daily_range))
             is_swing_retest = (
                 (0.025 <= ((recent_high - close_p) / close_p) <= 0.15) and
@@ -505,7 +519,7 @@ def run():
             is_rsi_div = check_bullish_divergence(df_c, rsi_daily[ticker].dropna())
             sqz_on, sqz_fired = check_ttm_squeeze(df_c, df_h, df_l)
 
-            # Master Tag Logic (Added Base Ignition)
+            # Master Tag Logic (Safe Formatting Without Bracket Clashes)
             if is_base_ignition: hor, sl_m, tag = "Pre-Breakout", 0.8, "🌱 Base Ignition"
             elif sqz_fired: hor, sl_m, tag = "Pre-Breakout", 1.0, "🔥 Squeeze Breakout"
             elif sqz_on and is_pre_breakout: hor, sl_m, tag = "Pre-Breakout", 1.0, "🗜️ TTM Squeeze Coil"
@@ -517,7 +531,7 @@ def run():
             else: continue
             
             if is_rsi_div: tag += " (📉 +RSI Div)"
-            if is_super_trend: tag += " 🏆[Super-Trend]"
+            if is_super_trend: tag += " 🏆 Super-Trend"
 
             if (close_p > d_ema and close_p > w_ema and check_structure_hh_hl(df_h, df_l)) and ((macd_val > macd_sig) if hor not in ["Pre-Breakout", "Swing"] else True) and (45 <= rsi_val <= 85) and (is_relative_strong if hor not in ["Pre-Breakout", "Swing"] else True):
                 t1, t2, t3, t4, t5 = calculate_dynamic_targets(close_p, atr, df_h, df_l, "Bullish", is_squeeze)
@@ -525,7 +539,6 @@ def run():
                 
                 if (close_p - eq_sl) <= 0: continue
                 
-                # Boost Score for Super-Trend
                 score = min(10, sum([
                     1 if close_p > d_ema else 0,
                     1 if close_p > w_ema else 0,
@@ -541,7 +554,7 @@ def run():
                 active_base_capital = BASE_CAPITAL_PER_TRADE * 0.5 if nifty_regime == "Bearish" else BASE_CAPITAL_PER_TRADE
                 
                 if is_micro_tier:
-                    tag += " ⚠️[Micro-Risk]"
+                    tag += " ⚠️ Micro-Risk"
                     score = max(0, score - 1)
                     cash_qty = int((active_base_capital * 0.5) / close_p)
                 else:
@@ -557,8 +570,8 @@ def run():
                 if "Base Ignition" in tag:
                     ez_low = round(d_ema20, 1)
                     ez_high = round(close_p, 1)
-                    best_entry = round(close_p, 1) # Buy the immediate confirmation
-                    eq_sl = round(d_ema20 - 0.5 * atr, 1) # Ultra-tight stop
+                    best_entry = round(close_p, 1)
+                    eq_sl = round(d_ema20 - 0.5 * atr, 1)
                 elif "200 MA Retest" in tag:
                     ez_low = round(d_ema200 - 0.15 * atr, 1)
                     ez_high = round(close_p + 0.1 * atr, 1)
