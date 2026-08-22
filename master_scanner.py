@@ -485,10 +485,19 @@ def run():
 
             is_squeeze = (recent_vol_avg < vol_50_avg * 0.85) and (recent_range_avg < atr * 0.85)
             is_relative_strong = (float(df_c.iloc[-1] / df_c.iloc[-20] - 1) > nifty_return_20d) if len(df_c) >= 20 else False
-            
             is_pre_breakout = (0.002 <= ((recent_high - close_p)/close_p) <= 0.035) and (close_p > d_ema20) and (vol_vs <= 1.25)
             is_200ma_retest = (d_ema200 > 0) and (abs(close_p - d_ema200)/d_ema200 <= 0.025) and (vol_vs <= 1.0) and (close_p >= d_ema200)
-            is_swing_retest = (0.025 <= ((recent_high - close_p)/close_p) <= 0.15) and (0.0 <= ((close_p - d_ema20)/d_ema20) <= 0.04) and (vol_vs <= 1.0)
+            
+            # 🛡️ STRICT RETEST GUARDRAILS (Floor, Wick, Momentum)
+            lower_wick_ok = True if daily_range == 0 else (close_p >= (float(df_l.iloc[-1]) + 0.35 * daily_range))
+            is_swing_retest = (
+                (0.025 <= ((recent_high - close_p) / close_p) <= 0.15) and
+                (close_p >= d_ema20) and                            
+                (float(df_l.iloc[-1]) <= d_ema20 * 1.015) and       
+                (vol_vs <= 1.0) and                                 
+                lower_wick_ok and                                   
+                (macd_val - macd_sig >= -0.15 * atr)                
+            )
             
             recent_daily_high = float(df_h.iloc[-1])
             is_btst = (close_p >= 0.98 * recent_daily_high) and (close_p > prev_close) and (close_p > d_ema20) and (vol_vs >= 1.0) and (50 <= rsi_val <= 75)
